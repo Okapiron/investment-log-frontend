@@ -1,0 +1,187 @@
+:root {
+  --bg: #f6f7f2;
+  --surface: #ffffff;
+  --text: #1f2937;
+  --muted: #6b7280;
+  --accent: #2a9d8f;
+  --danger: #c1121f;
+  --border: #d6d8cf;
+}
+
+* { box-sizing: border-box; }
+body {
+  margin: 0;
+  font-family: "Avenir Next", "Hiragino Kaku Gothic ProN", "Yu Gothic", sans-serif;
+  color: var(--text);
+  background: radial-gradient(circle at top, #eaf7f0, var(--bg));
+}
+
+.app-shell { min-height: 100vh; }
+.header {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  align-items: stretch;
+  padding: 16px 24px;
+  background: linear-gradient(120deg, #264653, #2a9d8f);
+  color: #fff;
+}
+.mode-tabs {
+  display: flex;
+  gap: 8px;
+}
+.mode-tab {
+  color: #dbe7e2;
+  text-decoration: none;
+  border: 1px solid rgba(255, 255, 255, 0.35);
+  border-radius: 999px;
+  padding: 6px 12px;
+}
+.mode-tab.active {
+  color: #16312f;
+  background: #f1fff8;
+  border-color: #f1fff8;
+}
+.header-main {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px;
+  align-items: center;
+  justify-content: space-between;
+}
+.header h1 { margin: 0; font-size: 20px; }
+nav { display: flex; gap: 10px; flex-wrap: wrap; }
+.nav-link {
+  color: #dbe7e2;
+  text-decoration: none;
+  padding: 6px 10px;
+  border-radius: 999px;
+}
+.nav-link.active, .nav-link:hover { background: rgba(255,255,255,0.2); color: #fff; }
+
+.container { max-width: 1200px; margin: 0 auto; padding: 20px; }
+h2 { margin-top: 0; }
+
+.cards { display: grid; gap: 12px; margin-bottom: 16px; }
+.card {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  padding: 14px;
+}
+.big-number { font-size: 32px; margin: 8px 0; }
+.meta { color: var(--muted); font-size: 14px; }
+
+.chart-grid {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 12px;
+}
+.chart-card .chart-wrap { width: 100%; height: 340px; }
+.chart-card.wide .chart-wrap { height: 380px; }
+.chart-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 12px;
+}
+.range-row { display: flex; gap: 8px; }
+
+.filters {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px;
+  margin-bottom: 14px;
+}
+
+.monthly-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-end;
+  gap: 12px;
+  margin-bottom: 12px;
+}
+
+.monthly-controls {
+  display: flex;
+  gap: 10px;
+  align-items: flex-end;
+}
+
+.account-block {
+  margin-top: 12px;
+}
+
+.form-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+  gap: 10px;
+  margin-bottom: 14px;
+}
+label {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  font-size: 14px;
+}
+input, select, button {
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  padding: 8px 10px;
+  font-size: 14px;
+}
+button {
+  background: var(--accent);
+  color: #111;
+  border: none;
+  cursor: pointer;
+  padding: 8px 12px;
+  border-radius: 6px;
+}
+
+/* タグチップ用 */
+button.tag-chip {
+  background: #fff;
+  color: #111;
+  border: 1px solid #ddd;
+}
+button.danger { background: var(--danger); }
+.button-row { display: flex; gap: 8px; align-items: flex-end; }
+.check-row {
+  flex-direction: row;
+  align-items: center;
+  gap: 8px;
+  margin-top: 22px;
+}
+
+.table {
+  width: 100%;
+  border-collapse: collapse;
+  background: #fff;
+  border: 1px solid var(--border);
+}
+.table th, .table td {
+  border-bottom: 1px solid var(--border);
+  text-align: left;
+  padding: 10px;
+  font-size: 14px;
+}
+.action-cell { display: flex; gap: 8px; }
+.error { color: var(--danger); }
+.field-error { color: var(--danger); font-size: 12px; }
+.empty { color: var(--muted); }
+.cta-link {
+  display: inline-block;
+  margin-top: 8px;
+  color: #fff;
+  background: var(--accent);
+  padding: 8px 12px;
+  border-radius: 8px;
+  text-decoration: none;
+}
+
+@media (min-width: 900px) {
+  .chart-grid {
+    grid-template-columns: 1fr 2fr;
+  }
+}

@@ -1,0 +1,591 @@
+import { useEffect, useMemo, useRef, useState } from 'react'
+import { useNavigate, Link } from 'react-router-dom'
+import { api } from '../lib/api'
+import { TAG_OPTIONS } from '../lib/tags'
+
+function normalizeSymbol(_market, raw) {
+  const s = String(raw || '').trim()
+  if (!s) return ''
+
+  // 全角英数字 → 半角英数字
+  const half = s.replace(/[０-９Ａ-Ｚａ-ｚ]/g, (ch) => {
+    return String.fromCharCode(ch.charCodeAt(0) - 0xfee0)
+  })
+
+  // 半角英数字のみに絞る + 大文字化 + 5文字制限
+  return half
+    .replace(/[^0-9A-Za-z]/g, '')
+    .toUpperCase()
+    .slice(0, 5)
+}
+
+function normalizeYmd(value) {
+  const raw = String(value || '')
+  // 全角数字 → 半角数字
+  const half = raw.replace(/[０-９]/g, (ch) => String.fromCharCode(ch.charCodeAt(0) - 0xfee0))
+  const digits = half.replace(/[^0-9]/g, '').slice(0, 8)
+  const y = digits.slice(0, 4)
+  const m = digits.slice(4, 6)
+  const d = digits.slice(6, 8)
+  if (digits.length <= 4) return y
+  if (digits.length <= 6) return `${y}-${m}`
+  return `${y}-${m}-${d}`
+}
+
+function isFullYmd(value) {
+  return /^\d{4}-\d{2}-\d{2}$/.test(String(value || ''))
+}
+
+
+function toHalfWidthDigits(raw) {
+  return String(raw || '').replace(/[０-９]/g, (ch) => String.fromCharCode(ch.charCodeAt(0) - 0xfee0))
+}
+
+function normalizeDecimalInput(raw) {
+  // 全角数字・全角ドット・カンマ等を吸収して "1234.56" 形式へ
+  const half = toHalfWidthDigits(raw)
+    .replace(/[．。]/g, '.')
+    .replace(/[，,、\s]/g, '')
+
+  const cleaned = half.replace(/[^0-9.]/g, '')
+  const firstDot = cleaned.indexOf('.')
+  if (firstDot === -1) return cleaned
+  // keep only the first dot
+  const head = cleaned.slice(0, firstDot + 1)
+  const tail = cleaned.slice(firstDot + 1).replace(/\./g, '')
+  return head + tail
+}
+
+function normalizeIntInput(raw) {
+  const half = toHalfWidthDigits(raw).replace(/[，,、\s]/g, '')
+  return half.replace(/[^0-9]/g, '')
+}
+
+function parseNumberOrNull(v) {
+  const n = Number(v)
+  if (!Number.isFinite(n)) return null
+  return n
+}
+
+function addTagCSV(csv, tag) {
+  if (tag === '未設定') return ''
+  const parts = (csv || '')
+    .split(',')
+    .map((x) => x.trim())
+    .filter(Boolean)
+
+  if (!parts.includes(tag)) parts.push(tag)
+  return parts.join(',')
+}
+
+function removeTagCSV(csv, tag) {
+  const target = String(tag || '').trim()
+  if (!target) return (csv || '').trim()
+  if (target === '未設定') return ''
+
+  return (csv || '')
+    .split(',')
+    .map((x) => x.trim())
+    .filter(Boolean)
+    .filter((x) => x !== target)
+    .join(',')
+}
+
+function hasTagCSV(csv, tag) {
+  const target = String(tag || '').trim()
+  if (!target) return false
+  if (target === '未設定') return (csv || '').trim() === ''
+
+  return (csv || '')
+    .split(',')
+    .map((x) => x.trim())
+    .filter(Boolean)
+    .some((x) => x === target)
+}
+
+function toggleTagCSV(csv, tag) {
+  return hasTagCSV(csv, tag) ? removeTagCSV(csv, tag) : addTagCSV(csv, tag)
+}
+
+export default function TradesNewPage() {
+  const navigate = useNavigate()
+
+  const [market, setMarket] = useState('JP')
+  const [symbol, setSymbol] = useState('')
+  const [name, setName] = useState('')
+  const [buyDate, setBuyDate] = useState('')
+  const [buyPrice, setBuyPrice] = useState('')
+  const [qty, setQty] = useState('')
+  const [isOpen, setIsOpen] = useState(false)
+  const [sellDate, setSellDate] = useState('')
+  const [sellPrice, setSellPrice] = useState('')
+  const [notesBuy, setNotesBuy] = useState('')
+  const [notesSell, setNotesSell] = useState('')
+  const [notesReview, setNotesReview] = useState('')
+  const [rating, setRating] = useState(0)
+  const [tags, setTags] = useState('')
+  const [error, setError] = useState(null)
+
+  const [toast, setToast] = useState('')
+  const toastTimerRef = useRef(null)
+  const buyDatePickerRef = useRef(null)
+  const sellDatePickerRef = useRef(null)
+
+  function showToast(message) {
+    setToast(message)
+    if (toastTimerRef.current) clearTimeout(toastTimerRef.current)
+    toastTimerRef.current = setTimeout(() => {
+      setToast('')
+      toastTimerRef.current = null
+    }, 1800)
+  }
+
+  useEffect(() => {
+    return () => {
+      if (toastTimerRef.current) clearTimeout(toastTimerRef.current)
+    }
+  }, [])
+
+  function handleKeyNav(e) {
+    const key = e.key
+
+    // Japanese IMEなどの変換確定中はEnterでフォーカス移動しない
+    if (e.isComposing || e.keyCode === 229) return
+
+    function getNavElements(form) {
+      if (!form) return []
+      return Array.from(form.elements).filter((el) => {
+        const tag = el.tagName
+        if (tag !== 'INPUT' && tag !== 'SELECT' && tag !== 'TEXTAREA') return false
+        // navigation: skip disabled / hidden / submit buttons
+        if (el.disabled) return false
+        if (el.type === 'submit') return false
+
+        // hidden picker inputs should not be part of Enter navigation
+        if (el.tabIndex < 0) return false
+        if (el.getAttribute && el.getAttribute('aria-hidden') === 'true') return false
+
+        return true
+      })
+    }
+
+    function focusNext() {
+      const form = e.target.form
+      const elements = getNavElements(form)
+      const index = elements.indexOf(e.target)
+      if (index > -1 && index + 1 < elements.length) {
+        elements[index + 1].focus()
+      }
+    }
+
+    function focusPrev() {
+      const form = e.target.form
+      const elements = getNavElements(form)
+      const index = elements.indexOf(e.target)
+      if (index > 0) {
+        elements[index - 1].focus()
+      }
+    }
+
+    if (key === 'Enter') {
+      // Checkbox: Shift+Enter toggles ON/OFF, Enter moves next
+      if (e.target.type === 'checkbox') {
+        e.preventDefault()
+        if (e.shiftKey) {
+          e.target.click()
+        } else {
+          focusNext()
+        }
+        return
+      }
+
+      // Textarea: Shift+Enter = newline (default), Enter moves next
+      if (e.target.tagName === 'TEXTAREA') {
+        if (e.shiftKey) return
+        e.preventDefault()
+        focusNext()
+        return
+      }
+
+      // Other fields: Enter moves next, Shift+Enter does nothing (do not submit)
+      if (e.shiftKey) {
+        e.preventDefault()
+        return
+      }
+
+      e.preventDefault()
+      if (e.target.name === 'symbol') {
+        setSymbol((prev) => normalizeSymbol(market, prev))
+      }
+      focusNext()
+      return
+    }
+
+    if (key === 'Escape') {
+      e.preventDefault()
+      focusPrev()
+    }
+  }
+
+  function openDatePicker(ref) {
+    const el = ref?.current
+    if (!el) return
+    // Chrome / modern browsers
+    if (typeof el.showPicker === 'function') {
+      el.showPicker()
+      return
+    }
+    // Fallback
+    el.focus()
+    el.click()
+  }
+
+  // symbolの整形（market変更時も）
+  useEffect(() => {
+    setSymbol((prev) => normalizeSymbol(market, prev))
+  }, [market])
+
+  const clientValidationError = useMemo(() => {
+    const sym = normalizeSymbol(market, symbol)
+    if (!sym) return '銘柄（symbol）を入力してください'
+    if (!/^[0-9A-Z]{1,5}$/.test(sym)) return '銘柄（symbol）は半角英数字5文字以内で入力してください'
+
+    const bp = parseNumberOrNull(buyPrice)
+    const sp = parseNumberOrNull(sellPrice)
+    const q = parseNumberOrNull(qty)
+
+    if (!buyDate) return '買い日付を入力してください'
+    if (!isFullYmd(buyDate)) return '買い日付は YYYYMMDD（例: 20260206）で入力してください'
+    if (!isOpen) {
+      if (!sellDate) return '売り日付を入力してください'
+      if (!isFullYmd(sellDate)) return '売り日付は YYYYMMDD（例: 20260206）で入力してください'
+      if (sellDate && buyDate && sellDate < buyDate) return '売り日付は買い日付以降にしてください'
+    }
+
+    if (bp === null || bp <= 0) return '買値は 0 より大きい数で入力してください'
+    if (!isOpen && (sp === null || sp <= 0)) return '売値は 0 より大きい数で入力してください'
+    if (q === null || q <= 0) return '数量は 0 より大きい数で入力してください'
+
+    return null
+  }, [market, symbol, buyDate, sellDate, buyPrice, sellPrice, qty, isOpen])
+
+  async function handleSubmit(e) {
+    e.preventDefault()
+    setError(null)
+
+    const sym = normalizeSymbol(market, symbol)
+    const bp = Number(buyPrice)
+    const sp = Number(sellPrice)
+    const q = Number(qty)
+
+    if (clientValidationError) {
+      setError(clientValidationError)
+      return
+    }
+
+    try {
+      await api.post('/trades', {
+        market,
+        symbol: sym,
+        name: name?.trim() || null,
+
+        notes_buy: notesBuy?.trim() || null,
+        notes_sell: notesSell?.trim() || null,
+        notes_review: notesReview?.trim() || null,
+
+        rating: rating ? Number(rating) : null,
+        tags: tags?.trim() || null,
+
+        chart_image_url: null,
+
+        fills: isOpen
+          ? [{ side: 'buy', date: buyDate, price: bp, qty: q, fee: 0 }]
+          : [
+              { side: 'buy', date: buyDate, price: bp, qty: q, fee: 0 },
+              { side: 'sell', date: sellDate, price: sp, qty: q, fee: 0 },
+            ],
+      })
+
+      showToast('保存しました')
+      setTimeout(() => navigate('/trades'), 400)
+      return
+    } catch (err) {
+      setError(err.message || 'エラーが発生しました')
+    }
+  }
+
+  return (
+    <div style={{ padding: 16, maxWidth: 700, margin: '0 auto' }}>
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 12 }}>
+        <h2 style={{ margin: 0 }}>新規トレード作成</h2>
+        <Link to="/trades" style={{ textDecoration: 'none' }}>
+          <button>← 一覧へ</button>
+        </Link>
+      </div>
+
+      <form onSubmit={handleSubmit} style={{ display: 'grid', gap: 12, marginTop: 12 }}>
+        <div style={{ display: 'grid', gap: 8 }}>
+          <label style={{ fontWeight: 700 }}>市場</label>
+          <select value={market} onChange={(e) => setMarket(e.target.value)} onKeyDown={handleKeyNav}>
+            <option value="JP">JP</option>
+            <option value="US">US</option>
+          </select>
+        </div>
+
+        <div style={{ display: 'grid', gap: 8 }}>
+          <label style={{ fontWeight: 700 }}>銘柄コード</label>
+          <input
+            name="symbol"
+            placeholder="symbol (例: 7203 / AAPL)"
+            value={symbol}
+            onChange={(e) => setSymbol(normalizeSymbol(market, e.target.value))}
+            onBlur={() => setSymbol((prev) => normalizeSymbol(market, prev))}
+            required
+            maxLength={5}
+            inputMode="text"
+            onKeyDown={handleKeyNav}
+          />
+        </div>
+
+        <div style={{ display: 'grid', gap: 8 }}>
+          <label style={{ fontWeight: 700 }}>表示名（任意）</label>
+          <input
+            placeholder="例：トヨタ"
+            value={name}
+            onChange={(e) => setName(e.target.value)}
+            onKeyDown={handleKeyNav}
+          />
+        </div>
+
+        <div style={{ border: '1px solid #ddd', borderRadius: 12, padding: 12, display: 'grid', gap: 10 }}>
+          <div style={{ fontWeight: 700 }}>BUY</div>
+          <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
+            <input
+              type="text"
+              inputMode="numeric"
+              placeholder="YYYYMMDD（例: 20260206）"
+              value={buyDate}
+              onChange={(e) => setBuyDate(normalizeYmd(e.target.value))}
+              onBlur={() => setBuyDate((v) => normalizeYmd(v))}
+              required
+              onKeyDown={handleKeyNav}
+              style={{ flex: 1 }}
+            />
+            <button
+              type="button"
+              onClick={() => openDatePicker(buyDatePickerRef)}
+              style={{ border: '1px solid #ddd', background: '#fff', borderRadius: 10, padding: '8px 10px', cursor: 'pointer' }}
+              title="カレンダーから選択"
+            >
+              📅
+            </button>
+            <input
+              ref={buyDatePickerRef}
+              type="date"
+              value={isFullYmd(buyDate) ? buyDate : ''}
+              onChange={(e) => setBuyDate(e.target.value)}
+              style={{ position: 'absolute', opacity: 0, width: 1, height: 1, pointerEvents: 'none' }}
+              tabIndex={-1}
+              aria-hidden="true"
+            />
+          </div>
+          <input
+            type="text"
+            inputMode="decimal"
+            placeholder="買値"
+            value={buyPrice}
+            onChange={(e) => setBuyPrice(normalizeDecimalInput(e.target.value))}
+            required
+            onKeyDown={handleKeyNav}
+          />
+          <input
+            type="text"
+            inputMode="numeric"
+            placeholder="数量（SELLにも自動コピー）"
+            value={qty}
+            onChange={(e) => setQty(normalizeIntInput(e.target.value))}
+            required
+            onKeyDown={handleKeyNav}
+          />
+        </div>
+
+        <label style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+          <input
+            type="checkbox"
+            checked={isOpen}
+            onChange={(e) => setIsOpen(e.target.checked)}
+            onKeyDown={handleKeyNav}
+          />
+          <span style={{ fontWeight: 700 }}>保有中（未売却）</span>
+        </label>
+
+        <div style={{ border: '1px solid #ddd', borderRadius: 12, padding: 12, display: 'grid', gap: 10 }}>
+          <div style={{ fontWeight: 700 }}>SELL</div>
+          <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
+            <input
+              type="text"
+              inputMode="numeric"
+              placeholder="YYYYMMDD（例: 20260206）"
+              value={sellDate}
+              onChange={(e) => setSellDate(normalizeYmd(e.target.value))}
+              onBlur={() => setSellDate((v) => normalizeYmd(v))}
+              required={!isOpen}
+              disabled={isOpen}
+              onKeyDown={handleKeyNav}
+              style={{ flex: 1 }}
+            />
+            <button
+              type="button"
+              onClick={() => openDatePicker(sellDatePickerRef)}
+              disabled={isOpen}
+              style={{
+                border: '1px solid #ddd',
+                background: '#fff',
+                borderRadius: 10,
+                padding: '8px 10px',
+                cursor: isOpen ? 'not-allowed' : 'pointer',
+                opacity: isOpen ? 0.5 : 1,
+              }}
+              title={isOpen ? '未売却のため選択できません' : 'カレンダーから選択'}
+            >
+              📅
+            </button>
+            <input
+              ref={sellDatePickerRef}
+              type="date"
+              value={isFullYmd(sellDate) ? sellDate : ''}
+              onChange={(e) => setSellDate(e.target.value)}
+              disabled={isOpen}
+              style={{ position: 'absolute', opacity: 0, width: 1, height: 1, pointerEvents: 'none' }}
+              tabIndex={-1}
+              aria-hidden="true"
+            />
+          </div>
+          <input
+            type="text"
+            inputMode="decimal"
+            placeholder="売値"
+            value={sellPrice}
+            onChange={(e) => setSellPrice(normalizeDecimalInput(e.target.value))}
+            required={!isOpen}
+            disabled={isOpen}
+            onKeyDown={handleKeyNav}
+          />
+          <div style={{ fontSize: 12, opacity: 0.75 }}>
+            {isOpen ? (
+              <>未売却のため SELL は入力しません</>
+            ) : (
+              <>数量: <b>{qty || '—'}</b>（BUYと同じ数量で保存します）</>
+            )}
+          </div>
+        </div>
+
+        <div style={{ border: '1px solid #ddd', borderRadius: 12, padding: 12, display: 'grid', gap: 10 }}>
+          <div style={{ fontWeight: 700 }}>思考ログ</div>
+
+          <textarea
+            placeholder="購入理由"
+            value={notesBuy}
+            onChange={(e) => setNotesBuy(e.target.value)}
+            rows={3}
+            onKeyDown={handleKeyNav}
+          />
+
+          <textarea
+            placeholder="売却理由"
+            value={notesSell}
+            onChange={(e) => setNotesSell(e.target.value)}
+            rows={3}
+            onKeyDown={handleKeyNav}
+          />
+
+          <textarea
+            placeholder="考察"
+            value={notesReview}
+            onChange={(e) => setNotesReview(e.target.value)}
+            rows={3}
+            onKeyDown={handleKeyNav}
+          />
+        </div>
+
+        <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
+          <label style={{ fontWeight: 700 }}>自己評価</label>
+          <select value={rating} onChange={(e) => setRating(e.target.value)} onKeyDown={handleKeyNav}>
+            <option value={0}>—</option>
+            <option value={1}>1</option>
+            <option value={2}>2</option>
+            <option value={3}>3</option>
+            <option value={4}>4</option>
+            <option value={5}>5</option>
+          </select>
+        </div>
+
+        <div style={{ border: '1px solid #ddd', borderRadius: 12, padding: 12, display: 'grid', gap: 10 }}>
+          <div style={{ fontWeight: 700 }}>タグ</div>
+          <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8 }}>
+            {TAG_OPTIONS.map((t) => {
+              const active = hasTagCSV(tags, t)
+              return (
+                <button
+                  key={t}
+                  type="button"
+                  onClick={() => setTags((prev) => toggleTagCSV(prev, t))}
+                  style={{
+                    border: active ? '1px solid #2a9d8f' : '1px solid #ddd',
+                    borderRadius: 999,
+                    padding: '6px 10px',
+                    background: active ? '#e8f7f4' : '#fff',
+                    cursor: 'pointer',
+                    fontSize: 12,
+                    color: '#111',
+                    fontWeight: 600,
+                    lineHeight: 1.2,
+                    display: 'inline-flex',
+                    alignItems: 'center',
+                    gap: 6,
+                  }}
+                  title={active ? 'クリックでタグを外す' : t === '未設定' ? 'クリックで未設定にする' : 'クリックでタグに追加'}
+                >
+                  {active ? '✓' : '+'} {t}
+                </button>
+              )
+            })}
+          </div>
+
+          <div style={{ fontSize: 12, opacity: 0.75 }}>
+            現在: <b>{(tags || '').trim() || '—'}</b>
+          </div>
+        </div>
+
+        <button type="submit" disabled={Boolean(clientValidationError)} title={clientValidationError || ''}>
+          保存
+        </button>
+
+        {clientValidationError ? (
+          <p style={{ margin: 0, color: '#b42318' }}>入力チェック: {clientValidationError}</p>
+        ) : null}
+
+        {error ? <p style={{ margin: 0, color: 'crimson' }}>{error}</p> : null}
+      </form>
+      {toast ? (
+        <div
+          role="status"
+          style={{
+            position: 'fixed',
+            right: 16,
+            bottom: 16,
+            background: '#111',
+            color: '#fff',
+            padding: '10px 12px',
+            borderRadius: 10,
+            fontSize: 13,
+            boxShadow: '0 6px 20px rgba(0,0,0,0.18)',
+            zIndex: 9999,
+          }}
+        >
+          {toast}
+        </div>
+      ) : null}
+    </div>
+  )
+}
