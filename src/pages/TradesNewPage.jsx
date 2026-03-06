@@ -131,6 +131,8 @@ export default function TradesNewPage() {
   const navigate = useNavigate()
 
   const MARKET_STORAGE_KEY = 'trades_new_market'
+  const INSTRUMENT_CACHE_KEY = 'trades_instrument_cache_v1'
+  const JP_MASTER_CACHE_KEY = 'trades_jp_master_cache_v1'
 
   const [market, setMarket] = useState('JP')
   const marketInitializedRef = useRef(false)
@@ -162,6 +164,60 @@ export default function TradesNewPage() {
 
   // 最近使った銘柄のサジェスト
   const [recentInstruments, setRecentInstruments] = useState([])
+  const [cachedInstruments, setCachedInstruments] = useState([])
+  const [jpInstruments, setJpInstruments] = useState([])
+  const [jpLoadState, setJpLoadState] = useState('idle')
+  const jpLoadStartedRef = useRef(false)
+  // Load instrument cache (履歴ゼロでも入力を回すため)
+  useEffect(() => {
+    try {
+      const raw = localStorage.getItem(INSTRUMENT_CACHE_KEY)
+      const parsed = raw ? JSON.parse(raw) : []
+      if (Array.isArray(parsed)) {
+        setCachedInstruments(parsed)
+      }
+    } catch {
+      // ignore
+    }
+  }, [])
+
+  async function loadJpInstrumentsIfNeeded() {
+    if (jpLoadStartedRef.current || jpLoadState !== 'idle') return
+    jpLoadStartedRef.current = true
+    setJpLoadState('loading')
+
+    try {
+      const rawCache = localStorage.getItem(JP_MASTER_CACHE_KEY)
+      const parsedCache = rawCache ? JSON.parse(rawCache) : null
+      if (Array.isArray(parsedCache) && parsedCache.length > 0) {
+        setJpInstruments(parsedCache)
+        setJpLoadState('loaded')
+        return
+      }
+    } catch {
+      // ignore cache parse errors and fallback to fetch
+    }
+
+    try {
+      const res = await fetch('/jp_instruments.json')
+      if (!res.ok) {
+        throw new Error(`jp master fetch failed: ${res.status}`)
+      }
+      const json = await res.json()
+      if (!Array.isArray(json)) {
+        throw new Error('jp master json is not an array')
+      }
+      setJpInstruments(json)
+      setJpLoadState('loaded')
+      try {
+        localStorage.setItem(JP_MASTER_CACHE_KEY, JSON.stringify(json))
+      } catch {
+        // ignore cache write errors
+      }
+    } catch {
+      setJpLoadState('error')
+    }
+  }
   const symbolNameMapRef = useRef(new Map())
 
   function showToast(message) {
@@ -210,7 +266,7 @@ export default function TradesNewPage() {
       try {
         // 直近のトレードから候補を作る（limitは軽めに）
         const res = await api.get('/api/v1/trades?limit=200&offset=0')
-        const items = Array.isArray(res?.items) ? res.items : []
+        const items = Array.isArray(res?.data?.items) ? res.data.items : []
 
         const map = new Map()
         const instMap = new Map()
@@ -287,8 +343,18 @@ export default function TradesNewPage() {
 
     US_STOCK_CANDIDATES.forEach((c) => addCandidate(c, false))
     recentInstruments.forEach((c) => addCandidate(c, true))
+    cachedInstruments.forEach((c) => addCandidate(c, true))
+    jpInstruments.forEach((c) => addCandidate(c, false))
 
     const query = String(instrumentQuery || '').trim().toLowerCase()
+
+    // If query looks like a JP stock code (4-5 digits), offer a JP candidate even when there is no history yet.
+    const rawQ = String(instrumentQuery || '').trim()
+    const qDigits = rawQ.replace(/[^0-9]/g, '').slice(0, 5)
+    if (qDigits.length >= 4 && qDigits.length <= 5) {
+      addCandidate({ market: 'JP', symbol: qDigits, name: null, aliases: [qDigits] }, false)
+    }
+
     const list = Array.from(merged.values())
       .map((c) => {
         const symbols = [c.symbol.toLowerCase(), (c.name || '').toLowerCase(), ...c.aliases.map((a) => a.toLowerCase())]
@@ -310,7 +376,7 @@ export default function TradesNewPage() {
       })
 
     return list.slice(0, 12)
-  }, [instrumentQuery, recentInstruments, market])
+  }, [instrumentQuery, recentInstruments, cachedInstruments, jpInstruments, market])
 
   useEffect(() => {
     setActiveCandidateIndex(0)
@@ -449,6 +515,22 @@ export default function TradesNewPage() {
     setInstrumentConfirmed(true)
     setInstrumentOpen(false)
     setInstrumentQuery(`${pickedSymbol} / ${pickedName || '—'}（${pickedMarket}）`)
+
+    // Persist to local cache so it appears as a candidate next time (even with zero backend history)
+    try {
+      const raw = localStorage.getItem(INSTRUMENT_CACHE_KEY)
+      const parsed = raw ? JSON.parse(raw) : []
+      const arr = Array.isArray(parsed) ? parsed : []
+      const key = `${pickedMarket}:${pickedSymbol}`
+      const next = [
+        { market: pickedMarket, symbol: pickedSymbol, name: pickedName || null, aliases: [pickedSymbol, pickedName].filter(Boolean) },
+        ...arr.filter((x) => `${x?.market}:${normalizeSymbol(x?.market, x?.symbol)}` !== key),
+      ].slice(0, 200)
+      localStorage.setItem(INSTRUMENT_CACHE_KEY, JSON.stringify(next))
+      setCachedInstruments(next)
+    } catch {
+      // ignore
+    }
   }
 
   function clearConfirmedInstrument() {
@@ -582,6 +664,7 @@ export default function TradesNewPage() {
               value={instrumentQuery}
               readOnly={instrumentConfirmed}
               onFocus={() => {
+                loadJpInstrumentsIfNeeded()
                 if (!instrumentConfirmed) setInstrumentOpen(true)
               }}
               onChange={(e) => {
@@ -598,7 +681,7 @@ export default function TradesNewPage() {
               </button>
             ) : null}
           </div>
-          {!instrumentConfirmed && instrumentOpen && instrumentCandidates.length > 0 ? (
+          {!instrumentConfirmed && instrumentOpen && (instrumentCandidates.length > 0 || jpLoadState === 'loading') ? (
             <div
               style={{
                 position: 'absolute',
@@ -614,6 +697,11 @@ export default function TradesNewPage() {
                 overflowY: 'auto',
               }}
             >
+              {jpLoadState === 'loading' ? (
+                <div style={{ padding: '8px 10px', fontSize: 12, color: '#475467', borderBottom: instrumentCandidates.length ? '1px solid #f2f4f7' : 'none' }}>
+                  JP銘柄マスター読込中...
+                </div>
+              ) : null}
               {instrumentCandidates.map((c, idx) => (
                 <button
                   key={`${c.market}:${c.symbol}`}
