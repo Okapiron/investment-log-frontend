@@ -3,3 +3,7 @@ dist/
 .env
 .env.*
 .DS_Store
+
+# JPX source files (do not commit)
+/tools/jpx/*.xls
+/tools/jpx/*.xlsx
