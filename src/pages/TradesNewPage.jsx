@@ -3,6 +3,26 @@ import { useNavigate, Link } from 'react-router-dom'
 import { api } from '../lib/api'
 import { TAG_OPTIONS } from '../lib/tags'
 
+const US_STOCK_CANDIDATES = [
+  { market: 'US', symbol: 'AAPL', name: 'Apple Inc', aliases: ['AAPL', 'Apple', 'Apple Inc'] },
+  { market: 'US', symbol: 'MSFT', name: 'Microsoft Corp', aliases: ['MSFT', 'Microsoft', 'Microsoft Corp'] },
+  { market: 'US', symbol: 'NVDA', name: 'NVIDIA Corp', aliases: ['NVDA', 'NVIDIA', 'Nvidia'] },
+  { market: 'US', symbol: 'AMZN', name: 'Amazon.com Inc', aliases: ['AMZN', 'Amazon', 'Amazon.com'] },
+  { market: 'US', symbol: 'GOOGL', name: 'Alphabet Inc', aliases: ['GOOGL', 'Alphabet', 'Google'] },
+  { market: 'US', symbol: 'META', name: 'Meta Platforms Inc', aliases: ['META', 'Meta', 'Facebook'] },
+  { market: 'US', symbol: 'TSLA', name: 'Tesla Inc', aliases: ['TSLA', 'Tesla'] },
+  { market: 'US', symbol: 'AVGO', name: 'Broadcom Inc', aliases: ['AVGO', 'Broadcom'] },
+  { market: 'US', symbol: 'COST', name: 'Costco Wholesale Corp', aliases: ['COST', 'Costco'] },
+  { market: 'US', symbol: 'NFLX', name: 'Netflix Inc', aliases: ['NFLX', 'Netflix'] },
+  { market: 'US', symbol: 'AMD', name: 'Advanced Micro Devices', aliases: ['AMD', 'Advanced Micro Devices'] },
+  { market: 'US', symbol: 'INTC', name: 'Intel Corp', aliases: ['INTC', 'Intel'] },
+  { market: 'US', symbol: 'QCOM', name: 'Qualcomm Inc', aliases: ['QCOM', 'Qualcomm'] },
+  { market: 'US', symbol: 'ADBE', name: 'Adobe Inc', aliases: ['ADBE', 'Adobe'] },
+  { market: 'US', symbol: 'CRM', name: 'Salesforce Inc', aliases: ['CRM', 'Salesforce'] },
+  { market: 'US', symbol: 'ORCL', name: 'Oracle Corp', aliases: ['ORCL', 'Oracle'] },
+  { market: 'US', symbol: 'CSCO', name: 'Cisco Systems Inc', aliases: ['CSCO', 'Cisco'] },
+]
+
 function normalizeSymbol(_market, raw) {
   const s = String(raw || '').trim()
   if (!s) return ''
@@ -110,7 +130,10 @@ function toggleTagCSV(csv, tag) {
 export default function TradesNewPage() {
   const navigate = useNavigate()
 
+  const MARKET_STORAGE_KEY = 'trades_new_market'
+
   const [market, setMarket] = useState('JP')
+  const marketInitializedRef = useRef(false)
   const [symbol, setSymbol] = useState('')
   const [name, setName] = useState('')
   const [buyDate, setBuyDate] = useState('')
@@ -125,11 +148,21 @@ export default function TradesNewPage() {
   const [rating, setRating] = useState(0)
   const [tags, setTags] = useState('')
   const [error, setError] = useState(null)
+  const [instrumentQuery, setInstrumentQuery] = useState('')
+  const [instrumentConfirmed, setInstrumentConfirmed] = useState(false)
+  const [instrumentOpen, setInstrumentOpen] = useState(false)
+  const [activeCandidateIndex, setActiveCandidateIndex] = useState(0)
 
   const [toast, setToast] = useState('')
   const toastTimerRef = useRef(null)
   const buyDatePickerRef = useRef(null)
   const sellDatePickerRef = useRef(null)
+  const instrumentWrapRef = useRef(null)
+  const instrumentInputRef = useRef(null)
+
+  // 最近使った銘柄のサジェスト
+  const [recentInstruments, setRecentInstruments] = useState([])
+  const symbolNameMapRef = useRef(new Map())
 
   function showToast(message) {
     setToast(message)
@@ -145,6 +178,166 @@ export default function TradesNewPage() {
       if (toastTimerRef.current) clearTimeout(toastTimerRef.current)
     }
   }, [])
+
+  // Restore last market selection (PCで連続入力するときの手数削減)
+  useEffect(() => {
+    if (marketInitializedRef.current) return
+    marketInitializedRef.current = true
+    try {
+      const saved = localStorage.getItem(MARKET_STORAGE_KEY)
+      if (saved === 'JP' || saved === 'US') {
+        setMarket(saved)
+      }
+    } catch {
+      // ignore
+    }
+  }, [])
+
+  // Persist market selection
+  useEffect(() => {
+    try {
+      localStorage.setItem(MARKET_STORAGE_KEY, market)
+    } catch {
+      // ignore
+    }
+  }, [market])
+
+  // 最近使った銘柄のサジェスト（入力のスピード改善）
+  useEffect(() => {
+    let cancelled = false
+
+    async function loadRecent() {
+      try {
+        // 直近のトレードから候補を作る（limitは軽めに）
+        const res = await api.get('/api/v1/trades?limit=200&offset=0')
+        const items = Array.isArray(res?.items) ? res.items : []
+
+        const map = new Map()
+        const instMap = new Map()
+
+        for (const t of items) {
+          const m = t?.market
+          const s = String(t?.symbol || '').trim().toUpperCase()
+          if (!m || !s) continue
+          const key = `${m}:${s}`
+          const nm = String(t?.name || '').trim()
+          if (nm) {
+            map.set(key, nm)
+          }
+
+           if (!instMap.has(key)) {
+            instMap.set(key, {
+              market: m,
+              symbol: s,
+              name: nm || null,
+              aliases: [s, nm || ''].filter(Boolean),
+              recent: true,
+            })
+          }
+        }
+
+        if (cancelled) return
+        symbolNameMapRef.current = map
+        setRecentInstruments(Array.from(instMap.values()))
+      } catch {
+        // ネットワークエラー等は無視（入力は継続できる）
+        if (!cancelled) {
+          setRecentInstruments([])
+        }
+      }
+    }
+
+    loadRecent()
+    return () => {
+      cancelled = true
+    }
+  }, [market])
+
+  const instrumentCandidates = useMemo(() => {
+    const merged = new Map()
+    const addCandidate = (c, isRecent = false) => {
+      const symbolNorm = normalizeSymbol(c.market, c.symbol)
+      if (!symbolNorm) return
+      const key = `${c.market}:${symbolNorm}`
+      const prev = merged.get(key)
+      const aliases = Array.from(
+        new Set(
+          [symbolNorm, c.name || '', ...(Array.isArray(c.aliases) ? c.aliases : [])]
+            .map((x) => String(x || '').trim())
+            .filter(Boolean)
+        )
+      )
+      if (!prev) {
+        merged.set(key, {
+          market: c.market,
+          symbol: symbolNorm,
+          name: c.name || null,
+          aliases,
+          recent: isRecent || Boolean(c.recent),
+        })
+      } else {
+        merged.set(key, {
+          ...prev,
+          name: prev.name || c.name || null,
+          aliases: Array.from(new Set([...prev.aliases, ...aliases])),
+          recent: prev.recent || isRecent || Boolean(c.recent),
+        })
+      }
+    }
+
+    US_STOCK_CANDIDATES.forEach((c) => addCandidate(c, false))
+    recentInstruments.forEach((c) => addCandidate(c, true))
+
+    const query = String(instrumentQuery || '').trim().toLowerCase()
+    const list = Array.from(merged.values())
+      .map((c) => {
+        const symbols = [c.symbol.toLowerCase(), (c.name || '').toLowerCase(), ...c.aliases.map((a) => a.toLowerCase())]
+        let score = 999
+        if (!query) score = 50
+        else if (symbols.some((x) => x.startsWith(query))) score = 0
+        else if (symbols.some((x) => x.includes(query))) score = 10
+        return { ...c, score }
+      })
+      .filter((c) => !query || c.score < 999)
+      .sort((a, b) => {
+        if (a.score !== b.score) return a.score - b.score
+        if (a.recent !== b.recent) return a.recent ? -1 : 1
+        if (a.market !== b.market) {
+          if (a.market === market) return -1
+          if (b.market === market) return 1
+        }
+        return a.symbol.localeCompare(b.symbol)
+      })
+
+    return list.slice(0, 12)
+  }, [instrumentQuery, recentInstruments, market])
+
+  useEffect(() => {
+    setActiveCandidateIndex(0)
+  }, [instrumentCandidates.length, instrumentQuery])
+
+  useEffect(() => {
+    function onDocMouseDown(e) {
+      if (!instrumentWrapRef.current) return
+      if (!instrumentWrapRef.current.contains(e.target)) {
+        setInstrumentOpen(false)
+      }
+    }
+    document.addEventListener('mousedown', onDocMouseDown)
+    return () => document.removeEventListener('mousedown', onDocMouseDown)
+  }, [])
+
+  // 銘柄コードから表示名を自動補完（既存データがある場合のみ）
+  useEffect(() => {
+    const sym = normalizeSymbol(market, symbol)
+    if (!sym) return
+    if (String(name || '').trim()) return
+
+    const key = `${market}:${sym}`
+    const known = symbolNameMapRef.current.get(key)
+    if (known) setName(known)
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [market, symbol])
 
   function handleKeyNav(e) {
     const key = e.key
@@ -245,7 +438,63 @@ export default function TradesNewPage() {
     setSymbol((prev) => normalizeSymbol(market, prev))
   }, [market])
 
+  function confirmInstrument(candidate) {
+    const pickedMarket = candidate.market
+    const pickedSymbol = normalizeSymbol(pickedMarket, candidate.symbol)
+    const pickedName = String(candidate.name || '').trim()
+
+    setMarket(pickedMarket)
+    setSymbol(pickedSymbol)
+    setName(pickedName)
+    setInstrumentConfirmed(true)
+    setInstrumentOpen(false)
+    setInstrumentQuery(`${pickedSymbol} / ${pickedName || '—'}（${pickedMarket}）`)
+  }
+
+  function clearConfirmedInstrument() {
+    setInstrumentConfirmed(false)
+    setInstrumentOpen(false)
+    setInstrumentQuery('')
+    setSymbol('')
+    setName('')
+    setTimeout(() => instrumentInputRef.current?.focus(), 0)
+  }
+
+  function handleInstrumentKeyDown(e) {
+    if (e.isComposing || e.keyCode === 229) return
+    if (!instrumentOpen && (e.key === 'ArrowDown' || e.key === 'ArrowUp')) {
+      setInstrumentOpen(true)
+      return
+    }
+
+    if (e.key === 'ArrowDown') {
+      e.preventDefault()
+      setActiveCandidateIndex((i) => Math.min(i + 1, Math.max(0, instrumentCandidates.length - 1)))
+      return
+    }
+    if (e.key === 'ArrowUp') {
+      e.preventDefault()
+      setActiveCandidateIndex((i) => Math.max(i - 1, 0))
+      return
+    }
+    if (e.key === 'Escape') {
+      e.preventDefault()
+      setInstrumentOpen(false)
+      return
+    }
+    if (e.key === 'Enter') {
+      if (instrumentOpen && instrumentCandidates.length > 0) {
+        e.preventDefault()
+        confirmInstrument(instrumentCandidates[activeCandidateIndex] || instrumentCandidates[0])
+        return
+      }
+      e.preventDefault()
+    }
+  }
+
   const clientValidationError = useMemo(() => {
+    if (!instrumentConfirmed) return '銘柄を候補から選択して確定してください'
+
     const sym = normalizeSymbol(market, symbol)
     if (!sym) return '銘柄（symbol）を入力してください'
     if (!/^[0-9A-Z]{1,5}$/.test(sym)) return '銘柄（symbol）は半角英数字5文字以内で入力してください'
@@ -267,7 +516,7 @@ export default function TradesNewPage() {
     if (q === null || q <= 0) return '数量は 0 より大きい数で入力してください'
 
     return null
-  }, [market, symbol, buyDate, sellDate, buyPrice, sellPrice, qty, isOpen])
+  }, [instrumentConfirmed, market, symbol, buyDate, sellDate, buyPrice, sellPrice, qty, isOpen])
 
   async function handleSubmit(e) {
     e.preventDefault()
@@ -284,7 +533,7 @@ export default function TradesNewPage() {
     }
 
     try {
-      await api.post('/trades', {
+      await api.post('/api/v1/trades', {
         market,
         symbol: sym,
         name: name?.trim() || null,
@@ -324,38 +573,71 @@ export default function TradesNewPage() {
       </div>
 
       <form onSubmit={handleSubmit} style={{ display: 'grid', gap: 12, marginTop: 12 }}>
-        <div style={{ display: 'grid', gap: 8 }}>
-          <label style={{ fontWeight: 700 }}>市場</label>
-          <select value={market} onChange={(e) => setMarket(e.target.value)} onKeyDown={handleKeyNav}>
-            <option value="JP">JP</option>
-            <option value="US">US</option>
-          </select>
+        <div ref={instrumentWrapRef} style={{ display: 'grid', gap: 8, position: 'relative' }}>
+          <label style={{ fontWeight: 700 }}>銘柄</label>
+          <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
+            <input
+              ref={instrumentInputRef}
+              placeholder="銘柄名 or 銘柄コード"
+              value={instrumentQuery}
+              readOnly={instrumentConfirmed}
+              onFocus={() => {
+                if (!instrumentConfirmed) setInstrumentOpen(true)
+              }}
+              onChange={(e) => {
+                setInstrumentQuery(e.target.value)
+                setInstrumentConfirmed(false)
+                setInstrumentOpen(true)
+              }}
+              onKeyDown={handleInstrumentKeyDown}
+              style={{ flex: 1 }}
+            />
+            {instrumentConfirmed ? (
+              <button type="button" onClick={clearConfirmedInstrument} title="銘柄確定を解除">
+                ×
+              </button>
+            ) : null}
+          </div>
+          {!instrumentConfirmed && instrumentOpen && instrumentCandidates.length > 0 ? (
+            <div
+              style={{
+                position: 'absolute',
+                top: '100%',
+                left: 0,
+                right: 0,
+                marginTop: 4,
+                border: '1px solid #ddd',
+                borderRadius: 8,
+                background: '#fff',
+                zIndex: 20,
+                maxHeight: 260,
+                overflowY: 'auto',
+              }}
+            >
+              {instrumentCandidates.map((c, idx) => (
+                <button
+                  key={`${c.market}:${c.symbol}`}
+                  type="button"
+                  onMouseDown={(e) => e.preventDefault()}
+                  onClick={() => confirmInstrument(c)}
+                  style={{
+                    width: '100%',
+                    textAlign: 'left',
+                    border: 'none',
+                    borderBottom: idx === instrumentCandidates.length - 1 ? 'none' : '1px solid #f2f4f7',
+                    background: idx === activeCandidateIndex ? '#f5fbfa' : '#fff',
+                    padding: '8px 10px',
+                    cursor: 'pointer',
+                  }}
+                >
+                  <div style={{ fontSize: 13, fontWeight: 700 }}>{c.symbol} / {c.name || '—'}（{c.market}）</div>
+                </button>
+              ))}
+            </div>
+          ) : null}
         </div>
 
-        <div style={{ display: 'grid', gap: 8 }}>
-          <label style={{ fontWeight: 700 }}>銘柄コード</label>
-          <input
-            name="symbol"
-            placeholder="symbol (例: 7203 / AAPL)"
-            value={symbol}
-            onChange={(e) => setSymbol(normalizeSymbol(market, e.target.value))}
-            onBlur={() => setSymbol((prev) => normalizeSymbol(market, prev))}
-            required
-            maxLength={5}
-            inputMode="text"
-            onKeyDown={handleKeyNav}
-          />
-        </div>
 
-        <div style={{ display: 'grid', gap: 8 }}>
-          <label style={{ fontWeight: 700 }}>表示名（任意）</label>
-          <input
-            placeholder="例：トヨタ"
-            value={name}
-            onChange={(e) => setName(e.target.value)}
-            onKeyDown={handleKeyNav}
-          />
-        </div>
 
         <div style={{ border: '1px solid #ddd', borderRadius: 12, padding: 12, display: 'grid', gap: 10 }}>
           <div style={{ fontWeight: 700 }}>BUY</div>

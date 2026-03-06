@@ -81,6 +81,12 @@ function clampPosition(value) {
   return 'all'
 }
 
+function clampReview(value) {
+  const v = String(value || '').trim()
+  if (v === 'all' || v === 'pending' || v === 'done') return v
+  return 'all'
+}
+
 function clampLimit(value) {
   const v = Number(value)
   if (v === 20 || v === 50 || v === 100) return v
@@ -123,6 +129,11 @@ function isOpenTrade(t) {
   if (!t.closed_at) return true
   const hasSell = Array.isArray(t.fills) ? t.fills.some((f) => f?.side === 'sell') : true
   return !hasSell
+}
+
+function isPendingReviewTrade(t) {
+  if (!t) return false
+  return !isOpenTrade(t) && !Boolean(t.review_done)
 }
 
 function getProfitValue(t) {
@@ -227,7 +238,8 @@ export default function TradesPage() {
     const winOnly = searchParams.get('win_only') === '1'
     const lossOnly = searchParams.get('loss_only') === '1'
     const position = clampPosition(searchParams.get('pos'))
-    return { q, market, rating, tag, position, sort, sortDir, page, limit, winFrom, winTo, winOnly, lossOnly }
+    const review = clampReview(searchParams.get('review'))
+    return { q, market, rating, tag, position, review, sort, sortDir, page, limit, winFrom, winTo, winOnly, lossOnly }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [])
 
@@ -244,6 +256,7 @@ export default function TradesPage() {
   const [winOnly, setWinOnly] = useState(() => initial.winOnly)
   const [lossOnly, setLossOnly] = useState(() => initial.lossOnly)
   const [position, setPosition] = useState(() => initial.position)
+  const [reviewFilter, setReviewFilter] = useState(() => initial.review)
 
   // state -> URL 同期（戻る対応）
   // - search(q) は入力中に履歴が増えると邪魔なので replace で更新
@@ -286,6 +299,8 @@ export default function TradesPage() {
     else next.delete('loss_only')
     if (position && position !== 'all') next.set('pos', position)
     else next.delete('pos')
+    if (reviewFilter && reviewFilter !== 'all') next.set('review', reviewFilter)
+    else next.delete('review')
 
     // q は別effectで処理（デバウンス）
     // ただし、他フィルタ更新で q が消えないよう現在の q は保持する
@@ -299,7 +314,7 @@ export default function TradesPage() {
 
     setSearchParams(next, { replace: false })
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [marketFilters, ratingFilters, tagFilters, position, sortKey, sortDir, page, limit, winFrom, winTo, winOnly, lossOnly])
+  }, [marketFilters, ratingFilters, tagFilters, position, reviewFilter, sortKey, sortDir, page, limit, winFrom, winTo, winOnly, lossOnly])
 
   // q はデバウンスして URL 更新（replaceで履歴爆発を防ぐ）
   useEffect(() => {
@@ -318,6 +333,9 @@ export default function TradesPage() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [search])
 
+  // Ref for "現在の条件" section (scroll target)
+  const activeConditionsRef = useRef(null)
+
   const pageResetRef = useRef(false)
   useEffect(() => {
     if (!pageResetRef.current) {
@@ -325,7 +343,7 @@ export default function TradesPage() {
       return
     }
     setPage(1)
-  }, [search, marketFilters, ratingFilters, tagFilters, position, sortKey, sortDir, winFrom, winTo, winOnly, lossOnly, limit])
+  }, [search, marketFilters, ratingFilters, tagFilters, position, reviewFilter, sortKey, sortDir, winFrom, winTo, winOnly, lossOnly, limit])
 
   const queryParams = useMemo(
     () => ({
@@ -336,6 +354,7 @@ export default function TradesPage() {
       rating: ratingFilters.length > 0 ? ratingFilters.join(',') : undefined,
       tag: tagFilters.length > 0 ? tagFilters.join(',') : undefined,
       pos: position !== 'all' ? position : undefined,
+      review: reviewFilter !== 'all' ? reviewFilter : undefined,
       win_only: winOnly ? '1' : undefined,
       loss_only: lossOnly ? '1' : undefined,
       win_from: winFrom || undefined,
@@ -343,7 +362,7 @@ export default function TradesPage() {
       sort: sortKey,
       sort_dir: sortDir,
     }),
-    [limit, page, search, marketFilters, ratingFilters, tagFilters, position, winOnly, lossOnly, winFrom, winTo, sortKey, sortDir]
+    [limit, page, search, marketFilters, ratingFilters, tagFilters, position, reviewFilter, winOnly, lossOnly, winFrom, winTo, sortKey, sortDir]
   )
 
   const { data, isLoading, error } = useQuery({
@@ -372,6 +391,7 @@ export default function TradesPage() {
       avgHolding: data?.stats?.avg_holding_days ?? null,
       avgRoiPct: data?.stats?.avg_roi_pct ?? null,
       avgRating: data?.stats?.avg_rating ?? null,
+      pendingReviewCount: Number(data?.stats?.pending_review_count || 0),
     }),
     [data]
   )
@@ -388,6 +408,7 @@ export default function TradesPage() {
     winOnly ||
     lossOnly ||
     position !== 'all' ||
+    reviewFilter !== 'all' ||
     winFrom ||
     winTo
 
@@ -401,10 +422,12 @@ export default function TradesPage() {
     if (lossOnly) parts.push('損切りのみ')
     if (position === 'open') parts.push('保有中')
     if (position === 'closed') parts.push('確定済')
+    if (reviewFilter === 'pending') parts.push('未レビュー')
+    if (reviewFilter === 'done') parts.push('レビュー済')
     if (winFrom || winTo) parts.push(`Period:${winFrom || '—'}〜${winTo || '—'}`)
     parts.push(`Sort:${sortLabel}(${sortDir === 'asc' ? '昇順' : '降順'})`)
     return parts.join(' / ')
-  }, [marketFilters, ratingFilters, tagFilters, position, search, sortLabel, sortDir, winOnly, lossOnly, winFrom, winTo])
+  }, [marketFilters, ratingFilters, tagFilters, position, reviewFilter, search, sortLabel, sortDir, winOnly, lossOnly, winFrom, winTo])
 
   function resetAll() {
     setSearch('')
@@ -418,6 +441,7 @@ export default function TradesPage() {
     setWinOnly(false)
     setLossOnly(false)
     setPosition('all')
+    setReviewFilter('all')
     setWinFrom('')
     setWinTo('')
   }
@@ -545,6 +569,39 @@ export default function TradesPage() {
             {stats.avgRating == null ? null : <RatingStars value={stats.avgRating} size={14} />}
           </div>
         </div>
+
+        <div style={{ display: 'grid', gap: 2 }}>
+          <div style={{ fontSize: 12, color: '#667085' }}>未レビュー件数</div>
+          <button
+            type="button"
+            onClick={() => {
+              if (stats.pendingReviewCount <= 0) return
+              setReviewFilter('pending')
+              // "現在の条件" の位置へスクロール（絞り込み結果をすぐ確認できる）
+              window.setTimeout(() => {
+                activeConditionsRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' })
+              }, 0)
+            }}
+            disabled={stats.pendingReviewCount <= 0}
+            title={stats.pendingReviewCount > 0 ? 'クリックで未レビューに絞り込み' : '未レビューはありません'}
+            aria-label="未レビュー件数で絞り込み"
+            style={{
+              fontSize: 16,
+              fontWeight: 800,
+              color: stats.pendingReviewCount > 0 ? '#b42318' : '#344054',
+              background: 'transparent',
+              border: 'none',
+              padding: 0,
+              textAlign: 'left',
+              cursor: stats.pendingReviewCount > 0 ? 'pointer' : 'not-allowed',
+              textDecoration: stats.pendingReviewCount > 0 ? 'underline' : 'none',
+              opacity: stats.pendingReviewCount > 0 ? 1 : 0.7,
+              width: 'fit-content',
+            }}
+          >
+            {stats.pendingReviewCount}
+          </button>
+        </div>
       </div>
 
       {/* 期間 + Sort（横並び） */}
@@ -654,6 +711,33 @@ export default function TradesPage() {
         </label>
 
         <div style={{ display: 'grid', gap: 4 }}>
+          <span style={{ fontSize: 12, opacity: 0.8 }}>Review</span>
+          <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6 }}>
+            <FilterChip
+              active={reviewFilter === 'all'}
+              onClick={() => {
+                if (reviewFilter === 'all') return
+                setReviewFilter('all')
+              }}
+            >
+              All
+            </FilterChip>
+            <FilterChip
+              active={reviewFilter === 'pending'}
+              onClick={() => setReviewFilter((prev) => (prev === 'pending' ? 'all' : 'pending'))}
+            >
+              未レビュー
+            </FilterChip>
+            <FilterChip
+              active={reviewFilter === 'done'}
+              onClick={() => setReviewFilter((prev) => (prev === 'done' ? 'all' : 'done'))}
+            >
+              レビュー済
+            </FilterChip>
+          </div>
+        </div>
+
+        <div style={{ display: 'grid', gap: 4 }}>
           <span style={{ fontSize: 12, opacity: 0.8 }}>Market</span>
           <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6 }}>
             <FilterChip active={marketFilters.length === 0} onClick={() => setMarketFilters([])}>All</FilterChip>
@@ -672,11 +756,30 @@ export default function TradesPage() {
         <div style={{ display: 'grid', gap: 4 }}>
           <span style={{ fontSize: 12, opacity: 0.8 }}>Position</span>
           <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6 }}>
-            <FilterChip active={position === 'all'} onClick={() => setPosition('all')}>All</FilterChip>
-            <FilterChip active={position === 'closed'} onClick={() => setPosition('closed')}>確定済</FilterChip>
-            <FilterChip active={position === 'open'} onClick={() => setPosition('open')}>保有中</FilterChip>
+            <FilterChip
+              active={position === 'all'}
+              onClick={() => {
+                if (position === 'all') return
+                setPosition('all')
+              }}
+            >
+              All
+            </FilterChip>
+            <FilterChip
+              active={position === 'closed'}
+              onClick={() => setPosition((prev) => (prev === 'closed' ? 'all' : 'closed'))}
+            >
+              確定済
+            </FilterChip>
+            <FilterChip
+              active={position === 'open'}
+              onClick={() => setPosition((prev) => (prev === 'open' ? 'all' : 'open'))}
+            >
+              保有中
+            </FilterChip>
           </div>
         </div>
+
 
         <div style={{ display: 'grid', gap: 4 }}>
           <span style={{ fontSize: 12, opacity: 0.8 }}>Result</span>
@@ -684,6 +787,7 @@ export default function TradesPage() {
             <FilterChip
               active={!winOnly && !lossOnly}
               onClick={() => {
+                if (!winOnly && !lossOnly) return
                 setWinOnly(false)
                 setLossOnly(false)
               }}
@@ -693,6 +797,11 @@ export default function TradesPage() {
             <FilterChip
               active={winOnly}
               onClick={() => {
+                if (winOnly) {
+                  setWinOnly(false)
+                  setLossOnly(false)
+                  return
+                }
                 setWinOnly(true)
                 setLossOnly(false)
               }}
@@ -702,6 +811,11 @@ export default function TradesPage() {
             <FilterChip
               active={lossOnly}
               onClick={() => {
+                if (lossOnly) {
+                  setLossOnly(false)
+                  setWinOnly(false)
+                  return
+                }
                 setLossOnly(true)
                 setWinOnly(false)
               }}
@@ -748,6 +862,7 @@ export default function TradesPage() {
 
       {/* 現在の条件 + リセット（フィルターの直下） */}
       <div
+        ref={activeConditionsRef}
         style={{
           marginTop: 6,
           display: 'flex',
@@ -842,6 +957,21 @@ export default function TradesPage() {
                     <span style={{ fontSize: 12, color: '#667085' }}>{t.market}</span>
                     <span style={{ fontSize: 16, fontWeight: 800, color: '#101828' }}>{t.symbol}</span>
                     {t.name ? <span style={{ fontSize: 13, color: '#475467' }}>({t.name})</span> : null}
+                    {isPendingReviewTrade(t) ? (
+                      <span
+                        style={{
+                          fontSize: 11,
+                          color: '#344054',
+                          background: '#fdf2f2',
+                          border: '1px solid #fecaca',
+                          borderRadius: 999,
+                          padding: '2px 8px',
+                          lineHeight: 1.2,
+                        }}
+                      >
+                        未レビュー
+                      </span>
+                    ) : null}
                   </div>
                   {(t.opened_at || t.closed_at) && (
                     <>

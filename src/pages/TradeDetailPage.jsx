@@ -1,9 +1,10 @@
-import { useQuery } from '@tanstack/react-query'
+import { useQuery, useQueryClient } from '@tanstack/react-query'
 import { Link, useParams, useNavigate } from 'react-router-dom'
 import { api, formatJPY, formatUSD } from '../lib/api'
 import { useEffect, useMemo, useState } from 'react'
 import { TAG_OPTIONS } from '../lib/tags'
 import TradeChart from '../components/TradeChart'
+import { patchTrade, updateTradeReview } from '../lib/tradesApi'
 
 function addTagCSV(csv, tag) {
   if (tag === '未設定') return ''
@@ -79,6 +80,7 @@ function findBarIndexByDateOrPrev(bars, dateStr) {
 export default function TradeDetailPage() {
   const { id } = useParams()
   const navigate = useNavigate()
+  const queryClient = useQueryClient()
 
   const [isEditing, setIsEditing] = useState(false)
   const [interval] = useState('1d')
@@ -97,7 +99,7 @@ export default function TradeDetailPage() {
 
   const { data, isLoading, error, refetch } = useQuery({
     queryKey: ['trade', id],
-    queryFn: () => api.get(`/trades/${id}`),
+    queryFn: () => api.get(`/api/v1/trades/${id}`),
   })
 
   // buy/sell は表示のみ
@@ -109,6 +111,7 @@ export default function TradeDetailPage() {
     if (!data.closed_at) return true
     return !sell
   }, [data, sell])
+  const isPendingReview = useMemo(() => !isOpen && !Boolean(data?.review_done), [isOpen, data?.review_done])
   const profitNumber = useMemo(() => {
     if (!data || isOpen) return null
     const n =
@@ -282,10 +285,11 @@ export default function TradeDetailPage() {
         notes_review: (form.notes_review || '').trim() || null,
       }
 
-      await api.patch(`/trades/${id}`, payload)
+      await patchTrade(id, payload)
 
       // 最新化
       await refetch()
+      await queryClient.invalidateQueries({ queryKey: ['trades'] })
 
       setIsEditing(false)
       setSaveMsg('保存しました')
@@ -300,10 +304,42 @@ export default function TradeDetailPage() {
 
     try {
       setSaveMsg('')
-      await api.del(`/trades/${id}`)
+      await api.del(`/api/v1/trades/${id}`)
+      await queryClient.invalidateQueries({ queryKey: ['trades'] })
       navigate('/trades')
     } catch (e) {
       setSaveMsg(`削除に失敗: ${e.message}`)
+    }
+  }
+
+  async function markReviewDone() {
+    if (!data || isOpen) return
+    if (!data.notes_review || String(data.notes_review).trim() === '') {
+      const ok = window.confirm('振り返りメモが空ですが、レビュー完了にしますか？')
+      if (!ok) return
+    }
+    try {
+      setSaveMsg('')
+      const today = new Date().toISOString().slice(0, 10)
+      await updateTradeReview(id, true, today)
+      await refetch()
+      await queryClient.invalidateQueries({ queryKey: ['trades'] })
+      setSaveMsg('レビュー完了にしました')
+    } catch (e) {
+      setSaveMsg(`レビュー更新に失敗: ${e.message}`)
+    }
+  }
+
+  async function markReviewPending() {
+    if (!data || isOpen) return
+    try {
+      setSaveMsg('')
+      await updateTradeReview(id, false, null)
+      await refetch()
+      await queryClient.invalidateQueries({ queryKey: ['trades'] })
+      setSaveMsg('未レビューに戻しました')
+    } catch (e) {
+      setSaveMsg(`レビュー更新に失敗: ${e.message}`)
     }
   }
 
@@ -355,6 +391,38 @@ export default function TradeDetailPage() {
                 >
                   保有中
                 </span>
+              ) : null}
+              {/* --- Insert review badge here --- */}
+              {!isOpen ? (
+                isPendingReview ? (
+                  <span
+                    style={{
+                      fontSize: 12,
+                      color: '#344054',
+                      background: '#fdf2f2',
+                      border: '1px solid #fecaca',
+                      borderRadius: 999,
+                      padding: '4px 10px',
+                      lineHeight: 1.2,
+                    }}
+                  >
+                    未レビュー
+                  </span>
+                ) : (
+                  <span
+                    style={{
+                      fontSize: 12,
+                      color: '#175cd3',
+                      background: '#eff8ff',
+                      border: '1px solid #b2ddff',
+                      borderRadius: 999,
+                      padding: '4px 10px',
+                      lineHeight: 1.2,
+                    }}
+                  >
+                    レビュー済{data?.reviewed_at ? ` (${data.reviewed_at})` : ''}
+                  </span>
+                )
               ) : null}
             </h2>
 
@@ -548,6 +616,8 @@ export default function TradeDetailPage() {
           </div>
         </div>
 
+        {/* (Review badge and buttons moved to header and thought log sections) */}
+
       </div>
       </div>
 
@@ -627,7 +697,8 @@ export default function TradeDetailPage() {
       </div>
 
       {/* 思考ログ */}
-      <div style={{ marginTop: 10, border: '1px solid #ddd', borderRadius: 12, padding: 10, background: '#fff', fontSize: 15, color: '#111' }}>
+      <div style={{ marginTop: 10 }}>
+        <div style={{ border: '1px solid #ddd', borderRadius: 12, padding: 10, background: '#fff', fontSize: 15, color: '#111' }}>
         <h3
           style={{
             marginTop: 0,
@@ -697,6 +768,17 @@ export default function TradeDetailPage() {
 
           {saveMsg ? <div style={{ marginTop: 2, fontSize: 12, color: '#475467' }}>{saveMsg}</div> : null}
         </div>
+        </div>
+
+        {!isOpen ? (
+          <div style={{ marginTop: 8, display: 'flex', justifyContent: 'flex-end', gap: 8, flexWrap: 'wrap' }}>
+            {isPendingReview ? (
+              <button type="button" onClick={markReviewDone}>レビュー完了</button>
+            ) : (
+              <button type="button" onClick={markReviewPending}>未レビューに戻す</button>
+            )}
+          </div>
+        ) : null}
       </div>
     </div>
   )

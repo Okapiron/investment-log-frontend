@@ -1,7 +1,25 @@
 const API_BASE = import.meta.env.VITE_API_BASE || 'http://localhost:8000/api/v1'
 
 async function request(path, options = {}) {
-  const res = await fetch(`${API_BASE}${path}`, {
+  const base = String(API_BASE || '').replace(/\/+$/, '')
+  const p = String(path || '')
+  let url = ''
+
+  if (/^https?:\/\//.test(p)) {
+    url = p
+  } else {
+    const normalizedPath = p.startsWith('/') ? p : `/${p}`
+    // If caller passes /api/v1/... and base already ends with /api/v1, avoid duplicated prefix.
+    if (base.endsWith('/api/v1') && normalizedPath.startsWith('/api/v1/')) {
+      url = `${base.slice(0, -7)}${normalizedPath}`
+    } else if (base.endsWith('/api/v1') && normalizedPath === '/api/v1') {
+      url = `${base.slice(0, -7)}${normalizedPath}`
+    } else {
+      url = `${base}${normalizedPath}`
+    }
+  }
+
+  const res = await fetch(url, {
     headers: { 'Content-Type': 'application/json', ...(options.headers || {}) },
     ...options,
   })
