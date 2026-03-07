@@ -82,6 +82,15 @@ function isYmd(value) {
   return /^\d{4}-\d{2}-\d{2}$/.test(String(value || '').trim())
 }
 
+function getSellCompletion(form) {
+  const sellDate = String(form?.sell_date || '').trim()
+  const sellPriceText = String(form?.sell_price || '').trim()
+  const sellQtyText = String(form?.sell_qty || '').trim()
+  const hasAnySell = Boolean(sellDate) || sellPriceText !== '' || sellQtyText !== ''
+  const hasAllSell = Boolean(sellDate) && sellPriceText !== '' && sellQtyText !== ''
+  return { hasAnySell, hasAllSell, sellDate }
+}
+
 export default function TradeDetailPage() {
   const { id } = useParams()
   const navigate = useNavigate()
@@ -93,6 +102,7 @@ export default function TradeDetailPage() {
   ]
 
   const [isEditing, setIsEditing] = useState(false)
+  const [editIsOpen, setEditIsOpen] = useState(false)
   const [interval, setInterval] = useState('1d')
   const [chartMode, setChartMode] = useState('entry')
   const [chartViewKey, setChartViewKey] = useState(0)
@@ -284,17 +294,15 @@ export default function TradeDetailPage() {
     const buyDate = String(form.buy_date || '').trim()
     const buyPrice = Number(form.buy_price)
     const buyQty = Number(form.buy_qty)
-    const sellDate = String(form.sell_date || '').trim()
     const sellPrice = Number(form.sell_price)
     const sellQty = Number(form.sell_qty)
-    const hasAnySell = Boolean(sellDate) || String(form.sell_price || '').trim() !== '' || String(form.sell_qty || '').trim() !== ''
-    const hasAllSell = Boolean(sellDate) && String(form.sell_price || '').trim() !== '' && String(form.sell_qty || '').trim() !== ''
+    const { hasAnySell, hasAllSell, sellDate } = getSellCompletion(form)
 
     if (!isYmd(buyDate)) return 'BUY日付は YYYY-MM-DD 形式で入力してください'
     if (!Number.isFinite(buyPrice) || buyPrice <= 0) return 'BUY価格は 0 より大きい数値で入力してください'
     if (!Number.isFinite(buyQty) || buyQty <= 0) return 'BUY数量は 1 以上で入力してください'
 
-    if (!isOpen && !hasAllSell) return '売却済トレードを保存するには SELL日付・SELL価格・SELL数量が必要です'
+    if (!editIsOpen && !hasAllSell) return '売却済トレードを保存するには SELL日付・SELL価格・SELL数量が必要です'
     if (hasAnySell && !hasAllSell) return 'SELL日付・SELL価格・SELL数量は3つとも入力してください'
     if (hasAllSell) {
       if (!isYmd(sellDate)) return 'SELL日付は YYYY-MM-DD 形式で入力してください'
@@ -303,24 +311,23 @@ export default function TradeDetailPage() {
     }
 
     return ''
-  }, [isEditing, form.buy_date, form.buy_price, form.buy_qty, form.sell_date, form.sell_price, form.sell_qty, isOpen])
+  }, [isEditing, form, editIsOpen])
 
   const editPriceCheckParams = useMemo(() => {
     if (!isEditing) return null
     if (clientSaveValidationError) return null
     if (!data?.market || !data?.symbol) return null
 
-    const sellDate = String(form.sell_date || '').trim()
-    const hasAllSell = Boolean(sellDate) && String(form.sell_price || '').trim() !== '' && String(form.sell_qty || '').trim() !== ''
+    const { hasAllSell, sellDate } = getSellCompletion(form)
     return {
       market: data.market,
       symbol: data.symbol,
       buyDate: String(form.buy_date || '').trim(),
       buyPrice: Number(form.buy_price),
-      sellDate: hasAllSell ? sellDate : null,
-      sellPrice: hasAllSell ? Number(form.sell_price) : null,
+      sellDate: !editIsOpen && hasAllSell ? sellDate : null,
+      sellPrice: !editIsOpen && hasAllSell ? Number(form.sell_price) : null,
     }
-  }, [isEditing, clientSaveValidationError, data?.market, data?.symbol, form.buy_date, form.buy_price, form.sell_date, form.sell_price, form.sell_qty])
+  }, [isEditing, clientSaveValidationError, data?.market, data?.symbol, form, editIsOpen])
 
   useEffect(() => {
     if (!isEditing || !editPriceCheckParams) {
@@ -400,6 +407,7 @@ export default function TradeDetailPage() {
       sell_price: sell?.price != null ? String(sell.price) : '',
       sell_qty: sell?.qty != null ? String(sell.qty) : '',
     })
+    setEditIsOpen(isOpen)
   }, [data, isEditing, buy?.date, buy?.price, buy?.qty, sell?.date, sell?.price, sell?.qty])
 
   if (isLoading) return <p style={{ padding: 16 }}>読み込み中…</p>
@@ -424,23 +432,22 @@ export default function TradeDetailPage() {
       const buyDate = String(form.buy_date || '').trim()
       const buyPrice = Number(form.buy_price)
       const buyQty = Number(form.buy_qty)
-      const sellDate = String(form.sell_date || '').trim()
       const sellPrice = Number(form.sell_price)
       const sellQty = Number(form.sell_qty)
-      const hasAllSell = Boolean(sellDate) && String(form.sell_price || '').trim() !== '' && String(form.sell_qty || '').trim() !== ''
+      const { hasAllSell, sellDate } = getSellCompletion(form)
 
       const payload = {
-        rating: Number(form.rating || 0) || null,
+        rating: editIsOpen ? (data.rating ?? null) : (Number(form.rating || 0) || null),
         tags: (form.tags || '').trim() || null,
         notes_buy: (form.notes_buy || '').trim() || null,
-        notes_sell: isOpen ? (data.notes_sell || null) : (form.notes_sell || '').trim() || null,
-        notes_review: isOpen ? (data.notes_review || null) : (form.notes_review || '').trim() || null,
+        notes_sell: editIsOpen ? (data.notes_sell || null) : (form.notes_sell || '').trim() || null,
+        notes_review: editIsOpen ? (data.notes_review || null) : (form.notes_review || '').trim() || null,
         buy_date: buyDate,
         buy_price: buyPrice,
         buy_qty: buyQty,
-        sell_date: hasAllSell ? sellDate : null,
-        sell_price: hasAllSell ? sellPrice : null,
-        sell_qty: hasAllSell ? sellQty : null,
+        sell_date: !editIsOpen && hasAllSell ? sellDate : null,
+        sell_price: !editIsOpen && hasAllSell ? sellPrice : null,
+        sell_qty: !editIsOpen && hasAllSell ? sellQty : null,
       }
 
       await patchTrade(id, payload)
@@ -629,8 +636,8 @@ export default function TradeDetailPage() {
                   <select
                     value={form.rating}
                     onChange={(e) => setForm((p) => ({ ...p, rating: Number(e.target.value) }))}
-                    disabled={isOpen}
-                    style={{ opacity: isOpen ? 0.6 : 1 }}
+                    disabled={editIsOpen}
+                    style={{ opacity: editIsOpen ? 0.6 : 1 }}
                   >
                     <option value={0}>—</option>
                     <option value={1}>★1</option>
@@ -639,7 +646,7 @@ export default function TradeDetailPage() {
                     <option value={4}>★4</option>
                     <option value={5}>★5</option>
                   </select>
-                  {isOpen ? <span style={{ fontSize: 12, color: '#667085' }}>保有中は変更しません</span> : null}
+                  {editIsOpen ? <span style={{ fontSize: 12, color: '#667085' }}>保有中は変更しません</span> : null}
                 </div>
               </div>
             )}
@@ -760,7 +767,7 @@ export default function TradeDetailPage() {
                       setForm((p) => ({
                         ...p,
                         buy_qty: e.target.value,
-                        sell_qty: e.target.value,
+                        sell_qty: editIsOpen ? p.sell_qty : e.target.value,
                       }))
                     }
                     placeholder="BUY数量"
@@ -769,11 +776,29 @@ export default function TradeDetailPage() {
               </div>
               <div style={{ display: 'grid', gap: 8 }}>
                 <b>SELL</b>
+                <label style={{ display: 'inline-flex', alignItems: 'center', gap: 8, fontSize: 13, color: '#344054' }}>
+                  <input
+                    type="checkbox"
+                    checked={editIsOpen}
+                    onChange={(e) => {
+                      const nextOpen = e.target.checked
+                      setEditIsOpen(nextOpen)
+                      if (nextOpen) {
+                        setForm((p) => ({ ...p, sell_date: '', sell_price: '', sell_qty: '' }))
+                      } else {
+                        setForm((p) => ({ ...p, sell_qty: String(p.buy_qty || '') }))
+                      }
+                    }}
+                  />
+                  保有中
+                </label>
                 <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: 8 }}>
                   <input
                     type="date"
                     value={form.sell_date}
                     onChange={(e) => setForm((p) => ({ ...p, sell_date: e.target.value }))}
+                    disabled={editIsOpen}
+                    style={{ opacity: editIsOpen ? 0.6 : 1 }}
                   />
                   <input
                     type="number"
@@ -782,6 +807,8 @@ export default function TradeDetailPage() {
                     value={form.sell_price}
                     onChange={(e) => setForm((p) => ({ ...p, sell_price: e.target.value }))}
                     placeholder="SELL価格"
+                    disabled={editIsOpen}
+                    style={{ opacity: editIsOpen ? 0.6 : 1 }}
                   />
                   <input
                     type="number"
@@ -792,15 +819,17 @@ export default function TradeDetailPage() {
                       setForm((p) => ({
                         ...p,
                         sell_qty: e.target.value,
-                        buy_qty: e.target.value,
+                        buy_qty: editIsOpen ? p.buy_qty : e.target.value,
                       }))
                     }
                     placeholder="SELL数量"
+                    disabled={editIsOpen}
+                    style={{ opacity: editIsOpen ? 0.6 : 1 }}
                   />
                 </div>
-                {isOpen ? (
+                {editIsOpen ? (
                   <div style={{ fontSize: 12, color: '#667085' }}>
-                    保有中のまま保存する場合は SELL を空欄のままにしてください。売却済にするには SELL日付・SELL価格・SELL数量の3つを入力してください。
+                    保有中で保存するため SELL は入力不可です。売却済に戻すには保有中をOFFにして SELL日付・SELL価格・SELL数量を入力してください。
                   </div>
                 ) : null}
               </div>
@@ -966,7 +995,7 @@ export default function TradeDetailPage() {
           <div style={{ height: 1, background: '#eee' }} />
 
           {/* 売却理由 */}
-          <div style={{ display: 'grid', gridTemplateColumns: '84px 1fr', gap: 10, alignItems: 'start', opacity: isEditing && isOpen ? 0.6 : 1 }}>
+          <div style={{ display: 'grid', gridTemplateColumns: '84px 1fr', gap: 10, alignItems: 'start', opacity: isEditing && editIsOpen ? 0.6 : 1 }}>
             <div style={{ fontSize: 14, fontWeight: 800, color: '#667085', paddingTop: 2 }}>売却理由</div>
             {!isEditing ? (
               <div style={{ whiteSpace: 'pre-wrap', color: '#111', lineHeight: 1.6 }}>{data.notes_sell || '—'}</div>
@@ -977,7 +1006,7 @@ export default function TradeDetailPage() {
                 rows={4}
                 style={{ width: '100%', borderRadius: 8, border: '1px solid #ddd', padding: 10 }}
                 placeholder="売却理由（利確/損切り/リスク管理）"
-                disabled={isOpen}
+                disabled={editIsOpen}
               />
             )}
           </div>
@@ -985,7 +1014,7 @@ export default function TradeDetailPage() {
           <div style={{ height: 1, background: '#eee' }} />
 
           {/* 考察 */}
-          <div style={{ display: 'grid', gridTemplateColumns: '84px 1fr', gap: 10, alignItems: 'start', opacity: isEditing && isOpen ? 0.6 : 1 }}>
+          <div style={{ display: 'grid', gridTemplateColumns: '84px 1fr', gap: 10, alignItems: 'start', opacity: isEditing && editIsOpen ? 0.6 : 1 }}>
             <div style={{ fontSize: 14, fontWeight: 800, color: '#667085', paddingTop: 2 }}>考察</div>
             {!isEditing ? (
               <div style={{ whiteSpace: 'pre-wrap', color: '#111', lineHeight: 1.6 }}>{data.notes_review || '—'}</div>
@@ -996,7 +1025,7 @@ export default function TradeDetailPage() {
                 rows={6}
                 style={{ width: '100%', borderRadius: 8, border: '1px solid #ddd', padding: 10 }}
                 placeholder="考察（改善点・次のルール）"
-                disabled={isOpen}
+                disabled={editIsOpen}
               />
             )}
           </div>
