@@ -55,7 +55,17 @@ async function requestReadinessWithFallback() {
       const status = body?.status === 'ok' ? 'ok' : 'ng'
       const db = body?.db === 'ok' ? 'ok' : null
       const appVersion = String(body?.app_version || body?.version || '').trim() || null
-      return { status, db, app_version: appVersion }
+      const authEnabled = typeof body?.auth_enabled === 'boolean' ? body.auth_enabled : null
+      const inviteRequired = typeof body?.invite_code_required === 'boolean' ? body.invite_code_required : null
+      const rateLimitEnabled = typeof body?.rate_limit_enabled === 'boolean' ? body.rate_limit_enabled : null
+      return {
+        status,
+        db,
+        app_version: appVersion,
+        auth_enabled: authEnabled,
+        invite_code_required: inviteRequired,
+        rate_limit_enabled: rateLimitEnabled,
+      }
     }
 
     if (res.status === 404) {
@@ -67,7 +77,15 @@ async function requestReadinessWithFallback() {
   }
 
   if (notFoundCount === candidates.length) {
-    return { status: 'unknown', db: null, app_version: null, legacy: true }
+    return {
+      status: 'unknown',
+      db: null,
+      app_version: null,
+      auth_enabled: null,
+      invite_code_required: null,
+      rate_limit_enabled: null,
+      legacy: true,
+    }
   }
 
   throw lastError || new Error('ヘルスチェックに失敗しました。')

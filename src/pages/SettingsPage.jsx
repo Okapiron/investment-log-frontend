@@ -159,6 +159,11 @@ export default function SettingsPage() {
             <div style={{ fontSize: 12, color: '#667085' }}>
               Frontend Version: <b>{frontendVersion}</b>
             </div>
+            <div style={{ fontSize: 12, color: '#667085' }}>
+              Auth: <b>{readiness?.auth_enabled == null ? '—' : readiness.auth_enabled ? 'ON' : 'OFF'}</b> / Invite:{' '}
+              <b>{readiness?.invite_code_required == null ? '—' : readiness.invite_code_required ? 'ON' : 'OFF'}</b> / Rate Limit:{' '}
+              <b>{readiness?.rate_limit_enabled == null ? '—' : readiness.rate_limit_enabled ? 'ON' : 'OFF'}</b>
+            </div>
             {readiness?.status === 'unknown' ? (
               <div style={{ fontSize: 12, color: '#b54708' }}>
                 Runtime確認エンドポイントが未対応のため状態を判定できません（旧バージョンの可能性があります）。
