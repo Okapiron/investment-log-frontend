@@ -1,7 +1,7 @@
 import { useQuery, useQueryClient } from '@tanstack/react-query'
 import { Link, useParams, useNavigate } from 'react-router-dom'
 import { api, formatJPY, formatUSD } from '../lib/api'
-import { useEffect, useMemo, useState } from 'react'
+import { useEffect, useMemo, useRef, useState } from 'react'
 import { TAG_OPTIONS } from '../lib/tags'
 import TradeChart from '../components/TradeChart'
 import { patchTrade, updateTradeReview } from '../lib/tradesApi'
@@ -138,6 +138,7 @@ export default function TradeDetailPage() {
   const [editPriceCheckError, setEditPriceCheckError] = useState('')
   const [editPriceCheckWarning, setEditPriceCheckWarning] = useState('')
   const [chartError, setChartError] = useState('')
+  const editNavRootRef = useRef(null)
   const baseButtonStyle = {
     background: '#f2f4f7',
     color: '#111',
@@ -452,6 +453,78 @@ export default function TradeDetailPage() {
     // form は useEffect で再同期するのでここでは触らなくてOK
   }
 
+  function handleEditKeyNav(e) {
+    if (!isEditing) return
+    const target = e.target
+    if (!target || !target.tagName) return
+    const tag = String(target.tagName || '').toUpperCase()
+    if (tag !== 'INPUT' && tag !== 'SELECT' && tag !== 'TEXTAREA') return
+
+    // Japanese IMEなどの変換確定中はEnterでフォーカス移動しない
+    if (e.isComposing || e.keyCode === 229) return
+
+    function getNavElements() {
+      const root = editNavRootRef.current
+      if (!root) return []
+      return Array.from(root.querySelectorAll('input, select, textarea')).filter((el) => {
+        if (el.disabled) return false
+        if (el.type === 'submit') return false
+        if (el.tabIndex < 0) return false
+        if (el.getAttribute && el.getAttribute('aria-hidden') === 'true') return false
+        return true
+      })
+    }
+
+    function focusNext() {
+      const elements = getNavElements()
+      const index = elements.indexOf(target)
+      if (index > -1 && index + 1 < elements.length) {
+        elements[index + 1].focus()
+      }
+    }
+
+    function focusPrev() {
+      const elements = getNavElements()
+      const index = elements.indexOf(target)
+      if (index > 0) {
+        elements[index - 1].focus()
+      }
+    }
+
+    if (e.key === 'Enter') {
+      // Checkbox: Shift+Enter toggles ON/OFF, Enter moves next
+      if (target.type === 'checkbox') {
+        e.preventDefault()
+        if (e.shiftKey) target.click()
+        else focusNext()
+        return
+      }
+
+      // Textarea: Shift+Enter = newline (default), Enter moves next
+      if (tag === 'TEXTAREA') {
+        if (e.shiftKey) return
+        e.preventDefault()
+        focusNext()
+        return
+      }
+
+      // Other fields: Enter moves next, Shift+Enter does nothing (do not submit)
+      if (e.shiftKey) {
+        e.preventDefault()
+        return
+      }
+
+      e.preventDefault()
+      focusNext()
+      return
+    }
+
+    if (e.key === 'Escape') {
+      e.preventDefault()
+      focusPrev()
+    }
+  }
+
   async function saveAll() {
     try {
       if (saveDisabledReason) return
@@ -536,7 +609,7 @@ export default function TradeDetailPage() {
   }
 
   return (
-    <div style={{ padding: 12, maxWidth: 1200, margin: '0 auto' }}>
+    <div ref={editNavRootRef} onKeyDownCapture={handleEditKeyNav} style={{ padding: 12, maxWidth: 1200, margin: '0 auto' }}>
       <div style={{ display: 'grid', gap: 8 }}>
 
         <div style={{ display: 'grid', gridTemplateColumns: '1fr auto', alignItems: 'start', gap: 12 }}>

@@ -519,6 +519,14 @@ export default function TradesPage() {
     else setter([...list, v])
   }
 
+  function focusPendingReviewFilter() {
+    if (stats.pendingReviewCount <= 0) return
+    setStatusFilter('pending')
+    window.setTimeout(() => {
+      activeConditionsRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' })
+    }, 0)
+  }
+
   return (
     <div style={{ padding: 16, maxWidth: 900, margin: '0 auto' }}>
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 12, marginTop: 0, marginBottom: 0 }}>
@@ -526,6 +534,59 @@ export default function TradesPage() {
         <Link to="/trades/new">
           <button style={actionBtnStyle}>＋ 新規トレード</button>
         </Link>
+      </div>
+
+      <div
+        style={{
+          marginTop: 10,
+          border: stats.pendingReviewCount > 0 ? '1px solid #fecaca' : '1px solid #b2ddff',
+          borderRadius: 12,
+          padding: '10px 12px',
+          background: stats.pendingReviewCount > 0 ? '#fef3f2' : '#eff8ff',
+          display: 'grid',
+          gap: 4,
+        }}
+      >
+        <div
+          style={{
+            fontSize: 12,
+            fontWeight: 800,
+            color: stats.pendingReviewCount > 0 ? '#b42318' : '#175cd3',
+            letterSpacing: 0.2,
+          }}
+        >
+          To Do
+        </div>
+        {stats.pendingReviewCount > 0 ? (
+          <div style={{ fontSize: 14, color: '#b42318', lineHeight: 1.4 }}>
+            取引が完了した未レビューのトレードが
+            <button
+              type="button"
+              onClick={focusPendingReviewFilter}
+              aria-label="未レビューに絞り込む"
+              title="クリックで未レビューに絞り込み"
+              style={{
+                margin: '0 4px',
+                padding: 0,
+                border: 'none',
+                background: 'transparent',
+                color: '#b42318',
+                fontSize: 14,
+                fontWeight: 800,
+                textDecoration: 'underline',
+                cursor: 'pointer',
+                lineHeight: 1.2,
+              }}
+            >
+              {stats.pendingReviewCount}
+            </button>
+            件あります。レビューを完了しましょう！
+          </div>
+        ) : (
+          <div style={{ fontSize: 14, color: '#175cd3', lineHeight: 1.4 }}>
+            すべての取引のレビューが完了しています！
+          </div>
+        )}
       </div>
 
 
@@ -635,47 +696,6 @@ export default function TradesPage() {
           </div>
         </div>
 
-        <div style={{ display: 'grid', gap: 2 }}>
-          <div style={{ fontSize: 12, color: '#667085' }}>未レビュー件数</div>
-          <button
-            type="button"
-            onClick={() => {
-              if (stats.pendingReviewCount <= 0) return
-              setStatusFilter('pending')
-              // "現在の条件" の位置へスクロール（絞り込み結果をすぐ確認できる）
-              window.setTimeout(() => {
-                activeConditionsRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' })
-              }, 0)
-            }}
-            disabled={stats.pendingReviewCount <= 0}
-            title={stats.pendingReviewCount > 0 ? 'クリックで未レビューに絞り込み' : '未レビューはありません'}
-            aria-label="未レビュー件数で絞り込み"
-            style={{
-              color: stats.pendingReviewCount > 0 ? '#b42318' : '#344054',
-              background: 'transparent',
-              border: 'none',
-              padding: 0,
-              textAlign: 'left',
-              cursor: stats.pendingReviewCount > 0 ? 'pointer' : 'not-allowed',
-              textDecoration: stats.pendingReviewCount > 0 ? 'underline' : 'none',
-              opacity: stats.pendingReviewCount > 0 ? 1 : 0.7,
-              width: 'fit-content',
-              fontFamily: 'inherit',
-              lineHeight: 1.2,
-            }}
-          >
-            <span
-              style={{
-                fontSize: 16,
-                fontWeight: 800,
-                fontFamily: 'inherit',
-                lineHeight: 1.2,
-              }}
-            >
-              {stats.pendingReviewCount}
-            </span>
-          </button>
-        </div>
       </div>
 
       {/* 期間 + Sort（横並び） */}
@@ -911,7 +931,7 @@ export default function TradesPage() {
           alignItems: 'center',
         }}
       >
-        <div style={{ fontSize: 11, opacity: 0.65, lineHeight: 1.2 }}>
+        <div style={{ fontSize: 12, opacity: 0.65, lineHeight: 1.2 }}>
           <b>現在の条件</b>：{activeLabel}
           <span style={{ marginLeft: 8 }}>(件数 {total})</span>
         </div>
