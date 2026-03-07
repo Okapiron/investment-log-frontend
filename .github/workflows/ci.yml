@@ -1,0 +1,31 @@
+name: Frontend CI
+
+on:
+  push:
+  pull_request:
+
+jobs:
+  preflight:
+    runs-on: ubuntu-latest
+    env:
+      VITE_API_BASE: https://example.com/api/v1
+      VITE_AUTH_ENABLED: "true"
+      VITE_SUPABASE_URL: https://demo.supabase.co
+      VITE_SUPABASE_ANON_KEY: dummy
+      VITE_APP_VERSION: ci-${{ github.sha }}
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+          cache: npm
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Release preflight gate
+        run: node tools/preflight_release.mjs --json
