@@ -3,9 +3,65 @@ import re
 from pathlib import Path
 import pandas as pd
 
+try:
+    from fugashi import Tagger
+    _TAGGER = Tagger()
+except Exception:
+    _TAGGER = None
+
 HERE = Path(__file__).resolve().parent
 SRC = HERE / "東証上場銘柄202602.xls"
 OUT = HERE.parents[1] / "public" / "jp_instruments.json"
+
+
+def kata_to_hira(kata: str) -> str:
+    s = kata or ""
+    res = []
+    for ch in s:
+        code = ord(ch)
+        if 0x30A1 <= code <= 0x30F6:
+            res.append(chr(code - 0x60))
+        else:
+            res.append(ch)
+    return "".join(res)
+
+
+def kana_reading(text: str) -> str:
+    """Return katakana reading (yomi) for Japanese text if possible, else ''."""
+    if not text or _TAGGER is None:
+        return ""
+    try:
+        parts = []
+        for tok in _TAGGER(text):
+            yomi = ""
+            feat = getattr(tok, "feature", None)
+
+            # UniDic feature may expose attributes like .kana / .pron; or be list-like.
+            if feat is not None:
+                for attr in ("kana", "pron", "reading"):
+                    if hasattr(feat, attr):
+                        val = getattr(feat, attr)
+                        if val and val != "*":
+                            yomi = str(val)
+                            break
+
+                if not yomi:
+                    try:
+                        if isinstance(feat, (list, tuple)) and len(feat) > 7 and feat[7] and feat[7] != "*":
+                            yomi = str(feat[7])
+                    except Exception:
+                        pass
+
+            if not yomi:
+                yomi = tok.surface
+
+            parts.append(str(yomi))
+
+        out = "".join(parts)
+        out = re.sub(r"\s+", "", out)
+        return out
+    except Exception:
+        return ""
 
 def norm(s):
     s = "" if s is None else str(s)
@@ -28,7 +84,15 @@ def build_aliases(code, name):
         a.append(code.replace("-", ""))
     if name:
         a.append(name)
-        a.append(strip_company_suffix(name))
+        base_name = strip_company_suffix(name)
+        a.append(base_name)
+
+        # Add kana reading aliases so kanji can be searched by yomi (e.g., 丸紅 -> まるべに)
+        yomi_kata = kana_reading(base_name)
+        if yomi_kata:
+            a.append(yomi_kata)
+            a.append(kata_to_hira(yomi_kata))
+
     seen = set()
     out = []
     for x in a:
@@ -88,6 +152,8 @@ def main():
     OUT.write_text(json.dumps(list(uniq.values()), ensure_ascii=False), encoding="utf-8")
     print(f"Wrote: {OUT}  count={len(uniq)}")
     print(f"Detected columns: code={col_code} name={col_name} section={col_section}")
+    print(f"Fugashi enabled: {bool(_TAGGER)}")
+    print("Fugashi enabled:", bool(_TAGGER))
 
 if __name__ == "__main__":
     main()
