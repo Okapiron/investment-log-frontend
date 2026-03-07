@@ -89,6 +89,8 @@ export default function SettingsPage() {
     navigate('/auth', { replace: true })
   }
 
+  const canDeleteData = String(confirmText || '').trim().toUpperCase() === 'DELETE'
+
   return (
     <div style={{ display: 'grid', gap: 10, maxWidth: 760 }}>
       <h2 style={{ margin: 0 }}>Settings</h2>
@@ -195,8 +197,16 @@ export default function SettingsPage() {
             <button
               type="button"
               onClick={handleDeleteData}
-              disabled={working === 'delete'}
-              style={{ background: '#fef3f2', color: '#b42318', border: '1px solid #fecdca', borderRadius: 8, padding: '8px 12px', fontWeight: 700, opacity: working === 'delete' ? 0.6 : 1 }}
+              disabled={working === 'delete' || !canDeleteData}
+              style={{
+                background: '#fef3f2',
+                color: '#b42318',
+                border: '1px solid #fecdca',
+                borderRadius: 8,
+                padding: '8px 12px',
+                fontWeight: 700,
+                opacity: working === 'delete' || !canDeleteData ? 0.6 : 1,
+              }}
             >
               データを削除
             </button>
