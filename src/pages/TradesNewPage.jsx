@@ -56,6 +56,16 @@ function isFullYmd(value) {
   return /^\d{4}-\d{2}-\d{2}$/.test(String(value || ''))
 }
 
+function toKatakana(input) {
+  const s = String(input || '')
+  return s.replace(/[ぁ-ゖ]/g, (ch) => String.fromCharCode(ch.charCodeAt(0) + 0x60))
+}
+
+function toHiragana(input) {
+  const s = String(input || '')
+  return s.replace(/[ァ-ヶ]/g, (ch) => String.fromCharCode(ch.charCodeAt(0) - 0x60))
+}
+
 
 function toHalfWidthDigits(raw) {
   return String(raw || '').replace(/[０-９]/g, (ch) => String.fromCharCode(ch.charCodeAt(0) - 0xfee0))
@@ -346,7 +356,10 @@ export default function TradesNewPage() {
     cachedInstruments.forEach((c) => addCandidate(c, true))
     jpInstruments.forEach((c) => addCandidate(c, false))
 
-    const query = String(instrumentQuery || '').trim().toLowerCase()
+    const rawQuery = String(instrumentQuery || '').trim()
+    const query = rawQuery.toLowerCase()
+    const queryKata = toKatakana(rawQuery).toLowerCase()
+    const queryHira = toHiragana(rawQuery).toLowerCase()
 
     // If query looks like a JP stock code (4-5 digits), offer a JP candidate even when there is no history yet.
     const rawQ = String(instrumentQuery || '').trim()
@@ -357,11 +370,34 @@ export default function TradesNewPage() {
 
     const list = Array.from(merged.values())
       .map((c) => {
-        const symbols = [c.symbol.toLowerCase(), (c.name || '').toLowerCase(), ...c.aliases.map((a) => a.toLowerCase())]
+        const base = [c.symbol, c.name || '', ...(c.aliases || [])]
+          .map((a) => String(a || '').trim())
+          .filter(Boolean)
+
+        const symbols = base
+          .flatMap((x) => {
+            const low = x.toLowerCase()
+            const kata = toKatakana(x).toLowerCase()
+            const hira = toHiragana(x).toLowerCase()
+            return [low, kata, hira]
+          })
+
         let score = 999
-        if (!query) score = 50
-        else if (symbols.some((x) => x.startsWith(query))) score = 0
-        else if (symbols.some((x) => x.includes(query))) score = 10
+        if (!query) {
+          score = 50
+        } else if (
+          symbols.some((x) => x.startsWith(query)) ||
+          symbols.some((x) => x.startsWith(queryKata)) ||
+          symbols.some((x) => x.startsWith(queryHira))
+        ) {
+          score = 0
+        } else if (
+          symbols.some((x) => x.includes(query)) ||
+          symbols.some((x) => x.includes(queryKata)) ||
+          symbols.some((x) => x.includes(queryHira))
+        ) {
+          score = 10
+        }
         return { ...c, score }
       })
       .filter((c) => !query || c.score < 999)
