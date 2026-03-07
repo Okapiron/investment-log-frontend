@@ -613,6 +613,12 @@ export default function TradesNewPage() {
 
   function handleInstrumentKeyDown(e) {
     if (e.isComposing || e.keyCode === 229) return
+    // When instrument is confirmed (input is readOnly), allow Backspace/Delete to clear it
+    if (instrumentConfirmed && (e.key === 'Backspace' || e.key === 'Delete')) {
+      e.preventDefault()
+      clearConfirmedInstrument()
+      return
+    }
     if (!instrumentOpen && (e.key === 'ArrowDown' || e.key === 'ArrowUp')) {
       setInstrumentOpen(true)
       return
