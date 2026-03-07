@@ -2,10 +2,11 @@ import fs from 'node:fs'
 import path from 'node:path'
 
 function parseArgs(argv) {
-  const args = { strict: false, envFile: '' }
+  const args = { strict: false, envFile: '', json: false }
   for (let i = 0; i < argv.length; i += 1) {
     const token = argv[i]
     if (token === '--strict') args.strict = true
+    if (token === '--json') args.json = true
     if (token === '--env-file') args.envFile = String(argv[i + 1] || '')
     if (token === '--env-file') i += 1
   }
@@ -81,20 +82,68 @@ function main() {
   }
 
   if (errors.length > 0) {
-    console.log('FRONTEND CONFIG CHECK: FAILED')
-    for (const e of errors) console.log(`- ERROR: ${e}`)
-    for (const w of warnings) console.log(`- WARN: ${w}`)
+    if (args.json) {
+      console.log(
+        JSON.stringify(
+          {
+            status: 'failed',
+            strict: Boolean(args.strict),
+            errors: [...errors],
+            warnings: [...warnings],
+            exit_code: 1,
+          },
+          null,
+          0,
+        ),
+      )
+    } else {
+      console.log('FRONTEND CONFIG CHECK: FAILED')
+      for (const e of errors) console.log(`- ERROR: ${e}`)
+      for (const w of warnings) console.log(`- WARN: ${w}`)
+    }
     process.exit(1)
   }
 
   if (args.strict && warnings.length > 0) {
-    console.log('FRONTEND CONFIG CHECK: FAILED (strict mode)')
-    for (const w of warnings) console.log(`- WARN: ${w}`)
+    if (args.json) {
+      console.log(
+        JSON.stringify(
+          {
+            status: 'failed',
+            strict: true,
+            errors: [],
+            warnings: [...warnings],
+            exit_code: 1,
+          },
+          null,
+          0,
+        ),
+      )
+    } else {
+      console.log('FRONTEND CONFIG CHECK: FAILED (strict mode)')
+      for (const w of warnings) console.log(`- WARN: ${w}`)
+    }
     process.exit(1)
   }
 
-  console.log('FRONTEND CONFIG CHECK: OK')
-  for (const w of warnings) console.log(`- WARN: ${w}`)
+  if (args.json) {
+    console.log(
+      JSON.stringify(
+        {
+          status: 'ok',
+          strict: Boolean(args.strict),
+          errors: [],
+          warnings: [...warnings],
+          exit_code: 0,
+        },
+        null,
+        0,
+      ),
+    )
+  } else {
+    console.log('FRONTEND CONFIG CHECK: OK')
+    for (const w of warnings) console.log(`- WARN: ${w}`)
+  }
 }
 
 main()
