@@ -53,6 +53,7 @@ async function request(path, options = {}) {
   if (!res.ok) {
     let detail = 'Request failed'
     let requestId = ''
+    const retryAfter = String(res.headers.get('retry-after') || '').trim()
     try {
       const body = await res.json()
       detail = body.detail || detail
@@ -63,7 +64,9 @@ async function request(path, options = {}) {
     if (!requestId) {
       requestId = String(res.headers.get('x-request-id') || '').trim()
     }
-    throw new Error(requestId ? `${res.status}: ${detail} (request_id: ${requestId})` : `${res.status}: ${detail}`)
+    const retryHint = res.status === 429 && retryAfter ? ` ${retryAfter}秒後に再試行してください。` : ''
+    const baseMsg = `${res.status}: ${detail}${retryHint}`
+    throw new Error(requestId ? `${baseMsg} (request_id: ${requestId})` : baseMsg)
   }
 
   if (res.status === 204) return null
