@@ -19,6 +19,7 @@ export default function SettingsPage() {
     data: readiness,
     isLoading: readinessLoading,
     error: readinessError,
+    dataUpdatedAt: readinessUpdatedAt,
   } = useQuery({
     queryKey: ['settings', 'readiness'],
     queryFn: getReadiness,
@@ -124,9 +125,14 @@ export default function SettingsPage() {
           </div>
         ) : null}
         {!readinessLoading && !readinessError ? (
-          <div style={{ fontSize: 13, color: '#344054' }}>
-            API: <b>{readiness?.status === 'ok' ? 'OK' : 'NG'}</b> / DB: <b>{readiness?.db === 'ok' ? 'OK' : '確認中'}</b>
-          </div>
+          <>
+            <div style={{ fontSize: 13, color: '#344054' }}>
+              API: <b>{readiness?.status === 'ok' ? 'OK' : 'NG'}</b> / DB: <b>{readiness?.db === 'ok' ? 'OK' : '確認中'}</b>
+            </div>
+            <div style={{ fontSize: 12, color: '#667085' }}>
+              最終確認: {readinessUpdatedAt ? new Date(readinessUpdatedAt).toLocaleTimeString('ja-JP') : '—'}
+            </div>
+          </>
         ) : null}
       </div>
 
