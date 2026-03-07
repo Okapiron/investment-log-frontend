@@ -3,7 +3,7 @@ import { useQuery } from '@tanstack/react-query'
 import { Link, useNavigate } from 'react-router-dom'
 
 import { clearAuthSession, isAuthEnabled } from '../lib/auth'
-import { deleteMyData, downloadMyExport, getMyProfile } from '../lib/settingsApi'
+import { deleteMyData, downloadMyExport, getMyProfile, getReadiness } from '../lib/settingsApi'
 
 export default function SettingsPage() {
   const navigate = useNavigate()
@@ -14,6 +14,16 @@ export default function SettingsPage() {
   const { data, isLoading, error: meError, refetch } = useQuery({
     queryKey: ['settings', 'me'],
     queryFn: getMyProfile,
+  })
+  const {
+    data: readiness,
+    isLoading: readinessLoading,
+    error: readinessError,
+  } = useQuery({
+    queryKey: ['settings', 'readiness'],
+    queryFn: getReadiness,
+    retry: 1,
+    refetchInterval: 60_000,
   })
 
   async function handleExport(format) {
@@ -94,6 +104,21 @@ export default function SettingsPage() {
             Logout
           </button>
         </div>
+      </div>
+
+      <div style={{ border: '1px solid #e4e7ec', borderRadius: 12, padding: 12, background: '#fff', display: 'grid', gap: 8 }}>
+        <div style={{ fontSize: 13, color: '#667085', fontWeight: 700 }}>Runtime</div>
+        {readinessLoading ? <div style={{ fontSize: 13, color: '#475467' }}>確認中…</div> : null}
+        {readinessError ? (
+          <div style={{ fontSize: 13, color: '#b42318' }}>
+            API/DB: 障害の可能性があります（{String(readinessError?.message || readinessError)}）
+          </div>
+        ) : null}
+        {!readinessLoading && !readinessError ? (
+          <div style={{ fontSize: 13, color: '#344054' }}>
+            API: <b>{readiness?.status === 'ok' ? 'OK' : 'NG'}</b> / DB: <b>{readiness?.db === 'ok' ? 'OK' : 'NG'}</b>
+          </div>
+        ) : null}
       </div>
 
       <div style={{ border: '1px solid #e4e7ec', borderRadius: 12, padding: 12, background: '#fff', display: 'grid', gap: 10 }}>

@@ -5,6 +5,10 @@ export function getMyProfile() {
   return api.get('/api/v1/settings/me')
 }
 
+export function getReadiness() {
+  return api.get('/health/ready')
+}
+
 function _readFilenameFromDisposition(disposition, fallback) {
   const raw = String(disposition || '')
   const m = raw.match(/filename=\"?([^\";]+)\"?/)
