@@ -2,6 +2,7 @@ import { useEffect, useMemo, useRef, useState } from 'react'
 import { useNavigate, Link } from 'react-router-dom'
 import { api } from '../lib/api'
 import { TAG_OPTIONS } from '../lib/tags'
+import { validatePriceSanityAgainstDailyBars } from '../lib/priceSanity'
 
 const US_STOCK_CANDIDATES = [
   { market: 'US', symbol: 'AAPL', name: 'Apple Inc', aliases: ['AAPL', 'Apple', 'Apple Inc', 'アップル'] },
@@ -201,6 +202,7 @@ export default function TradesNewPage() {
   const [rating, setRating] = useState(0)
   const [tags, setTags] = useState('')
   const [error, setError] = useState(null)
+  const [blockingError, setBlockingError] = useState(null)
   const [instrumentQuery, setInstrumentQuery] = useState('')
   const [instrumentConfirmed, setInstrumentConfirmed] = useState(false)
   const [instrumentOpen, setInstrumentOpen] = useState(false)
@@ -824,9 +826,16 @@ export default function TradesNewPage() {
     return null
   }, [instrumentConfirmed, market, symbol, buyDate, sellDate, buyPrice, sellPrice, qty, isOpen])
 
+  const saveDisabledReason = clientValidationError || blockingError
+
+  useEffect(() => {
+    setBlockingError(null)
+  }, [market, symbol, buyDate, buyPrice, qty, isOpen, sellDate, sellPrice, instrumentConfirmed])
+
   async function handleSubmit(e) {
     e.preventDefault()
     setError(null)
+    setBlockingError(null)
 
     const sym = normalizeSymbol(market, symbol)
     const bp = Number(buyPrice)
@@ -834,7 +843,20 @@ export default function TradesNewPage() {
     const q = Number(qty)
 
     if (clientValidationError) {
-      setError(clientValidationError)
+      setBlockingError(clientValidationError)
+      return
+    }
+
+    const priceSanityMessage = await validatePriceSanityAgainstDailyBars({
+      market,
+      symbol: sym,
+      buyDate,
+      buyPrice: bp,
+      sellDate: isOpen ? null : sellDate,
+      sellPrice: isOpen ? null : sp,
+    })
+    if (priceSanityMessage) {
+      setBlockingError(priceSanityMessage)
       return
     }
 
@@ -1206,18 +1228,18 @@ export default function TradesNewPage() {
 
         <button
           type="submit"
-          disabled={Boolean(clientValidationError)}
-          title={clientValidationError || ''}
-          style={{ ...primaryButtonStyle, opacity: clientValidationError ? 0.55 : 1, cursor: clientValidationError ? 'not-allowed' : 'pointer' }}
+          disabled={Boolean(saveDisabledReason)}
+          title={saveDisabledReason || ''}
+          style={{ ...primaryButtonStyle, opacity: saveDisabledReason ? 0.55 : 1, cursor: saveDisabledReason ? 'not-allowed' : 'pointer' }}
         >
           保存
         </button>
 
-        {clientValidationError ? (
-          <p style={{ margin: 0, color: '#b42318' }}>入力チェック: {clientValidationError}</p>
+        {saveDisabledReason ? (
+          <p style={{ margin: 0, color: '#b42318', fontSize: 12 }}>{saveDisabledReason}</p>
         ) : null}
 
-        {error ? <p style={{ margin: 0, color: 'crimson' }}>{error}</p> : null}
+        {error ? <p style={{ margin: 0, color: '#b42318', fontSize: 12 }}>{error}</p> : null}
       </form>
       {toast ? (
         <div

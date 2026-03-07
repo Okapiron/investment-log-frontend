@@ -5,6 +5,7 @@ import { useEffect, useMemo, useState } from 'react'
 import { TAG_OPTIONS } from '../lib/tags'
 import TradeChart from '../components/TradeChart'
 import { patchTrade, updateTradeReview } from '../lib/tradesApi'
+import { validatePriceSanityAgainstDailyBars } from '../lib/priceSanity'
 
 function addTagCSV(csv, tag) {
   if (tag === '未設定') return ''
@@ -104,6 +105,7 @@ export default function TradeDetailPage() {
     sell_qty: '',
   })
   const [saveMsg, setSaveMsg] = useState('')
+  const [editBlockingError, setEditBlockingError] = useState('')
   const [chartError, setChartError] = useState('')
   const baseButtonStyle = {
     background: '#f2f4f7',
@@ -261,6 +263,35 @@ export default function TradeDetailPage() {
     [chartMode, buy?.date, sell?.date, isOpen, buyIndex, sellIndex]
   )
 
+  const clientSaveValidationError = useMemo(() => {
+    if (!isEditing) return ''
+
+    const buyDate = String(form.buy_date || '').trim()
+    const buyPrice = Number(form.buy_price)
+    const buyQty = Number(form.buy_qty)
+    const sellDate = String(form.sell_date || '').trim()
+    const sellPrice = Number(form.sell_price)
+    const sellQty = Number(form.sell_qty)
+    const hasAnySell = Boolean(sellDate) || String(form.sell_price || '').trim() !== '' || String(form.sell_qty || '').trim() !== ''
+    const hasAllSell = Boolean(sellDate) && String(form.sell_price || '').trim() !== '' && String(form.sell_qty || '').trim() !== ''
+
+    if (!isYmd(buyDate)) return 'BUY日付は YYYY-MM-DD 形式で入力してください'
+    if (!Number.isFinite(buyPrice) || buyPrice <= 0) return 'BUY価格は 0 より大きい数値で入力してください'
+    if (!Number.isFinite(buyQty) || buyQty <= 0) return 'BUY数量は 1 以上で入力してください'
+
+    if (!isOpen && !hasAllSell) return '売却済トレードを保存するには SELL日付・SELL価格・SELL数量が必要です'
+    if (hasAnySell && !hasAllSell) return 'SELL日付・SELL価格・SELL数量は3つとも入力してください'
+    if (hasAllSell) {
+      if (!isYmd(sellDate)) return 'SELL日付は YYYY-MM-DD 形式で入力してください'
+      if (!Number.isFinite(sellPrice) || sellPrice <= 0) return 'SELL価格は 0 より大きい数値で入力してください'
+      if (!Number.isFinite(sellQty) || sellQty <= 0) return 'SELL数量は 1 以上で入力してください'
+    }
+
+    return ''
+  }, [isEditing, form.buy_date, form.buy_price, form.buy_qty, form.sell_date, form.sell_price, form.sell_qty, isOpen])
+
+  const saveDisabledReason = clientSaveValidationError || editBlockingError
+
   useEffect(() => {
     if (isOpen && chartMode === 'exit') {
       setChartMode('entry')
@@ -278,6 +309,11 @@ export default function TradeDetailPage() {
     }
     setChartError('')
   }, [pricesError, isPricesLoading, allBars.length])
+
+  useEffect(() => {
+    if (!editBlockingError) return
+    setEditBlockingError('')
+  }, [form.buy_date, form.buy_price, form.buy_qty, form.sell_date, form.sell_price, form.sell_qty, isEditing])
 
   // 編集開始時に data → form をコピー（レンダー中に setState しない）
   useEffect(() => {
@@ -304,11 +340,13 @@ export default function TradeDetailPage() {
 
   function startEdit() {
     setSaveMsg('')
+    setEditBlockingError('')
     setIsEditing(true)
   }
 
   function cancelEdit() {
     setSaveMsg('')
+    setEditBlockingError('')
     setIsEditing(false)
     // form は useEffect で再同期するのでここでは触らなくてOK
   }
@@ -316,49 +354,31 @@ export default function TradeDetailPage() {
   async function saveAll() {
     try {
       setSaveMsg('')
+      setEditBlockingError('')
       const buyDate = String(form.buy_date || '').trim()
       const buyPrice = Number(form.buy_price)
       const buyQty = Number(form.buy_qty)
       const sellDate = String(form.sell_date || '').trim()
       const sellPrice = Number(form.sell_price)
       const sellQty = Number(form.sell_qty)
-      const hasAnySell = Boolean(sellDate) || String(form.sell_price || '').trim() !== '' || String(form.sell_qty || '').trim() !== ''
       const hasAllSell = Boolean(sellDate) && String(form.sell_price || '').trim() !== '' && String(form.sell_qty || '').trim() !== ''
 
-      if (!isYmd(buyDate)) {
-        setSaveMsg('保存に失敗: BUY日付は YYYY-MM-DD 形式で入力してください')
-        return
-      }
-      if (!Number.isFinite(buyPrice) || buyPrice <= 0) {
-        setSaveMsg('保存に失敗: BUY価格は 0 より大きい数値で入力してください')
-        return
-      }
-      if (!Number.isFinite(buyQty) || buyQty <= 0) {
-        setSaveMsg('保存に失敗: BUY数量は 1 以上で入力してください')
+      if (clientSaveValidationError) {
+        setEditBlockingError(clientSaveValidationError)
         return
       }
 
-      if (!isOpen && !hasAllSell) {
-        setSaveMsg('保存に失敗: 売却済トレードを保存するには SELL日付・SELL価格・SELL数量が必要です')
+      const priceSanityMessage = await validatePriceSanityAgainstDailyBars({
+        market: data.market,
+        symbol: data.symbol,
+        buyDate,
+        buyPrice,
+        sellDate: hasAllSell ? sellDate : null,
+        sellPrice: hasAllSell ? sellPrice : null,
+      })
+      if (priceSanityMessage) {
+        setEditBlockingError(priceSanityMessage)
         return
-      }
-      if (hasAnySell && !hasAllSell) {
-        setSaveMsg('保存に失敗: SELL日付・SELL価格・SELL数量は3つとも入力してください')
-        return
-      }
-      if (hasAllSell) {
-        if (!isYmd(sellDate)) {
-          setSaveMsg('保存に失敗: SELL日付は YYYY-MM-DD 形式で入力してください')
-          return
-        }
-        if (!Number.isFinite(sellPrice) || sellPrice <= 0) {
-          setSaveMsg('保存に失敗: SELL価格は 0 より大きい数値で入力してください')
-          return
-        }
-        if (!Number.isFinite(sellQty) || sellQty <= 0) {
-          setSaveMsg('保存に失敗: SELL数量は 1 以上で入力してください')
-          return
-        }
       }
 
       const payload = {
@@ -577,7 +597,8 @@ export default function TradeDetailPage() {
             )}
           </div>
 
-          <div style={{ display: 'flex', gap: 8, alignItems: 'center', justifyContent: 'flex-end', flexWrap: 'wrap' }}>
+          <div style={{ display: 'grid', justifyItems: 'end', gap: 4 }}>
+            <div style={{ display: 'flex', gap: 8, alignItems: 'center', justifyContent: 'flex-end', flexWrap: 'wrap' }}>
             {!isEditing ? (
               <>
                 {tvExternalUrl ? (
@@ -604,11 +625,22 @@ export default function TradeDetailPage() {
               </>
             ) : (
               <>
-                <button onClick={saveAll} style={primaryButtonStyle}>保存</button>
+                <button
+                  onClick={saveAll}
+                  disabled={Boolean(saveDisabledReason)}
+                  title={saveDisabledReason || ''}
+                  style={{ ...primaryButtonStyle, opacity: saveDisabledReason ? 0.55 : 1, cursor: saveDisabledReason ? 'not-allowed' : 'pointer' }}
+                >
+                  保存
+                </button>
                 <button onClick={cancelEdit} style={baseButtonStyle}>キャンセル</button>
                 <button onClick={deleteTrade} style={dangerButtonStyle}>削除</button>
               </>
             )}
+            </div>
+            {isEditing && saveDisabledReason ? (
+              <div style={{ marginTop: 2, fontSize: 12, color: '#b42318' }}>{saveDisabledReason}</div>
+            ) : null}
           </div>
         </div>
 
