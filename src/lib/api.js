@@ -40,13 +40,18 @@ async function request(path, options = {}) {
 
   if (!res.ok) {
     let detail = 'Request failed'
+    let requestId = ''
     try {
       const body = await res.json()
       detail = body.detail || detail
+      requestId = String(body.request_id || '').trim()
     } catch {
       detail = res.statusText || detail
     }
-    throw new Error(`${res.status}: ${detail}`)
+    if (!requestId) {
+      requestId = String(res.headers.get('x-request-id') || '').trim()
+    }
+    throw new Error(requestId ? `${res.status}: ${detail} (request_id: ${requestId})` : `${res.status}: ${detail}`)
   }
 
   if (res.status === 204) return null

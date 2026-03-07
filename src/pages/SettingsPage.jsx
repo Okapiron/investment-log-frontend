@@ -56,14 +56,21 @@ export default function SettingsPage() {
       const deletedTrades = Number(result?.deleted_trades || 0)
       const deletedAuthUser = Boolean(result?.deleted_auth_user)
       const authDeleteError = String(result?.auth_delete_error || '').trim()
-      if (authDeleteError) {
-        setMsg(`データを削除しました（${deletedTrades}件）。${authDeleteError}`)
-      } else if (deletedAuthUser) {
-        setMsg(`データを削除しました（${deletedTrades}件）。Authユーザー削除も完了しました。`)
-      } else {
-        setMsg(`データを削除しました（${deletedTrades}件）。`)
-      }
+      const notice = authDeleteError
+        ? `データを削除しました（${deletedTrades}件）。${authDeleteError}`
+        : deletedAuthUser
+          ? `データを削除しました（${deletedTrades}件）。Authユーザー削除も完了しました。`
+          : `データを削除しました（${deletedTrades}件）。`
       setConfirmText('')
+
+      if (isAuthEnabled()) {
+        clearAuthSession()
+        window.alert(`${notice}\nログアウトしました。`)
+        navigate('/auth', { replace: true })
+        return
+      }
+
+      setMsg(notice)
       await refetch()
     } catch (e) {
       setError(String(e?.message || e || '削除に失敗しました。'))
@@ -116,7 +123,7 @@ export default function SettingsPage() {
         ) : null}
         {!readinessLoading && !readinessError ? (
           <div style={{ fontSize: 13, color: '#344054' }}>
-            API: <b>{readiness?.status === 'ok' ? 'OK' : 'NG'}</b> / DB: <b>{readiness?.db === 'ok' ? 'OK' : 'NG'}</b>
+            API: <b>{readiness?.status === 'ok' ? 'OK' : 'NG'}</b> / DB: <b>{readiness?.db === 'ok' ? 'OK' : '確認中'}</b>
           </div>
         ) : null}
       </div>

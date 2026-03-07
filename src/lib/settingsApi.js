@@ -6,7 +6,55 @@ export function getMyProfile() {
 }
 
 export function getReadiness() {
-  return api.get('/health/ready')
+  return requestReadinessWithFallback()
+}
+
+async function requestReadinessWithFallback() {
+  const token = getAccessToken()
+  const headers = {}
+  if (token) headers.Authorization = `Bearer ${token}`
+
+  const candidates = ['/health/ready', '/api/v1/health/ready', '/health', '/api/v1/health']
+  let lastError = null
+
+  for (const path of candidates) {
+    const url = resolveApiUrl(path)
+    let res
+    try {
+      res = await fetch(url, { method: 'GET', headers })
+    } catch {
+      lastError = new Error('APIに接続できません。バックエンド起動状態またはネットワークを確認してください。')
+      continue
+    }
+
+    if (res.ok) {
+      let body = {}
+      try {
+        body = await res.json()
+      } catch {
+        body = {}
+      }
+      const status = body?.status === 'ok' ? 'ok' : 'ng'
+      const db = body?.db === 'ok' ? 'ok' : null
+      return { status, db }
+    }
+
+    if (res.status === 404) {
+      lastError = new Error('404: Not Found')
+      continue
+    }
+
+    let detail = 'Request failed'
+    try {
+      const body = await res.json()
+      detail = body.detail || detail
+    } catch {
+      detail = res.statusText || detail
+    }
+    throw new Error(`${res.status}: ${detail}`)
+  }
+
+  throw lastError || new Error('ヘルスチェックに失敗しました。')
 }
 
 function _readFilenameFromDisposition(disposition, fallback) {
