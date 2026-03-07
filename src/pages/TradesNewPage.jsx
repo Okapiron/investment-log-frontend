@@ -21,6 +21,44 @@ const US_STOCK_CANDIDATES = [
   { market: 'US', symbol: 'CRM', name: 'Salesforce Inc', aliases: ['CRM', 'Salesforce', 'Salesforce Inc', 'セールスフォース'] },
   { market: 'US', symbol: 'ORCL', name: 'Oracle Corp', aliases: ['ORCL', 'Oracle', 'オラクル'] },
   { market: 'US', symbol: 'CSCO', name: 'Cisco Systems Inc', aliases: ['CSCO', 'Cisco', 'Cisco Systems Inc', 'シスコ'] },
+  { market: 'US', symbol: 'SPY', name: 'SPDR S&P 500 ETF Trust', aliases: ['SPY', 'SPDR', 'S&P500', 'S&P 500', 'SP500', 'エスアンドピー500', 'エスピー500'] },
+  { market: 'US', symbol: 'VOO', name: 'Vanguard S&P 500 ETF', aliases: ['VOO', 'Vanguard', 'S&P500', 'S&P 500', 'バンガード', 'ブイオーオー'] },
+  { market: 'US', symbol: 'IVV', name: 'iShares Core S&P 500 ETF', aliases: ['IVV', 'iShares', 'S&P500', 'S&P 500', 'アイシェアーズ', 'アイヴィヴィ'] },
+  { market: 'US', symbol: 'QQQ', name: 'Invesco QQQ Trust', aliases: ['QQQ', 'Nasdaq100', 'NASDAQ100', 'NASDAQ 100', 'ナスダック100', 'キューキューキュー'] },
+  { market: 'US', symbol: 'VTI', name: 'Vanguard Total Stock Market ETF', aliases: ['VTI', 'Total Stock Market', 'バンガード', 'ブイティーアイ'] },
+  { market: 'US', symbol: 'VT', name: 'Vanguard Total World Stock ETF', aliases: ['VT', 'Total World', 'バンガード', 'ブイティー'] },
+  { market: 'US', symbol: 'SCHD', name: 'Schwab U.S. Dividend Equity ETF', aliases: ['SCHD', 'Schwab', 'Dividend', 'ディビデンド', 'エスシーエイチディー'] },
+  { market: 'US', symbol: 'IWM', name: 'iShares Russell 2000 ETF', aliases: ['IWM', 'Russell2000', 'ラッセル2000', 'アイダブリューエム'] },
+  { market: 'US', symbol: 'DIA', name: 'SPDR Dow Jones Industrial Average ETF', aliases: ['DIA', 'Dow', 'ダウ', 'ダウ30', 'ディーアイエー'] },
+  { market: 'US', symbol: 'XLK', name: 'Technology Select Sector SPDR Fund', aliases: ['XLK', 'Technology', 'テクノロジー', 'エックスエルケー'] },
+  { market: 'US', symbol: 'SMH', name: 'VanEck Semiconductor ETF', aliases: ['SMH', 'Semiconductor', '半導体', 'エスエムエイチ'] },
+  { market: 'US', symbol: 'SOXX', name: 'iShares Semiconductor ETF', aliases: ['SOXX', 'Semiconductor', '半導体', 'ソックス'] },
+
+  { market: 'US', symbol: 'BRK.B', name: 'Berkshire Hathaway Inc Class B', aliases: ['BRK.B', 'BRKB', 'Berkshire', 'バークシャー', 'バークシャーハサウェイ'] },
+  { market: 'US', symbol: 'JPM', name: 'JPMorgan Chase & Co', aliases: ['JPM', 'JPMorgan', 'JP Morgan', 'ジェイピー・モルガン', 'ジェイピー モルガン'] },
+  { market: 'US', symbol: 'V', name: 'Visa Inc', aliases: ['V', 'Visa', 'ビザ'] },
+  { market: 'US', symbol: 'MA', name: 'Mastercard Inc', aliases: ['MA', 'Mastercard', 'マスターカード'] },
+  { market: 'US', symbol: 'JNJ', name: 'Johnson & Johnson', aliases: ['JNJ', 'Johnson & Johnson', 'ジョンソンアンドジョンソン', 'J&J'] },
+  { market: 'US', symbol: 'PG', name: 'Procter & Gamble Co', aliases: ['PG', 'Procter & Gamble', 'P&G', 'プロクターアンドギャンブル'] },
+  { market: 'US', symbol: 'KO', name: 'Coca-Cola Co', aliases: ['KO', 'Coca-Cola', 'Coke', 'コカコーラ'] },
+  { market: 'US', symbol: 'PEP', name: 'PepsiCo Inc', aliases: ['PEP', 'PepsiCo', 'Pepsi', 'ペプシ'] },
+  { market: 'US', symbol: 'WMT', name: 'Walmart Inc', aliases: ['WMT', 'Walmart', 'ウォルマート'] },
+  { market: 'US', symbol: 'HD', name: 'Home Depot Inc', aliases: ['HD', 'Home Depot', 'ホームデポ'] },
+  { market: 'US', symbol: 'MCD', name: "McDonald's Corp", aliases: ['MCD', "McDonald's", 'マクドナルド'] },
+  { market: 'US', symbol: 'NKE', name: 'Nike Inc', aliases: ['NKE', 'Nike', 'ナイキ'] },
+
+  { market: 'US', symbol: 'LLY', name: 'Eli Lilly and Co', aliases: ['LLY', 'Eli Lilly', 'イーライリリー'] },
+  { market: 'US', symbol: 'UNH', name: 'UnitedHealth Group Inc', aliases: ['UNH', 'UnitedHealth', 'ユナイテッドヘルス'] },
+  { market: 'US', symbol: 'XOM', name: 'Exxon Mobil Corp', aliases: ['XOM', 'Exxon', 'Exxon Mobil', 'エクソンモービル'] },
+  { market: 'US', symbol: 'CVX', name: 'Chevron Corp', aliases: ['CVX', 'Chevron', 'シェブロン'] },
+
+  { market: 'US', symbol: 'PLTR', name: 'Palantir Technologies Inc', aliases: ['PLTR', 'Palantir', 'パランティア'] },
+  { market: 'US', symbol: 'SNOW', name: 'Snowflake Inc', aliases: ['SNOW', 'Snowflake', 'スノーフレイク'] },
+  { market: 'US', symbol: 'SHOP', name: 'Shopify Inc', aliases: ['SHOP', 'Shopify', 'ショッピファイ'] },
+  { market: 'US', symbol: 'UBER', name: 'Uber Technologies Inc', aliases: ['UBER', 'Uber', 'ウーバー'] },
+  { market: 'US', symbol: 'COIN', name: 'Coinbase Global Inc', aliases: ['COIN', 'Coinbase', 'コインベース'] },
+  { market: 'US', symbol: 'MSTR', name: 'MicroStrategy Inc', aliases: ['MSTR', 'MicroStrategy', 'マイクロストラテジー'] },
+  { market: 'US', symbol: 'TSM', name: 'Taiwan Semiconductor Manufacturing Co', aliases: ['TSM', 'TSMC', 'Taiwan Semiconductor', 'ティーエスエムシー'] },
 ]
 
 function normalizeSymbol(_market, raw) {
@@ -144,6 +182,8 @@ export default function TradesNewPage() {
   const INSTRUMENT_CACHE_KEY = 'trades_instrument_cache_v1'
   const JP_MASTER_CACHE_KEY = 'trades_jp_master_cache_v1'
   const JP_MASTER_META_CACHE_KEY = 'trades_jp_master_meta_v1'
+  const US_MASTER_CACHE_KEY = 'trades_us_master_cache_v1'
+  const US_MASTER_META_CACHE_KEY = 'trades_us_master_meta_v1'
 
   const [market, setMarket] = useState('JP')
   const marketInitializedRef = useRef(false)
@@ -179,6 +219,9 @@ export default function TradesNewPage() {
   const [jpInstruments, setJpInstruments] = useState([])
   const [jpLoadState, setJpLoadState] = useState('idle')
   const jpLoadStartedRef = useRef(false)
+  const [usInstruments, setUsInstruments] = useState([])
+  const [usLoadState, setUsLoadState] = useState('idle')
+  const usLoadStartedRef = useRef(false)
   // Load instrument cache (履歴ゼロでも入力を回すため)
   useEffect(() => {
     try {
@@ -259,6 +302,72 @@ export default function TradesNewPage() {
       // 4) Fallback: use cache if available, else error
       if (loadFromCache()) return
       setJpLoadState('error')
+    }
+  }
+
+  async function loadUsInstrumentsIfNeeded() {
+    if (usLoadStartedRef.current || usLoadState !== 'idle') return
+    usLoadStartedRef.current = true
+    setUsLoadState('loading')
+
+    const safeParse = (raw) => {
+      try {
+        return raw ? JSON.parse(raw) : null
+      } catch {
+        return null
+      }
+    }
+
+    const loadFromCache = () => {
+      const cached = safeParse(localStorage.getItem(US_MASTER_CACHE_KEY))
+      if (Array.isArray(cached) && cached.length > 0) {
+        setUsInstruments(cached)
+        setUsLoadState('loaded')
+        return true
+      }
+      return false
+    }
+
+    try {
+      let remoteMeta = null
+      try {
+        const metaResp = await fetch('/us_instruments.meta.json', { cache: 'no-store' })
+        if (metaResp.ok) remoteMeta = await metaResp.json()
+      } catch {
+        remoteMeta = null
+      }
+
+      const localMeta = safeParse(localStorage.getItem(US_MASTER_META_CACHE_KEY))
+      const metaMatches =
+        remoteMeta &&
+        localMeta &&
+        remoteMeta.count === localMeta.count &&
+        remoteMeta.source === localMeta.source &&
+        remoteMeta.generated_at === localMeta.generated_at
+
+      if (metaMatches) {
+        if (loadFromCache()) return
+      }
+
+      const resp = await fetch('/us_instruments.json', { cache: 'no-store' })
+      if (!resp.ok) throw new Error(`us master fetch failed: ${resp.status}`)
+      const json = await resp.json()
+      if (!Array.isArray(json)) throw new Error('us master json is not an array')
+
+      setUsInstruments(json)
+      setUsLoadState('loaded')
+
+      try {
+        localStorage.setItem(US_MASTER_CACHE_KEY, JSON.stringify(json))
+        const metaToStore = remoteMeta || { generated_at: '', count: json.length, source: 'unknown' }
+        localStorage.setItem(US_MASTER_META_CACHE_KEY, JSON.stringify(metaToStore))
+      } catch {
+        // ignore
+      }
+    } catch {
+      // Fallback: use cache if available; otherwise keep going with built-in candidates
+      if (loadFromCache()) return
+      setUsLoadState('error')
     }
   }
   const symbolNameMapRef = useRef(new Map())
@@ -385,6 +494,7 @@ export default function TradesNewPage() {
     }
 
     US_STOCK_CANDIDATES.forEach((c) => addCandidate(c, false))
+    usInstruments.forEach((c) => addCandidate(c, false))
     recentInstruments.forEach((c) => addCandidate(c, true))
     cachedInstruments.forEach((c) => addCandidate(c, true))
     jpInstruments.forEach((c) => addCandidate(c, false))
@@ -445,7 +555,7 @@ export default function TradesNewPage() {
       })
 
     return list.slice(0, 12)
-  }, [instrumentQuery, recentInstruments, cachedInstruments, jpInstruments, market])
+  }, [instrumentQuery, recentInstruments, cachedInstruments, jpInstruments, usInstruments, market])
 
   useEffect(() => {
     setActiveCandidateIndex(0)
@@ -740,6 +850,7 @@ export default function TradesNewPage() {
               readOnly={instrumentConfirmed}
               onFocus={() => {
                 loadJpInstrumentsIfNeeded()
+                loadUsInstrumentsIfNeeded()
                 if (!instrumentConfirmed) setInstrumentOpen(true)
               }}
               onChange={(e) => {
@@ -756,7 +867,7 @@ export default function TradesNewPage() {
               </button>
             ) : null}
           </div>
-          {!instrumentConfirmed && instrumentOpen && (instrumentCandidates.length > 0 || jpLoadState === 'loading') ? (
+          {!instrumentConfirmed && instrumentOpen && (instrumentCandidates.length > 0 || jpLoadState === 'loading' || usLoadState === 'loading') ? (
             <div
               style={{
                 position: 'absolute',
@@ -775,6 +886,11 @@ export default function TradesNewPage() {
               {jpLoadState === 'loading' ? (
                 <div style={{ padding: '8px 10px', fontSize: 12, color: '#475467', borderBottom: instrumentCandidates.length ? '1px solid #f2f4f7' : 'none' }}>
                   JP銘柄マスター読込中...
+                </div>
+              ) : null}
+              {jpLoadState !== 'loading' && usLoadState === 'loading' ? (
+                <div style={{ padding: '8px 10px', fontSize: 12, color: '#475467', borderBottom: instrumentCandidates.length ? '1px solid #f2f4f7' : 'none' }}>
+                  US銘柄マスター読込中...
                 </div>
               ) : null}
               {instrumentCandidates.map((c, idx) => (
