@@ -840,7 +840,7 @@ export default function TradesNewPage() {
       </div>
 
       <form onSubmit={handleSubmit} style={{ display: 'grid', gap: 12, marginTop: 12 }}>
-        <div ref={instrumentWrapRef} style={{ display: 'grid', gap: 8, position: 'relative' }}>
+        <div ref={instrumentWrapRef} style={{ display: 'grid', gap: 8, position: 'relative', marginBottom: 12 }}>
           <label style={{ fontWeight: 700 }}>銘柄</label>
           <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
             <input
@@ -1043,6 +1043,11 @@ export default function TradesNewPage() {
 
         <div style={{ border: '1px solid #ddd', borderRadius: 12, padding: 12, display: 'grid', gap: 10 }}>
           <div style={{ fontWeight: 700 }}>思考ログ</div>
+          {isOpen ? (
+            <div style={{ fontSize: 12, opacity: 0.75 }}>
+              保有中のため、売却理由・考察・自己評価は入力しません
+            </div>
+          ) : null}
 
           <textarea
             placeholder="購入理由"
@@ -1057,6 +1062,7 @@ export default function TradesNewPage() {
             value={notesSell}
             onChange={(e) => setNotesSell(e.target.value)}
             rows={3}
+            disabled={isOpen}
             onKeyDown={handleKeyNav}
           />
 
@@ -1065,13 +1071,15 @@ export default function TradesNewPage() {
             value={notesReview}
             onChange={(e) => setNotesReview(e.target.value)}
             rows={3}
+            disabled={isOpen}
             onKeyDown={handleKeyNav}
           />
         </div>
 
         <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
           <label style={{ fontWeight: 700 }}>自己評価</label>
-          <select value={rating} onChange={(e) => setRating(e.target.value)} onKeyDown={handleKeyNav}>
+          {isOpen ? <span style={{ fontSize: 12, opacity: 0.75 }}>保有中は入力しません</span> : null}
+          <select value={rating} onChange={(e) => setRating(e.target.value)} onKeyDown={handleKeyNav} disabled={isOpen}>
             <option value={0}>—</option>
             <option value={1}>1</option>
             <option value={2}>2</option>
