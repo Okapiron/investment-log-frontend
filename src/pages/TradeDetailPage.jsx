@@ -77,6 +77,10 @@ function findBarIndexByDateOrPrev(bars, dateStr) {
   return 0
 }
 
+function isYmd(value) {
+  return /^\d{4}-\d{2}-\d{2}$/.test(String(value || '').trim())
+}
+
 export default function TradeDetailPage() {
   const { id } = useParams()
   const navigate = useNavigate()
@@ -87,12 +91,17 @@ export default function TradeDetailPage() {
   const [chartMode, setChartMode] = useState('entry')
   const [chartViewKey, setChartViewKey] = useState(0)
   const [form, setForm] = useState({
-    name: '',
     rating: 0,
     tags: '',
     notes_buy: '',
     notes_sell: '',
     notes_review: '',
+    buy_date: '',
+    buy_price: '',
+    buy_qty: '',
+    sell_date: '',
+    sell_price: '',
+    sell_qty: '',
   })
   const [saveMsg, setSaveMsg] = useState('')
   const [chartError, setChartError] = useState('')
@@ -111,7 +120,7 @@ export default function TradeDetailPage() {
     if (!data.closed_at) return true
     return !sell
   }, [data, sell])
-  const isPendingReview = useMemo(() => !isOpen && !Boolean(data?.review_done), [isOpen, data?.review_done])
+  const isPendingReview = useMemo(() => !Boolean(data?.review_done), [data?.review_done])
   const profitNumber = useMemo(() => {
     if (!data || isOpen) return null
     const n =
@@ -248,14 +257,19 @@ export default function TradeDetailPage() {
     if (!data) return
     if (!isEditing) return
     setForm({
-      name: data.name ?? '',
       rating: Number(data.rating ?? 0),
       tags: data.tags ?? '',
       notes_buy: data.notes_buy ?? '',
       notes_sell: data.notes_sell ?? '',
       notes_review: data.notes_review ?? '',
+      buy_date: buy?.date ?? '',
+      buy_price: buy?.price != null ? String(buy.price) : '',
+      buy_qty: buy?.qty != null ? String(buy.qty) : '',
+      sell_date: sell?.date ?? '',
+      sell_price: sell?.price != null ? String(sell.price) : '',
+      sell_qty: sell?.qty != null ? String(sell.qty) : '',
     })
-  }, [data, isEditing])
+  }, [data, isEditing, buy?.date, buy?.price, buy?.qty, sell?.date, sell?.price, sell?.qty])
 
   if (isLoading) return <p style={{ padding: 16 }}>読み込み中…</p>
   if (error) return <p style={{ padding: 16, color: 'crimson' }}>エラー: {String(error.message || error)}</p>
@@ -275,14 +289,63 @@ export default function TradeDetailPage() {
   async function saveAll() {
     try {
       setSaveMsg('')
-      // 入力の最低限整形
+      const buyDate = String(form.buy_date || '').trim()
+      const buyPrice = Number(form.buy_price)
+      const buyQty = Number(form.buy_qty)
+      const sellDate = String(form.sell_date || '').trim()
+      const sellPrice = Number(form.sell_price)
+      const sellQty = Number(form.sell_qty)
+      const hasAnySell = Boolean(sellDate) || String(form.sell_price || '').trim() !== '' || String(form.sell_qty || '').trim() !== ''
+      const hasAllSell = Boolean(sellDate) && String(form.sell_price || '').trim() !== '' && String(form.sell_qty || '').trim() !== ''
+
+      if (!isYmd(buyDate)) {
+        setSaveMsg('保存に失敗: BUY日付は YYYY-MM-DD 形式で入力してください')
+        return
+      }
+      if (!Number.isFinite(buyPrice) || buyPrice <= 0) {
+        setSaveMsg('保存に失敗: BUY価格は 0 より大きい数値で入力してください')
+        return
+      }
+      if (!Number.isFinite(buyQty) || buyQty <= 0) {
+        setSaveMsg('保存に失敗: BUY数量は 1 以上で入力してください')
+        return
+      }
+
+      if (!isOpen && !hasAllSell) {
+        setSaveMsg('保存に失敗: 売却済トレードを保存するには SELL日付・SELL価格・SELL数量が必要です')
+        return
+      }
+      if (hasAnySell && !hasAllSell) {
+        setSaveMsg('保存に失敗: SELL日付・SELL価格・SELL数量は3つとも入力してください')
+        return
+      }
+      if (hasAllSell) {
+        if (!isYmd(sellDate)) {
+          setSaveMsg('保存に失敗: SELL日付は YYYY-MM-DD 形式で入力してください')
+          return
+        }
+        if (!Number.isFinite(sellPrice) || sellPrice <= 0) {
+          setSaveMsg('保存に失敗: SELL価格は 0 より大きい数値で入力してください')
+          return
+        }
+        if (!Number.isFinite(sellQty) || sellQty <= 0) {
+          setSaveMsg('保存に失敗: SELL数量は 1 以上で入力してください')
+          return
+        }
+      }
+
       const payload = {
-        name: form.name?.trim() || null,
-        rating: Number(form.rating || 0),
+        rating: Number(form.rating || 0) || null,
         tags: (form.tags || '').trim() || null,
         notes_buy: (form.notes_buy || '').trim() || null,
-        notes_sell: (form.notes_sell || '').trim() || null,
-        notes_review: (form.notes_review || '').trim() || null,
+        notes_sell: isOpen ? (data.notes_sell || null) : (form.notes_sell || '').trim() || null,
+        notes_review: isOpen ? (data.notes_review || null) : (form.notes_review || '').trim() || null,
+        buy_date: buyDate,
+        buy_price: buyPrice,
+        buy_qty: buyQty,
+        sell_date: hasAllSell ? sellDate : null,
+        sell_price: hasAllSell ? sellPrice : null,
+        sell_qty: hasAllSell ? sellQty : null,
       }
 
       await patchTrade(id, payload)
@@ -366,18 +429,7 @@ export default function TradeDetailPage() {
 
               <span style={{ fontSize: 20, fontWeight: 800, color: '#111' }}>{data.symbol}</span>
 
-              {!isEditing ? (
-                data.name ? (
-                  <span style={{ fontSize: 14, color: '#475467' }}>{data.name}</span>
-                ) : null
-              ) : (
-                <input
-                  value={form.name}
-                  onChange={(e) => setForm((p) => ({ ...p, name: e.target.value }))}
-                  placeholder="表示名（任意）"
-                  style={{ fontSize: 14, padding: '6px 10px', borderRadius: 8, border: '1px solid #ddd', minWidth: 220 }}
-                />
-              )}
+              {data.name ? <span style={{ fontSize: 14, color: '#475467' }}>{data.name}</span> : null}
               {isOpen ? (
                 <span
                   style={{
@@ -446,19 +498,9 @@ export default function TradeDetailPage() {
                   </span>
                 ))}
               </div>
-            ) : (              
+            ) : (
               <div style={{ display: 'grid', gap: 8 }}>
                 <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8, alignItems: 'center' }}>
-                  <input
-                    value={form.tags}
-                    onChange={(e) => setForm((p) => ({ ...p, tags: e.target.value }))}
-                    placeholder="タグ（カンマ区切り） 例：割安,決算,反発"
-                    style={{ fontSize: 14, padding: '6px 10px', borderRadius: 8, border: '1px solid #ddd', minWidth: 320 }}
-                  />
-                  <span style={{ fontSize: 12, color: '#667085' }}>保存を押すと反映されます</span>
-                </div>
-
-                <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8 }}>
                   {TAG_OPTIONS.map((t) => {
                     const active = hasTagCSV(form.tags, t)
                     return (
@@ -472,8 +514,8 @@ export default function TradeDetailPage() {
                           padding: '6px 10px',
                           background: active ? '#e8f7f4' : '#fff',
                           cursor: 'pointer',
-                       fontSize: 12,
-                       color: '#111',
+                          fontSize: 12,
+                          color: '#111',
                           fontWeight: 600,
                           lineHeight: 1.2,
                           display: 'inline-flex',
@@ -486,6 +528,23 @@ export default function TradeDetailPage() {
                       </button>
                     )
                   })}
+                </div>
+                <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                  <span style={{ fontSize: 13, fontWeight: 700, color: '#475467' }}>評価</span>
+                  <select
+                    value={form.rating}
+                    onChange={(e) => setForm((p) => ({ ...p, rating: Number(e.target.value) }))}
+                    disabled={isOpen}
+                    style={{ opacity: isOpen ? 0.6 : 1 }}
+                  >
+                    <option value={0}>—</option>
+                    <option value={1}>★1</option>
+                    <option value={2}>★2</option>
+                    <option value={3}>★3</option>
+                    <option value={4}>★4</option>
+                    <option value={5}>★5</option>
+                  </select>
+                  {isOpen ? <span style={{ fontSize: 12, color: '#667085' }}>保有中は変更しません</span> : null}
                 </div>
               </div>
             )}
@@ -533,7 +592,7 @@ export default function TradeDetailPage() {
       </div>
 
       <div style={{ marginTop: 10, display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12, alignItems: 'stretch' }}>
-      {/* 売買データ（表示のみ） */}
+      {/* 売買データ */}
       <div style={{ marginTop: 0, border: '1px solid #ddd', borderRadius: 12, padding: 10, height: '100%', background: '#fff', fontSize: 15, color: '#111' }}>
         
         <h3
@@ -550,22 +609,97 @@ export default function TradeDetailPage() {
         </h3>
         <div style={{ height: 1, background: '#eee', marginBottom: 10 }} />
 
-          <div style={{ display: 'grid', gap: 8, fontSize: 15, color: '#111', paddingLeft: 10 }}>
-            <div style={{ display: 'grid', gridTemplateColumns: '52px 1fr', gap: 8, alignItems: 'baseline' }}>
-              <b>BUY</b>
-              <span style={{ fontSize: 15, fontWeight: 700, color: '#000' }}>
-                {buy?.date || '—'} / {fmtMoney(buy?.price)} × {buy?.qty ?? '—'}
-              </span>
+          {!isEditing ? (
+            <div style={{ display: 'grid', gap: 8, fontSize: 15, color: '#111', paddingLeft: 10 }}>
+              <div style={{ display: 'grid', gridTemplateColumns: '52px 1fr', gap: 8, alignItems: 'baseline' }}>
+                <b>BUY</b>
+                <span style={{ fontSize: 15, fontWeight: 700, color: '#000' }}>
+                  {buy?.date || '—'} / {fmtMoney(buy?.price)} × {buy?.qty ?? '—'}
+                </span>
+              </div>
+              <div style={{ display: 'grid', gridTemplateColumns: '52px 1fr', gap: 8, alignItems: 'baseline' }}>
+                <b>SELL</b>
+                <span style={{ fontSize: 15, fontWeight: 700, color: '#000' }}>
+                  {isOpen ? '—' : `${sell?.date || '—'} / ${fmtMoney(sell?.price)} × ${sell?.qty ?? '—'}`}
+                </span>
+              </div>
             </div>
-            <div style={{ display: 'grid', gridTemplateColumns: '52px 1fr', gap: 8, alignItems: 'baseline' }}>
-              <b>SELL</b>
-              <span style={{ fontSize: 15, fontWeight: 700, color: '#000' }}>
-                {isOpen ? '—' : `${sell?.date || '—'} / ${fmtMoney(sell?.price)} × ${sell?.qty ?? '—'}`}
-              </span>
+          ) : (
+            <div style={{ display: 'grid', gap: 12, paddingLeft: 10 }}>
+              <div style={{ display: 'grid', gap: 8 }}>
+                <b>BUY</b>
+                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: 8 }}>
+                  <input
+                    type="date"
+                    value={form.buy_date}
+                    onChange={(e) => setForm((p) => ({ ...p, buy_date: e.target.value }))}
+                  />
+                  <input
+                    type="number"
+                    min="1"
+                    step="1"
+                    value={form.buy_price}
+                    onChange={(e) => setForm((p) => ({ ...p, buy_price: e.target.value }))}
+                    placeholder="BUY価格"
+                  />
+                  <input
+                    type="number"
+                    min="1"
+                    step="1"
+                    value={form.buy_qty}
+                    onChange={(e) =>
+                      setForm((p) => ({
+                        ...p,
+                        buy_qty: e.target.value,
+                        sell_qty: e.target.value,
+                      }))
+                    }
+                    placeholder="BUY数量"
+                  />
+                </div>
+              </div>
+              <div style={{ display: 'grid', gap: 8 }}>
+                <b>SELL</b>
+                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: 8 }}>
+                  <input
+                    type="date"
+                    value={form.sell_date}
+                    onChange={(e) => setForm((p) => ({ ...p, sell_date: e.target.value }))}
+                  />
+                  <input
+                    type="number"
+                    min="1"
+                    step="1"
+                    value={form.sell_price}
+                    onChange={(e) => setForm((p) => ({ ...p, sell_price: e.target.value }))}
+                    placeholder="SELL価格"
+                  />
+                  <input
+                    type="number"
+                    min="1"
+                    step="1"
+                    value={form.sell_qty}
+                    onChange={(e) =>
+                      setForm((p) => ({
+                        ...p,
+                        sell_qty: e.target.value,
+                        buy_qty: e.target.value,
+                      }))
+                    }
+                    placeholder="SELL数量"
+                  />
+                </div>
+                {isOpen ? (
+                  <div style={{ fontSize: 12, color: '#667085' }}>
+                    保有中のまま保存する場合は SELL を空欄のままにしてください。売却済にするには SELL日付・SELL価格・SELL数量の3つを入力してください。
+                  </div>
+                ) : null}
+              </div>
             </div>
-          </div>
+          )}
       </div>
       {/* サマリー */}
+      {!isEditing ? (
       <div style={{ marginTop: 0, border: '1px solid #ddd', borderRadius: 12, padding: 10, height: '100%', display: 'flex', flexDirection: 'column', background: '#fff', fontSize: 15, color: '#111' }}>
         <h3
           style={{
@@ -597,21 +731,7 @@ export default function TradeDetailPage() {
           <div>
             <div style={{ fontWeight: 700, fontSize: 13, opacity: 0.75 }}>評価</div>
             <div style={{ fontSize: 14 }}>
-              {!isEditing ? (
-                <Rating value={data.rating} />
-              ) : (
-                <select
-                  value={form.rating}
-                  onChange={(e) => setForm((p) => ({ ...p, rating: Number(e.target.value) }))}
-                >
-                  <option value={0}>—</option>
-                  <option value={1}>★1</option>
-                  <option value={2}>★2</option>
-                  <option value={3}>★3</option>
-                  <option value={4}>★4</option>
-                  <option value={5}>★5</option>
-                </select>
-              )}
+              <Rating value={data.rating} />
             </div>
           </div>
         </div>
@@ -619,6 +739,7 @@ export default function TradeDetailPage() {
         {/* (Review badge and buttons moved to header and thought log sections) */}
 
       </div>
+      ) : null}
       </div>
 
       {/* チャート */}
@@ -644,34 +765,17 @@ export default function TradeDetailPage() {
                 setChartViewKey((k) => k + 1)
               }}
               style={{
-                border: chartMode === 'entry' ? '1px solid #2a9d8f' : '1px solid #ddd',
-                background: chartMode === 'entry' ? '#e8f7f4' : '#fff',
+                border: '1px solid #ddd',
+                background: '#f2f4f7',
+                color: '#344054',
                 borderRadius: 999,
                 padding: '4px 10px',
                 fontSize: 12,
+                fontWeight: 600,
+                marginRight: 6,
               }}
             >
-              BUY
-            </button>
-            <button
-              type="button"
-              disabled={isOpen}
-              onClick={() => {
-                if (isOpen) return
-                setChartMode('exit')
-                setChartViewKey((k) => k + 1)
-              }}
-              style={{
-                border: chartMode === 'exit' ? '1px solid #2a9d8f' : '1px solid #ddd',
-                background: chartMode === 'exit' ? '#e8f7f4' : '#fff',
-                borderRadius: 999,
-                padding: '4px 10px',
-                fontSize: 12,
-                opacity: isOpen ? 0.5 : 1,
-                cursor: isOpen ? 'not-allowed' : 'pointer',
-              }}
-            >
-              SELL
+              Reset
             </button>
           </div>
         </div>
@@ -733,7 +837,7 @@ export default function TradeDetailPage() {
           <div style={{ height: 1, background: '#eee' }} />
 
           {/* 売却理由 */}
-          <div style={{ display: 'grid', gridTemplateColumns: '84px 1fr', gap: 10, alignItems: 'start' }}>
+          <div style={{ display: 'grid', gridTemplateColumns: '84px 1fr', gap: 10, alignItems: 'start', opacity: isEditing && isOpen ? 0.6 : 1 }}>
             <div style={{ fontSize: 14, fontWeight: 800, color: '#667085', paddingTop: 2 }}>売却理由</div>
             {!isEditing ? (
               <div style={{ whiteSpace: 'pre-wrap', color: '#111', lineHeight: 1.6 }}>{data.notes_sell || '—'}</div>
@@ -744,6 +848,7 @@ export default function TradeDetailPage() {
                 rows={4}
                 style={{ width: '100%', borderRadius: 8, border: '1px solid #ddd', padding: 10 }}
                 placeholder="売却理由（利確/損切り/リスク管理）"
+                disabled={isOpen}
               />
             )}
           </div>
@@ -751,7 +856,7 @@ export default function TradeDetailPage() {
           <div style={{ height: 1, background: '#eee' }} />
 
           {/* 考察 */}
-          <div style={{ display: 'grid', gridTemplateColumns: '84px 1fr', gap: 10, alignItems: 'start' }}>
+          <div style={{ display: 'grid', gridTemplateColumns: '84px 1fr', gap: 10, alignItems: 'start', opacity: isEditing && isOpen ? 0.6 : 1 }}>
             <div style={{ fontSize: 14, fontWeight: 800, color: '#667085', paddingTop: 2 }}>考察</div>
             {!isEditing ? (
               <div style={{ whiteSpace: 'pre-wrap', color: '#111', lineHeight: 1.6 }}>{data.notes_review || '—'}</div>
@@ -762,6 +867,7 @@ export default function TradeDetailPage() {
                 rows={6}
                 style={{ width: '100%', borderRadius: 8, border: '1px solid #ddd', padding: 10 }}
                 placeholder="考察（改善点・次のルール）"
+                disabled={isOpen}
               />
             )}
           </div>
@@ -770,7 +876,7 @@ export default function TradeDetailPage() {
         </div>
         </div>
 
-        {!isOpen ? (
+        {!isOpen && !isEditing ? (
           <div style={{ marginTop: 8, display: 'flex', justifyContent: 'flex-end', gap: 8, flexWrap: 'wrap' }}>
             {isPendingReview ? (
               <button type="button" onClick={markReviewDone}>レビュー完了</button>
