@@ -158,7 +158,9 @@ export default function SettingsPage() {
                     ? '#b42318'
                     : readiness?.release_status === 'warning'
                       ? '#b54708'
-                      : '#027a48',
+                      : readiness?.release_status === 'ok'
+                        ? '#027a48'
+                        : '#667085',
               }}
             >
               Release Status:{' '}
