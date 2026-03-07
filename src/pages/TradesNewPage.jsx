@@ -222,6 +222,24 @@ export default function TradesNewPage() {
   const [usInstruments, setUsInstruments] = useState([])
   const [usLoadState, setUsLoadState] = useState('idle')
   const usLoadStartedRef = useRef(false)
+  const baseButtonStyle = {
+    background: '#fff',
+    color: '#111',
+    border: '1px solid #d0d5dd',
+    borderRadius: 10,
+    padding: '8px 12px',
+    cursor: 'pointer',
+    fontWeight: 500,
+  }
+  const primaryButtonStyle = {
+    background: '#344054',
+    color: '#fff',
+    border: '1px solid #344054',
+    borderRadius: 10,
+    padding: '8px 12px',
+    cursor: 'pointer',
+    fontWeight: 600,
+  }
   // Load instrument cache (履歴ゼロでも入力を回すため)
   useEffect(() => {
     try {
@@ -755,7 +773,28 @@ export default function TradesNewPage() {
         confirmInstrument(instrumentCandidates[activeCandidateIndex] || instrumentCandidates[0])
         return
       }
+
       e.preventDefault()
+
+      // If the instrument is already confirmed, move to the next input field
+      if (instrumentConfirmed) {
+        const form = e.target.form
+        if (form) {
+          const elements = Array.from(form.elements).filter((el) => {
+            const tag = el.tagName
+            if (tag !== 'INPUT' && tag !== 'SELECT' && tag !== 'TEXTAREA') return false
+            if (el.disabled) return false
+            if (el.type === 'submit') return false
+            if (el.tabIndex < 0) return false
+            if (el.getAttribute && el.getAttribute('aria-hidden') === 'true') return false
+            return true
+          })
+          const index = elements.indexOf(e.target)
+          if (index > -1 && index + 1 < elements.length) {
+            elements[index + 1].focus()
+          }
+        }
+      }
     }
   }
 
@@ -835,7 +874,7 @@ export default function TradesNewPage() {
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 12 }}>
         <h2 style={{ margin: 0 }}>新規トレード作成</h2>
         <Link to="/trades" style={{ textDecoration: 'none' }}>
-          <button>← 一覧へ</button>
+          <button style={baseButtonStyle}>← 一覧へ</button>
         </Link>
       </div>
 
@@ -862,7 +901,7 @@ export default function TradesNewPage() {
               style={{ flex: 1 }}
             />
             {instrumentConfirmed ? (
-              <button type="button" onClick={clearConfirmedInstrument} title="銘柄確定を解除">
+              <button type="button" onClick={clearConfirmedInstrument} title="銘柄確定を解除" style={baseButtonStyle}>
                 ×
               </button>
             ) : null}
@@ -935,7 +974,7 @@ export default function TradesNewPage() {
             <button
               type="button"
               onClick={() => openDatePicker(buyDatePickerRef)}
-              style={{ border: '1px solid #ddd', background: '#fff', borderRadius: 10, padding: '8px 10px', cursor: 'pointer' }}
+              style={{ ...baseButtonStyle, padding: '8px 10px' }}
               title="カレンダーから選択"
             >
               📅
@@ -950,15 +989,32 @@ export default function TradesNewPage() {
               aria-hidden="true"
             />
           </div>
-          <input
-            type="text"
-            inputMode="decimal"
-            placeholder="買値"
-            value={buyPrice}
-            onChange={(e) => setBuyPrice(normalizeDecimalInput(e.target.value))}
-            required
-            onKeyDown={handleKeyNav}
-          />
+          <div style={{ position: 'relative' }}>
+            <div
+              style={{
+                position: 'absolute',
+                left: 12,
+                top: '50%',
+                transform: 'translateY(-50%)',
+                fontWeight: 700,
+                opacity: 1,
+                color: '#111',
+                pointerEvents: 'none',
+              }}
+            >
+              {market === 'JP' ? '¥' : '$'}
+            </div>
+            <input
+              type="text"
+              inputMode="decimal"
+              placeholder="買値"
+              value={buyPrice}
+              onChange={(e) => setBuyPrice(normalizeDecimalInput(e.target.value))}
+              required
+              onKeyDown={handleKeyNav}
+              style={{ width: '100%', paddingLeft: 36 }}
+            />
+          </div>
           <input
             type="text"
             inputMode="numeric"
@@ -970,18 +1026,25 @@ export default function TradesNewPage() {
           />
         </div>
 
-        <label style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-          <input
-            type="checkbox"
-            checked={isOpen}
-            onChange={(e) => setIsOpen(e.target.checked)}
-            onKeyDown={handleKeyNav}
-          />
-          <span style={{ fontWeight: 700 }}>保有中（未売却）</span>
-        </label>
 
         <div style={{ border: '1px solid #ddd', borderRadius: 12, padding: 12, display: 'grid', gap: 10 }}>
-          <div style={{ fontWeight: 700 }}>SELL</div>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+            <div style={{ fontWeight: 700 }}>SELL</div>
+            <div style={{ opacity: 0.45, fontWeight: 700 }}>/</div>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 6, whiteSpace: 'nowrap' }}>
+              <input
+                id="is-open-checkbox"
+                type="checkbox"
+                checked={isOpen}
+                onChange={(e) => setIsOpen(e.target.checked)}
+                onKeyDown={handleKeyNav}
+                style={{ margin: 0, width: 16, height: 16, flex: '0 0 auto' }}
+              />
+              <label htmlFor="is-open-checkbox" style={{ fontWeight: 700, fontSize: 13, lineHeight: '16px', cursor: 'pointer' }}>
+                保有中（未売却）
+              </label>
+            </div>
+          </div>
           <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
             <input
               type="text"
@@ -1000,9 +1063,7 @@ export default function TradesNewPage() {
               onClick={() => openDatePicker(sellDatePickerRef)}
               disabled={isOpen}
               style={{
-                border: '1px solid #ddd',
-                background: '#fff',
-                borderRadius: 10,
+                ...baseButtonStyle,
                 padding: '8px 10px',
                 cursor: isOpen ? 'not-allowed' : 'pointer',
                 opacity: isOpen ? 0.5 : 1,
@@ -1022,16 +1083,33 @@ export default function TradesNewPage() {
               aria-hidden="true"
             />
           </div>
-          <input
-            type="text"
-            inputMode="decimal"
-            placeholder="売値"
-            value={sellPrice}
-            onChange={(e) => setSellPrice(normalizeDecimalInput(e.target.value))}
-            required={!isOpen}
-            disabled={isOpen}
-            onKeyDown={handleKeyNav}
-          />
+          <div style={{ position: 'relative' }}>
+            <div
+              style={{
+                position: 'absolute',
+                left: 12,
+                top: '50%',
+                transform: 'translateY(-50%)',
+                fontWeight: 700,
+                opacity: 1,
+                color: '#111',
+                pointerEvents: 'none',
+              }}
+            >
+              {market === 'JP' ? '¥' : '$'}
+            </div>
+            <input
+              type="text"
+              inputMode="decimal"
+              placeholder="売値"
+              value={sellPrice}
+              onChange={(e) => setSellPrice(normalizeDecimalInput(e.target.value))}
+              required={!isOpen}
+              disabled={isOpen}
+              onKeyDown={handleKeyNav}
+              style={{ width: '100%', paddingLeft: 36 }}
+            />
+          </div>
           <div style={{ fontSize: 12, opacity: 0.75 }}>
             {isOpen ? (
               <>未売却のため SELL は入力しません</>
@@ -1126,7 +1204,12 @@ export default function TradesNewPage() {
           </div>
         </div>
 
-        <button type="submit" disabled={Boolean(clientValidationError)} title={clientValidationError || ''}>
+        <button
+          type="submit"
+          disabled={Boolean(clientValidationError)}
+          title={clientValidationError || ''}
+          style={{ ...primaryButtonStyle, opacity: clientValidationError ? 0.55 : 1, cursor: clientValidationError ? 'not-allowed' : 'pointer' }}
+        >
           保存
         </button>
 

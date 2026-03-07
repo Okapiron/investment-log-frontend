@@ -133,7 +133,7 @@ function isOpenTrade(t) {
 
 function isPendingReviewTrade(t) {
   if (!t) return false
-  return !isOpenTrade(t) && !Boolean(t.review_done)
+  return !Boolean(t.review_done)
 }
 
 function getProfitValue(t) {
@@ -213,7 +213,25 @@ function FilterChip({ active, onClick, children }) {
 export default function TradesPage() {
   const [searchParams, setSearchParams] = useSearchParams()
 
-  const actionBtnStyle = { minWidth: 140, padding: '8px 12px', whiteSpace: 'nowrap', color: '#fff' }
+  const baseButtonStyle = {
+    background: '#fff',
+    color: '#111',
+    border: '1px solid #d0d5dd',
+    borderRadius: 10,
+    padding: '8px 12px',
+    cursor: 'pointer',
+    fontWeight: 500,
+  }
+  const primaryButtonStyle = {
+    background: '#344054',
+    color: '#fff',
+    border: '1px solid #344054',
+    borderRadius: 10,
+    padding: '8px 12px',
+    cursor: 'pointer',
+    fontWeight: 600,
+  }
+  const actionBtnStyle = { ...primaryButtonStyle, minWidth: 140, whiteSpace: 'nowrap' }
 
   // URL -> state 初期値（直アクセス/リロードで復元）
   const initial = useMemo(() => {
@@ -677,12 +695,8 @@ export default function TradesPage() {
               title={sortDir === 'asc' ? '昇順 → 降順' : '降順 → 昇順'}
               aria-label={sortDir === 'asc' ? '昇順' : '降順'}
               style={{
-                border: '1px solid #ddd',
-                background: '#fff',
-                color: '#333',
-                borderRadius: 10,
+                ...baseButtonStyle,
                 padding: '6px 10px',
-                cursor: 'pointer',
                 fontWeight: 800,
                 lineHeight: 1,
                 display: 'inline-flex',
@@ -884,7 +898,7 @@ export default function TradesPage() {
             resetAll()
           }}
           style={{
-            ...actionBtnStyle,
+            ...baseButtonStyle,
             opacity: hasAnyFilter ? 1 : 0.45,
             cursor: hasAnyFilter ? 'pointer' : 'not-allowed',
           }}
@@ -919,6 +933,7 @@ export default function TradesPage() {
             disabled={page <= 1}
             aria-label="前のページ"
             title="前のページ"
+            style={{ ...baseButtonStyle, padding: '6px 10px', opacity: page <= 1 ? 0.5 : 1, cursor: page <= 1 ? 'not-allowed' : 'pointer' }}
           >
             ◀
           </button>
@@ -931,6 +946,7 @@ export default function TradesPage() {
             disabled={page >= totalPages}
             aria-label="次のページ"
             title="次のページ"
+            style={{ ...baseButtonStyle, padding: '6px 10px', opacity: page >= totalPages ? 0.5 : 1, cursor: page >= totalPages ? 'not-allowed' : 'pointer' }}
           >
             ▶
           </button>
@@ -1118,6 +1134,7 @@ export default function TradesPage() {
           disabled={page <= 1}
           aria-label="前のページ"
           title="前のページ"
+          style={{ ...baseButtonStyle, padding: '6px 10px', opacity: page <= 1 ? 0.5 : 1, cursor: page <= 1 ? 'not-allowed' : 'pointer' }}
         >
           ◀
         </button>
@@ -1130,6 +1147,7 @@ export default function TradesPage() {
           disabled={page >= totalPages}
           aria-label="次のページ"
           title="次のページ"
+          style={{ ...baseButtonStyle, padding: '6px 10px', opacity: page >= totalPages ? 0.5 : 1, cursor: page >= totalPages ? 'not-allowed' : 'pointer' }}
         >
           ▶
         </button>

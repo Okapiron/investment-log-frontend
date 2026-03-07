@@ -105,6 +105,33 @@ export default function TradeDetailPage() {
   })
   const [saveMsg, setSaveMsg] = useState('')
   const [chartError, setChartError] = useState('')
+  const baseButtonStyle = {
+    background: '#fff',
+    color: '#111',
+    border: '1px solid #d0d5dd',
+    borderRadius: 10,
+    padding: '8px 12px',
+    cursor: 'pointer',
+    fontWeight: 500,
+  }
+  const primaryButtonStyle = {
+    background: '#344054',
+    color: '#fff',
+    border: '1px solid #344054',
+    borderRadius: 10,
+    padding: '8px 12px',
+    cursor: 'pointer',
+    fontWeight: 600,
+  }
+  const dangerButtonStyle = {
+    background: '#fef3f2',
+    color: '#b42318',
+    border: '1px solid #fecdca',
+    borderRadius: 10,
+    padding: '8px 12px',
+    cursor: 'pointer',
+    fontWeight: 600,
+  }
 
   const { data, isLoading, error, refetch } = useQuery({
     queryKey: ['trade', id],
@@ -553,7 +580,7 @@ export default function TradeDetailPage() {
           <div style={{ display: 'flex', gap: 8, alignItems: 'center', justifyContent: 'flex-end', flexWrap: 'wrap' }}>
             {tvExternalUrl ? (
               <a href={tvExternalUrl} target="_blank" rel="noreferrer" style={{ textDecoration: 'none' }}>
-                <button type="button">TradingViewで開く</button>
+                <button type="button" style={baseButtonStyle}>TradingViewで開く</button>
               </a>
             ) : (
               <span style={{ fontSize: 12, color: '#b42318' }}>外部リンクなし</span>
@@ -563,9 +590,7 @@ export default function TradeDetailPage() {
               onClick={deleteTrade}
               disabled={isEditing}
               style={{
-                background: '#fff',
-                border: '1px solid #f2b8b5',
-                color: '#b42318',
+                ...dangerButtonStyle,
                 opacity: isEditing ? 0.5 : 1,
                 cursor: isEditing ? 'not-allowed' : 'pointer',
               }}
@@ -575,16 +600,16 @@ export default function TradeDetailPage() {
             </button>
 
             {!isEditing ? (
-              <button onClick={startEdit}>編集</button>
+              <button onClick={startEdit} style={primaryButtonStyle}>編集</button>
             ) : (
               <>
-                <button onClick={cancelEdit}>キャンセル</button>
-                <button onClick={saveAll}>保存</button>
+                <button onClick={cancelEdit} style={baseButtonStyle}>キャンセル</button>
+                <button onClick={saveAll} style={primaryButtonStyle}>保存</button>
               </>
             )}
 
             <Link to="/trades" style={{ textDecoration: 'none' }}>
-              <button>← 一覧へ</button>
+              <button style={baseButtonStyle}>← 一覧へ</button>
             </Link>
           </div>
         </div>
@@ -765,10 +790,7 @@ export default function TradeDetailPage() {
                 setChartViewKey((k) => k + 1)
               }}
               style={{
-                border: '1px solid #ddd',
-                background: '#f2f4f7',
-                color: '#344054',
-                borderRadius: 999,
+                ...baseButtonStyle,
                 padding: '4px 10px',
                 fontSize: 12,
                 fontWeight: 600,
@@ -879,9 +901,9 @@ export default function TradeDetailPage() {
         {!isOpen && !isEditing ? (
           <div style={{ marginTop: 8, display: 'flex', justifyContent: 'flex-end', gap: 8, flexWrap: 'wrap' }}>
             {isPendingReview ? (
-              <button type="button" onClick={markReviewDone}>レビュー完了</button>
+              <button type="button" onClick={markReviewDone} style={primaryButtonStyle}>レビュー完了</button>
             ) : (
-              <button type="button" onClick={markReviewPending}>未レビューに戻す</button>
+              <button type="button" onClick={markReviewPending} style={baseButtonStyle}>未レビューに戻す</button>
             )}
           </div>
         ) : null}
