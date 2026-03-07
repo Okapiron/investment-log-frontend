@@ -9,6 +9,23 @@ export function getReadiness() {
   return requestReadinessWithFallback()
 }
 
+async function _buildHttpError(res) {
+  let detail = 'Request failed'
+  let requestId = ''
+  try {
+    const body = await res.json()
+    detail = body.detail || detail
+    requestId = String(body.request_id || '').trim()
+  } catch {
+    detail = res.statusText || detail
+  }
+  if (!requestId) requestId = String(res.headers.get('x-request-id') || '').trim()
+  const retryAfter = String(res.headers.get('retry-after') || '').trim()
+  const retryHint = res.status === 429 && retryAfter ? ` ${retryAfter}秒後に再試行してください。` : ''
+  const baseMsg = `${res.status}: ${detail}${retryHint}`
+  return new Error(requestId ? `${baseMsg} (request_id: ${requestId})` : baseMsg)
+}
+
 async function requestReadinessWithFallback() {
   const token = getAccessToken()
   const headers = {}
@@ -43,15 +60,7 @@ async function requestReadinessWithFallback() {
       lastError = new Error('404: Not Found')
       continue
     }
-
-    let detail = 'Request failed'
-    try {
-      const body = await res.json()
-      detail = body.detail || detail
-    } catch {
-      detail = res.statusText || detail
-    }
-    throw new Error(`${res.status}: ${detail}`)
+    throw await _buildHttpError(res)
   }
 
   throw lastError || new Error('ヘルスチェックに失敗しました。')
@@ -76,14 +85,7 @@ export async function downloadMyExport(format = 'json') {
 
   const res = await fetch(url, { method: 'GET', headers })
   if (!res.ok) {
-    let detail = 'Request failed'
-    try {
-      const body = await res.json()
-      detail = body.detail || detail
-    } catch {
-      detail = res.statusText || detail
-    }
-    throw new Error(`${res.status}: ${detail}`)
+    throw await _buildHttpError(res)
   }
 
   const blob = await res.blob()
