@@ -7,6 +7,7 @@ import { deleteMyData, downloadMyExport, getMyProfile, getReadiness } from '../l
 
 export default function SettingsPage() {
   const navigate = useNavigate()
+  const frontendVersion = String(import.meta.env.VITE_APP_VERSION || '').trim() || 'dev-local'
   const [working, setWorking] = useState('')
   const [msg, setMsg] = useState('')
   const [error, setError] = useState('')
@@ -153,7 +154,10 @@ export default function SettingsPage() {
               <b>{readiness?.db === 'ok' ? 'OK' : readiness?.status === 'unknown' ? '未対応' : '確認中'}</b>
             </div>
             <div style={{ fontSize: 12, color: '#667085' }}>
-              Version: <b>{readiness?.app_version || '—'}</b>
+              Backend Version: <b>{readiness?.app_version || '—'}</b>
+            </div>
+            <div style={{ fontSize: 12, color: '#667085' }}>
+              Frontend Version: <b>{frontendVersion}</b>
             </div>
             {readiness?.status === 'unknown' ? (
               <div style={{ fontSize: 12, color: '#b54708' }}>

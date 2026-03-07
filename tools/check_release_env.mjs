@@ -52,6 +52,7 @@ function main() {
   const supabaseUrl = String(env.VITE_SUPABASE_URL || '').trim()
   const supabaseAnonKey = String(env.VITE_SUPABASE_ANON_KEY || '').trim()
   const timeoutRaw = String(env.VITE_API_TIMEOUT_MS || '').trim()
+  const appVersion = String(env.VITE_APP_VERSION || '').trim()
 
   if (isBlank(apiBase)) {
     errors.push('VITE_API_BASE is required')
@@ -79,6 +80,10 @@ function main() {
     if (!Number.isFinite(n) || n <= 0) errors.push('VITE_API_TIMEOUT_MS must be a positive number')
     else if (n < 3000) warnings.push('VITE_API_TIMEOUT_MS is very low')
     else if (n > 60000) warnings.push('VITE_API_TIMEOUT_MS is very high')
+  }
+
+  if (isBlank(appVersion) || appVersion.toLowerCase() === 'dev-local') {
+    warnings.push('VITE_APP_VERSION is not set for release (current value looks like local default)')
   }
 
   if (errors.length > 0) {
