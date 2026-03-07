@@ -31,7 +31,7 @@ async function requestReadinessWithFallback() {
   const headers = {}
   if (token) headers.Authorization = `Bearer ${token}`
 
-  const candidates = ['/health/ready', '/api/v1/health/ready', '/health', '/api/v1/health']
+  const candidates = ['/api/v1/settings/runtime', '/health/ready', '/api/v1/health/ready', '/health', '/api/v1/health']
   let lastError = null
 
   for (const path of candidates) {
