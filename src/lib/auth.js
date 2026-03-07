@@ -30,6 +30,14 @@ function parseHashParams(hash) {
   }
 }
 
+function normalizeInviteCode(value) {
+  return String(value || '').trim().toUpperCase()
+}
+
+function isValidInviteCode(value) {
+  return /^[A-Z0-9]{8,12}$/.test(normalizeInviteCode(value))
+}
+
 function normalizeSession(data) {
   if (!data?.access_token) return null
   const nowMs = Date.now()
@@ -98,8 +106,9 @@ export async function requestMagicLink({ email, inviteCode, redirectTo }) {
 
   const cleanEmail = String(email || '').trim()
   if (!cleanEmail) throw new Error('メールアドレスを入力してください。')
-  const cleanInviteCode = String(inviteCode || '').trim()
+  const cleanInviteCode = normalizeInviteCode(inviteCode)
   if (!cleanInviteCode) throw new Error('招待コードを入力してください。')
+  if (!isValidInviteCode(cleanInviteCode)) throw new Error('招待コードは英数字8〜12文字で入力してください。')
 
   const res = await fetch(buildAuthUrl('/otp'), {
     method: 'POST',

@@ -4,7 +4,9 @@ import { useMemo } from 'react'
 import Layout from './components/Layout'
 import AuthCallbackPage from './pages/AuthCallbackPage'
 import AuthPage from './pages/AuthPage'
+import PrivacyPage from './pages/PrivacyPage'
 import SettingsPage from './pages/SettingsPage'
+import TermsPage from './pages/TermsPage'
 import TradesNewPage from './pages/TradesNewPage'
 import TradesPage from './pages/TradesPage'
 import TradeDetailPage from './pages/TradeDetailPage.jsx'
@@ -27,6 +29,8 @@ export default function App() {
 
         <Route path="/auth" element={<AuthPage />} />
         <Route path="/auth/callback" element={<AuthCallbackPage />} />
+        <Route path="/terms" element={<TermsPage />} />
+        <Route path="/privacy" element={<PrivacyPage />} />
 
         <Route
           path="/trades"

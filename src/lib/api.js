@@ -2,7 +2,7 @@ import { getAccessToken } from './auth'
 
 const API_BASE = import.meta.env.VITE_API_BASE || 'http://localhost:8000/api/v1'
 
-async function request(path, options = {}) {
+export function resolveApiUrl(path) {
   const base = String(API_BASE || '').replace(/\/+$/, '')
   const p = String(path || '')
   let url = ''
@@ -20,6 +20,11 @@ async function request(path, options = {}) {
       url = `${base}${normalizedPath}`
     }
   }
+  return url
+}
+
+async function request(path, options = {}) {
+  const url = resolveApiUrl(path)
 
   let res
   try {

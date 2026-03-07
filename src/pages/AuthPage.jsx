@@ -62,10 +62,11 @@ export default function AuthPage() {
             <input
               type="text"
               value={inviteCode}
-              onChange={(e) => setInviteCode(e.target.value)}
-              placeholder="招待コード"
+              onChange={(e) => setInviteCode(String(e.target.value || '').toUpperCase())}
+              placeholder="例: A1B2C3D4E5"
               minLength={8}
-              maxLength={20}
+              maxLength={12}
+              pattern="[A-Za-z0-9]{8,12}"
               required
             />
           </label>
