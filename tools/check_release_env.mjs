@@ -59,6 +59,9 @@ function main() {
   } else if (authEnabled && !apiBase.startsWith('https://')) {
     warnings.push('VITE_API_BASE should be https:// when VITE_AUTH_ENABLED=true')
   }
+  if (apiBase && !/\/api\/v1\/?$/i.test(apiBase)) {
+    warnings.push('VITE_API_BASE should usually end with /api/v1')
+  }
 
   if (authEnabled) {
     if (isBlank(supabaseUrl)) errors.push('VITE_SUPABASE_URL is required when VITE_AUTH_ENABLED=true')
