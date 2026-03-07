@@ -86,9 +86,14 @@ export default function TradeDetailPage() {
   const { id } = useParams()
   const navigate = useNavigate()
   const queryClient = useQueryClient()
+  const CHART_INTERVAL_OPTIONS = [
+    { value: '1d', label: '日足' },
+    { value: '1w', label: '週足' },
+    { value: '1m', label: '月足' },
+  ]
 
   const [isEditing, setIsEditing] = useState(false)
-  const [interval] = useState('1d')
+  const [interval, setInterval] = useState('1d')
   const [chartMode, setChartMode] = useState('entry')
   const [chartViewKey, setChartViewKey] = useState(0)
   const [form, setForm] = useState({
@@ -125,6 +130,14 @@ export default function TradeDetailPage() {
     borderRadius: 10,
     padding: '8px 12px',
     cursor: 'pointer',
+    fontWeight: 600,
+  }
+  const chartControlButtonStyle = {
+    ...baseButtonStyle,
+    padding: '4px 10px',
+    minWidth: 56,
+    height: 30,
+    fontSize: 12,
     fontWeight: 600,
   }
   const dangerButtonStyle = {
@@ -854,6 +867,32 @@ export default function TradeDetailPage() {
             チャート
           </h3>
           <div style={{ display: 'flex', gap: 6, alignItems: 'center', flexWrap: 'wrap' }}>
+            <div style={{ display: 'flex', gap: 6, alignItems: 'center' }}>
+              {CHART_INTERVAL_OPTIONS.map((opt) => {
+                const active = interval === opt.value
+                return (
+                  <button
+                    key={opt.value}
+                    type="button"
+                    onClick={() => {
+                      if (interval === opt.value) return
+                      setInterval(opt.value)
+                      setChartMode('entry')
+                      setChartViewKey((k) => k + 1)
+                    }}
+                    style={{
+                      ...chartControlButtonStyle,
+                      background: active ? '#344054' : chartControlButtonStyle.background,
+                      color: active ? '#fff' : chartControlButtonStyle.color,
+                      border: active ? '1px solid #344054' : chartControlButtonStyle.border,
+                      boxShadow: active ? 'inset 0 0 0 1px rgba(255,255,255,0.08)' : 'none',
+                    }}
+                  >
+                    {opt.label}
+                  </button>
+                )
+              })}
+            </div>
             <button
               type="button"
               onClick={() => {
@@ -861,11 +900,8 @@ export default function TradeDetailPage() {
                 setChartViewKey((k) => k + 1)
               }}
               style={{
-                ...baseButtonStyle,
-                padding: '4px 10px',
-                fontSize: 12,
-                fontWeight: 600,
-                marginRight: 6,
+                ...chartControlButtonStyle,
+                marginLeft: 4,
               }}
             >
               Reset

@@ -19,10 +19,15 @@ async function request(path, options = {}) {
     }
   }
 
-  const res = await fetch(url, {
-    headers: { 'Content-Type': 'application/json', ...(options.headers || {}) },
-    ...options,
-  })
+  let res
+  try {
+    res = await fetch(url, {
+      headers: { 'Content-Type': 'application/json', ...(options.headers || {}) },
+      ...options,
+    })
+  } catch {
+    throw new Error('APIに接続できません。バックエンド起動状態またはネットワークを確認してください。')
+  }
 
   if (!res.ok) {
     let detail = 'Request failed'
