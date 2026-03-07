@@ -91,6 +91,20 @@ function getSellCompletion(form) {
   return { hasAnySell, hasAllSell, sellDate }
 }
 
+function getReviewMissingItems(trade, isOpen) {
+  if (!trade || isOpen) return []
+  const missing = []
+  const tags = parseTagsCSV(trade.tags)
+  const rating = Number(trade.rating || 0)
+
+  if (tags.length === 0) missing.push('タグ')
+  if (!Number.isFinite(rating) || rating <= 0) missing.push('評価')
+  if (!String(trade.notes_buy || '').trim()) missing.push('購入理由')
+  if (!String(trade.notes_sell || '').trim()) missing.push('売却理由')
+  if (!String(trade.notes_review || '').trim()) missing.push('考察')
+  return missing
+}
+
 export default function TradeDetailPage() {
   const { id } = useParams()
   const navigate = useNavigate()
@@ -175,6 +189,12 @@ export default function TradeDetailPage() {
     return !sell
   }, [data, sell])
   const isPendingReview = useMemo(() => !Boolean(data?.review_done), [data?.review_done])
+  const reviewMissingItems = useMemo(() => getReviewMissingItems(data, isOpen), [data, isOpen])
+  const reviewDisabledReason = useMemo(() => {
+    if (!isPendingReview) return ''
+    if (reviewMissingItems.length === 0) return ''
+    return `レビュー完了に必要: ${reviewMissingItems.join(' / ')}`
+  }, [isPendingReview, reviewMissingItems])
   const profitNumber = useMemo(() => {
     if (!data || isOpen) return null
     const n =
@@ -346,6 +366,12 @@ export default function TradeDetailPage() {
       const result = await assessPriceSanityAgainstDailyBars(editPriceCheckParams)
       if (cancelled) return
       if (result?.blockingMessage) {
+        if (editIsOpen) {
+          setEditPriceCheckStatus('ok')
+          setEditPriceCheckError('')
+          setEditPriceCheckWarning(result.blockingMessage)
+          return
+        }
         setEditPriceCheckStatus('error')
         setEditPriceCheckError(result.blockingMessage)
         setEditPriceCheckWarning('')
@@ -360,17 +386,18 @@ export default function TradeDetailPage() {
       cancelled = true
       window.clearTimeout(timerId)
     }
-  }, [isEditing, editPriceCheckParams])
+  }, [isEditing, editPriceCheckParams, editIsOpen])
 
   const saveDisabledReason = useMemo(() => {
     if (!isEditing) return ''
     if (clientSaveValidationError) return clientSaveValidationError
+    if (editIsOpen) return ''
     if (!editPriceCheckParams) return '価格チェック待ちです'
     if (editPriceCheckStatus === 'checking') return '価格を確認中です'
     if (editPriceCheckStatus === 'error') return editPriceCheckError || '価格を確認してください'
     if (editPriceCheckStatus !== 'ok') return '価格チェック待ちです'
     return ''
-  }, [isEditing, clientSaveValidationError, editPriceCheckParams, editPriceCheckStatus, editPriceCheckError])
+  }, [isEditing, clientSaveValidationError, editIsOpen, editPriceCheckParams, editPriceCheckStatus, editPriceCheckError])
 
   useEffect(() => {
     if (isOpen && chartMode === 'exit') {
@@ -479,9 +506,9 @@ export default function TradeDetailPage() {
 
   async function markReviewDone() {
     if (!data || isOpen) return
-    if (!data.notes_review || String(data.notes_review).trim() === '') {
-      const ok = window.confirm('振り返りメモが空ですが、レビュー完了にしますか？')
-      if (!ok) return
+    if (reviewMissingItems.length > 0) {
+      setSaveMsg(`レビュー更新に失敗: ${reviewDisabledReason}`)
+      return
     }
     try {
       setSaveMsg('')
@@ -1031,12 +1058,25 @@ export default function TradeDetailPage() {
         </div>
 
         {!isOpen && !isEditing ? (
-          <div style={{ marginTop: 8, display: 'flex', justifyContent: 'flex-end', gap: 8, flexWrap: 'wrap' }}>
-            {isPendingReview ? (
-              <button type="button" onClick={markReviewDone} style={primaryButtonStyle}>レビュー完了</button>
-            ) : (
-              <button type="button" onClick={markReviewPending} style={baseButtonStyle}>未レビューに戻す</button>
-            )}
+          <div style={{ marginTop: 8, display: 'grid', justifyItems: 'end', gap: 4 }}>
+            <div style={{ display: 'flex', justifyContent: 'flex-end', gap: 8, flexWrap: 'wrap' }}>
+              {isPendingReview ? (
+                <button
+                  type="button"
+                  onClick={markReviewDone}
+                  style={{ ...primaryButtonStyle, opacity: reviewDisabledReason ? 0.55 : 1, cursor: reviewDisabledReason ? 'not-allowed' : 'pointer' }}
+                  disabled={Boolean(reviewDisabledReason)}
+                  title={reviewDisabledReason || ''}
+                >
+                  レビュー完了
+                </button>
+              ) : (
+                <button type="button" onClick={markReviewPending} style={baseButtonStyle}>未レビューに戻す</button>
+              )}
+            </div>
+            {isPendingReview && reviewDisabledReason ? (
+              <div style={{ fontSize: 12, color: '#b42318' }}>{reviewDisabledReason}</div>
+            ) : null}
           </div>
         ) : null}
       </div>
