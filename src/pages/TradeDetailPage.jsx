@@ -422,7 +422,7 @@ export default function TradeDetailPage() {
     if (!data) return
     if (!isEditing) return
     setForm({
-      rating: Number(data.rating ?? 0),
+      rating: isOpen ? 0 : Number(data.rating ?? 0),
       tags: data.tags ?? '',
       notes_buy: data.notes_buy ?? '',
       notes_sell: data.notes_sell ?? '',
@@ -435,7 +435,7 @@ export default function TradeDetailPage() {
       sell_qty: sell?.qty != null ? String(sell.qty) : '',
     })
     setEditIsOpen(isOpen)
-  }, [data, isEditing, buy?.date, buy?.price, buy?.qty, sell?.date, sell?.price, sell?.qty])
+  }, [data, isEditing, isOpen, buy?.date, buy?.price, buy?.qty, sell?.date, sell?.price, sell?.qty])
 
   if (isLoading) return <p style={{ padding: 16 }}>読み込み中…</p>
   if (error) return <p style={{ padding: 16, color: 'crimson' }}>エラー: {String(error.message || error)}</p>
@@ -464,7 +464,7 @@ export default function TradeDetailPage() {
       const { hasAllSell, sellDate } = getSellCompletion(form)
 
       const payload = {
-        rating: editIsOpen ? (data.rating ?? null) : (Number(form.rating || 0) || null),
+        rating: editIsOpen ? null : (Number(form.rating || 0) || null),
         tags: (form.tags || '').trim() || null,
         notes_buy: (form.notes_buy || '').trim() || null,
         notes_sell: editIsOpen ? (data.notes_sell || null) : (form.notes_sell || '').trim() || null,
@@ -624,56 +624,7 @@ export default function TradeDetailPage() {
                   </span>
                 ))}
               </div>
-            ) : (
-              <div style={{ display: 'grid', gap: 8 }}>
-                <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8, alignItems: 'center' }}>
-                  {TAG_OPTIONS.map((t) => {
-                    const active = hasTagCSV(form.tags, t)
-                    return (
-                      <button
-                        key={t}
-                        type="button"
-                        onClick={() => setForm((p) => ({ ...p, tags: toggleTagCSV(p.tags, t) }))}
-                        style={{
-                          border: active ? '1px solid #2a9d8f' : '1px solid #ddd',
-                          borderRadius: 999,
-                          padding: '6px 10px',
-                          background: active ? '#e8f7f4' : '#fff',
-                          cursor: 'pointer',
-                          fontSize: 12,
-                          color: '#111',
-                          fontWeight: 600,
-                          lineHeight: 1.2,
-                          display: 'inline-flex',
-                          alignItems: 'center',
-                          gap: 6,
-                        }}
-                        title={active ? 'クリックでタグを外す' : 'クリックでタグに追加'}
-                      >
-                        {active ? '✓' : '+'} {t}
-                      </button>
-                    )
-                  })}
-                </div>
-                <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-                  <span style={{ fontSize: 13, fontWeight: 700, color: '#475467' }}>評価</span>
-                  <select
-                    value={form.rating}
-                    onChange={(e) => setForm((p) => ({ ...p, rating: Number(e.target.value) }))}
-                    disabled={editIsOpen}
-                    style={{ opacity: editIsOpen ? 0.6 : 1 }}
-                  >
-                    <option value={0}>—</option>
-                    <option value={1}>★1</option>
-                    <option value={2}>★2</option>
-                    <option value={3}>★3</option>
-                    <option value={4}>★4</option>
-                    <option value={5}>★5</option>
-                  </select>
-                  {editIsOpen ? <span style={{ fontSize: 12, color: '#667085' }}>保有中は変更しません</span> : null}
-                </div>
-              </div>
-            )}
+            ) : null}
           </div>
 
           <div style={{ display: 'grid', justifyItems: 'end', gap: 4 }}>
@@ -808,7 +759,7 @@ export default function TradeDetailPage() {
                       const nextOpen = e.target.checked
                       setEditIsOpen(nextOpen)
                       if (nextOpen) {
-                        setForm((p) => ({ ...p, sell_date: '', sell_price: '', sell_qty: '' }))
+                        setForm((p) => ({ ...p, sell_date: '', sell_price: '', sell_qty: '', rating: 0 }))
                       } else {
                         setForm((p) => ({ ...p, sell_qty: String(p.buy_qty || '') }))
                       }
@@ -862,46 +813,116 @@ export default function TradeDetailPage() {
       </div>
       {/* サマリー */}
       {!isEditing ? (
-      <div style={{ marginTop: 0, border: '1px solid #ddd', borderRadius: 12, padding: 10, height: '100%', display: 'flex', flexDirection: 'column', background: '#fff', fontSize: 15, color: '#111' }}>
-        <h3
-          style={{
-            marginTop: 0,
-            marginBottom: 8,
-            fontSize: 16,
-            fontWeight: 800,
-            borderLeft: '4px solid #ddd',
-            paddingLeft: 10,
-          }}
-        >
-          サマリー
-        </h3>
-        <div style={{ height: 1, background: '#eee', marginBottom: 10 }} />
+        <div style={{ marginTop: 0, border: '1px solid #ddd', borderRadius: 12, padding: 10, height: '100%', display: 'flex', flexDirection: 'column', background: '#fff', fontSize: 15, color: '#111' }}>
+          <h3
+            style={{
+              marginTop: 0,
+              marginBottom: 8,
+              fontSize: 16,
+              fontWeight: 800,
+              borderLeft: '4px solid #ddd',
+              paddingLeft: 10,
+            }}
+          >
+            サマリー
+          </h3>
+          <div style={{ height: 1, background: '#eee', marginBottom: 10 }} />
 
-        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, minmax(0, 1fr))', gap: 10, alignItems: 'start', paddingLeft: 10 }}>
-          <div>
-            <div style={{ fontWeight: 700, fontSize: 13, opacity: 0.75 }}>損益</div>
-            <div style={{ fontSize: 16, fontWeight: 700, color: profitColor }}>{profitLabel}</div>
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, minmax(0, 1fr))', gap: 10, alignItems: 'start', paddingLeft: 10 }}>
+            <div>
+              <div style={{ fontWeight: 700, fontSize: 13, opacity: 0.75 }}>損益</div>
+              <div style={{ fontSize: 16, fontWeight: 700, color: profitColor }}>{profitLabel}</div>
+            </div>
+            <div>
+              <div style={{ fontWeight: 700, fontSize: 13, opacity: 0.75 }}>損益率</div>
+              <div style={{ fontSize: 16, fontWeight: 700, color: profitRateColor }}>{profitRateLabel}</div>
+            </div>
+            <div>
+              <div style={{ fontWeight: 700, fontSize: 13, opacity: 0.75 }}>保有日数</div>
+              <div style={{ fontSize: 16, fontWeight: 700 }}>{isOpen ? '—' : `${data.holding_days ?? '—'} 日`}</div>
+            </div>
+            <div>
+              <div style={{ fontWeight: 700, fontSize: 13, opacity: 0.75 }}>評価</div>
+              <div style={{ fontSize: 14 }}>
+                <Rating value={data.rating} />
+              </div>
+            </div>
           </div>
-          <div>
-            <div style={{ fontWeight: 700, fontSize: 13, opacity: 0.75 }}>損益率</div>
-            <div style={{ fontSize: 16, fontWeight: 700, color: profitRateColor }}>{profitRateLabel}</div>
-          </div>
-          <div>
-            <div style={{ fontWeight: 700, fontSize: 13, opacity: 0.75 }}>保有日数</div>
-            <div style={{ fontSize: 16, fontWeight: 700 }}>{isOpen ? '—' : `${data.holding_days ?? '—'} 日`}</div>
-          </div>
-          <div>
-            <div style={{ fontWeight: 700, fontSize: 13, opacity: 0.75 }}>評価</div>
-            <div style={{ fontSize: 14 }}>
-              <Rating value={data.rating} />
+
+          {/* (Review badge and buttons moved to header and thought log sections) */}
+        </div>
+      ) : (
+        <div style={{ marginTop: 0, border: '1px solid #ddd', borderRadius: 12, padding: 10, height: '100%', background: '#fff', fontSize: 15, color: '#111' }}>
+          <h3
+            style={{
+              marginTop: 0,
+              marginBottom: 8,
+              fontSize: 16,
+              fontWeight: 800,
+              borderLeft: '4px solid #ddd',
+              paddingLeft: 10,
+            }}
+          >
+            タグ・評価
+          </h3>
+          <div style={{ height: 1, background: '#eee', marginBottom: 10 }} />
+
+          <div style={{ display: 'grid', gap: 10, paddingLeft: 10 }}>
+            <div style={{ display: 'grid', gap: 8 }}>
+              <div style={{ fontSize: 13, fontWeight: 700, color: '#475467' }}>タグ</div>
+              <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8, alignItems: 'center' }}>
+                {TAG_OPTIONS.map((t) => {
+                  const active = hasTagCSV(form.tags, t)
+                  return (
+                    <button
+                      key={t}
+                      type="button"
+                      onClick={() => setForm((p) => ({ ...p, tags: toggleTagCSV(p.tags, t) }))}
+                      style={{
+                        border: active ? '1px solid #2a9d8f' : '1px solid #ddd',
+                        borderRadius: 999,
+                        padding: '6px 10px',
+                        background: active ? '#e8f7f4' : '#fff',
+                        cursor: 'pointer',
+                        fontSize: 12,
+                        color: '#111',
+                        fontWeight: 600,
+                        lineHeight: 1.2,
+                        display: 'inline-flex',
+                        alignItems: 'center',
+                        gap: 6,
+                      }}
+                      title={active ? 'クリックでタグを外す' : 'クリックでタグに追加'}
+                    >
+                      {active ? '✓' : '+'} {t}
+                    </button>
+                  )
+                })}
+              </div>
+            </div>
+
+            <div style={{ display: 'grid', gap: 8 }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                <span style={{ fontSize: 13, fontWeight: 700, color: '#475467' }}>評価</span>
+                <select
+                  value={form.rating}
+                  onChange={(e) => setForm((p) => ({ ...p, rating: Number(e.target.value) }))}
+                  disabled={editIsOpen}
+                  style={{ opacity: editIsOpen ? 0.6 : 1 }}
+                >
+                  <option value={0}>—</option>
+                  <option value={1}>★1</option>
+                  <option value={2}>★2</option>
+                  <option value={3}>★3</option>
+                  <option value={4}>★4</option>
+                  <option value={5}>★5</option>
+                </select>
+              </div>
+              {editIsOpen ? <div style={{ fontSize: 12, color: '#667085' }}>保有中で保存すると評価は未選択に戻ります</div> : null}
             </div>
           </div>
         </div>
-
-        {/* (Review badge and buttons moved to header and thought log sections) */}
-
-      </div>
-      ) : null}
+      )}
       </div>
 
       {/* チャート */}
