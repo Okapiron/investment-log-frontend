@@ -42,13 +42,16 @@ function parseJson(text) {
 function main() {
   const args = parseArgs(process.argv.slice(2))
 
-  const envCheckArgs = ['tools/check_release_env.mjs', '--strict', '--json']
+  const envCheckArgs = ['tools/check_release_env.mjs', '--strict']
+  if (args.json) {
+    envCheckArgs.push('--json')
+  }
   if (args.envFile) {
     envCheckArgs.push('--env-file', args.envFile)
   }
 
-  const envCheck = runCommand('node', envCheckArgs, { capture: true })
-  const envPayload = parseJson(envCheck.stdout || envCheck.stderr)
+  const envCheck = runCommand('node', envCheckArgs, { capture: args.json })
+  const envPayload = args.json ? parseJson(envCheck.stdout || envCheck.stderr) : null
   if (envCheck.code !== 0) {
     if (args.json) {
       console.log(
@@ -62,6 +65,9 @@ function main() {
           },
         ),
       )
+    } else {
+      const errOut = [envCheck.stdout, envCheck.stderr].filter(Boolean).join('\n').trim()
+      if (errOut) console.error(errOut)
     }
     process.exit(envCheck.code)
   }
