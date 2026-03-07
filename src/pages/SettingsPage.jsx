@@ -20,6 +20,8 @@ export default function SettingsPage() {
     isLoading: readinessLoading,
     error: readinessError,
     dataUpdatedAt: readinessUpdatedAt,
+    isFetching: readinessFetching,
+    refetch: refetchReadiness,
   } = useQuery({
     queryKey: ['settings', 'readiness'],
     queryFn: getReadiness,
@@ -117,7 +119,25 @@ export default function SettingsPage() {
       </div>
 
       <div style={{ border: '1px solid #e4e7ec', borderRadius: 12, padding: 12, background: '#fff', display: 'grid', gap: 8 }}>
-        <div style={{ fontSize: 13, color: '#667085', fontWeight: 700 }}>Runtime</div>
+        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 8 }}>
+          <div style={{ fontSize: 13, color: '#667085', fontWeight: 700 }}>Runtime</div>
+          <button
+            type="button"
+            onClick={() => refetchReadiness()}
+            disabled={readinessFetching}
+            style={{
+              background: '#f2f4f7',
+              color: '#111',
+              border: '1px solid #d0d5dd',
+              borderRadius: 8,
+              padding: '6px 10px',
+              fontSize: 12,
+              opacity: readinessFetching ? 0.6 : 1,
+            }}
+          >
+            {readinessFetching ? '確認中…' : '再確認'}
+          </button>
+        </div>
         {readinessLoading ? <div style={{ fontSize: 13, color: '#475467' }}>確認中…</div> : null}
         {readinessError ? (
           <div style={{ fontSize: 13, color: '#b42318' }}>
