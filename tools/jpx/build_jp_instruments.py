@@ -1,6 +1,8 @@
 import json
 import re
 from pathlib import Path
+from datetime import datetime
+
 import pandas as pd
 
 try:
@@ -12,7 +14,21 @@ except Exception:
 HERE = Path(__file__).resolve().parent
 SRC = HERE / "東証上場銘柄202602.xls"
 OUT = HERE.parents[1] / "public" / "jp_instruments.json"
+META = HERE.parents[1] / "public" / "jp_instruments.meta.json"
 
+def norm(s):
+    s = "" if s is None else str(s)
+    s = s.replace("\u3000", " ").strip()
+    s = re.sub(r"\s+", " ", s)
+    return s
+
+def strip_company_suffix(name: str) -> str:
+    if not name:
+        return name
+    n = name
+    for x in ["株式会社", "（株）", "(株)"]:
+        n = n.replace(x, "")
+    return n.strip()
 
 def kata_to_hira(kata: str) -> str:
     s = kata or ""
@@ -25,9 +41,7 @@ def kata_to_hira(kata: str) -> str:
             res.append(ch)
     return "".join(res)
 
-
 def kana_reading(text: str) -> str:
-    """Return katakana reading (yomi) for Japanese text if possible, else ''."""
     if not text or _TAGGER is None:
         return ""
     try:
@@ -36,7 +50,6 @@ def kana_reading(text: str) -> str:
             yomi = ""
             feat = getattr(tok, "feature", None)
 
-            # UniDic feature may expose attributes like .kana / .pron; or be list-like.
             if feat is not None:
                 for attr in ("kana", "pron", "reading"):
                     if hasattr(feat, attr):
@@ -44,7 +57,6 @@ def kana_reading(text: str) -> str:
                         if val and val != "*":
                             yomi = str(val)
                             break
-
                 if not yomi:
                     try:
                         if isinstance(feat, (list, tuple)) and len(feat) > 7 and feat[7] and feat[7] != "*":
@@ -63,21 +75,14 @@ def kana_reading(text: str) -> str:
     except Exception:
         return ""
 
-def norm(s):
-    s = "" if s is None else str(s)
-    s = s.replace("\u3000", " ").strip()
-    s = re.sub(r"\s+", " ", s)
-    return s
+def pick_col(cols, keywords):
+    for k in keywords:
+        for c in cols:
+            if k in str(c):
+                return c
+    return None
 
-def strip_company_suffix(name):
-    if not name:
-        return name
-    n = name
-    for x in ["株式会社", "（株）", "(株)"]:
-        n = n.replace(x, "")
-    return n.strip()
-
-def build_aliases(code, name):
+def build_aliases(code: str, name: str):
     a = []
     if code:
         a.append(code)
@@ -87,7 +92,6 @@ def build_aliases(code, name):
         base_name = strip_company_suffix(name)
         a.append(base_name)
 
-        # Add kana reading aliases so kanji can be searched by yomi (e.g., 丸紅 -> まるべに)
         yomi_kata = kana_reading(base_name)
         if yomi_kata:
             a.append(yomi_kata)
@@ -101,13 +105,6 @@ def build_aliases(code, name):
             seen.add(x)
             out.append(x)
     return out
-
-def pick_col(cols, keywords):
-    for k in keywords:
-        for c in cols:
-            if k in str(c):
-                return c
-    return None
 
 def main():
     if not SRC.exists():
@@ -132,7 +129,6 @@ def main():
 
         code = str(code).replace(".0", "").upper()
         code = re.sub(r"[^0-9A-Z]", "", code)[:5]
-
         section = norm(row.get(col_section)) if col_section else ""
 
         records.append({
@@ -150,10 +146,18 @@ def main():
 
     OUT.parent.mkdir(parents=True, exist_ok=True)
     OUT.write_text(json.dumps(list(uniq.values()), ensure_ascii=False), encoding="utf-8")
+
+    meta = {
+        "generated_at": datetime.now().isoformat(timespec="seconds"),
+        "count": len(uniq),
+        "source": SRC.name,
+    }
+    META.write_text(json.dumps(meta, ensure_ascii=False), encoding="utf-8")
+
     print(f"Wrote: {OUT}  count={len(uniq)}")
+    print(f"Wrote: {META}")
     print(f"Detected columns: code={col_code} name={col_name} section={col_section}")
     print(f"Fugashi enabled: {bool(_TAGGER)}")
-    print("Fugashi enabled:", bool(_TAGGER))
 
 if __name__ == "__main__":
     main()
