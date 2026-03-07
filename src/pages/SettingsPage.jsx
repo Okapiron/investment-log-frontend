@@ -182,6 +182,9 @@ export default function SettingsPage() {
               Backend Version: <b>{readiness?.app_version || '—'}</b>
             </div>
             <div style={{ fontSize: 12, color: '#667085' }}>
+              Server Time (UTC): <b>{readiness?.server_time_utc || '—'}</b>
+            </div>
+            <div style={{ fontSize: 12, color: '#667085' }}>
               Frontend Version: <b>{frontendVersion}</b>
             </div>
             <div style={{ fontSize: 12, color: '#667085' }}>
