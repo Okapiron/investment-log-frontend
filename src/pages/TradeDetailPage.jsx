@@ -5,7 +5,7 @@ import { useEffect, useMemo, useState } from 'react'
 import { TAG_OPTIONS } from '../lib/tags'
 import TradeChart from '../components/TradeChart'
 import { patchTrade, updateTradeReview } from '../lib/tradesApi'
-import { validatePriceSanityAgainstDailyBars } from '../lib/priceSanity'
+import { assessPriceSanityAgainstDailyBars } from '../lib/priceSanity'
 
 function addTagCSV(csv, tag) {
   if (tag === '未設定') return ''
@@ -105,7 +105,9 @@ export default function TradeDetailPage() {
     sell_qty: '',
   })
   const [saveMsg, setSaveMsg] = useState('')
-  const [editBlockingError, setEditBlockingError] = useState('')
+  const [editPriceCheckStatus, setEditPriceCheckStatus] = useState('idle')
+  const [editPriceCheckError, setEditPriceCheckError] = useState('')
+  const [editPriceCheckWarning, setEditPriceCheckWarning] = useState('')
   const [chartError, setChartError] = useState('')
   const baseButtonStyle = {
     background: '#f2f4f7',
@@ -290,7 +292,65 @@ export default function TradeDetailPage() {
     return ''
   }, [isEditing, form.buy_date, form.buy_price, form.buy_qty, form.sell_date, form.sell_price, form.sell_qty, isOpen])
 
-  const saveDisabledReason = clientSaveValidationError || editBlockingError
+  const editPriceCheckParams = useMemo(() => {
+    if (!isEditing) return null
+    if (clientSaveValidationError) return null
+    if (!data?.market || !data?.symbol) return null
+
+    const sellDate = String(form.sell_date || '').trim()
+    const hasAllSell = Boolean(sellDate) && String(form.sell_price || '').trim() !== '' && String(form.sell_qty || '').trim() !== ''
+    return {
+      market: data.market,
+      symbol: data.symbol,
+      buyDate: String(form.buy_date || '').trim(),
+      buyPrice: Number(form.buy_price),
+      sellDate: hasAllSell ? sellDate : null,
+      sellPrice: hasAllSell ? Number(form.sell_price) : null,
+    }
+  }, [isEditing, clientSaveValidationError, data?.market, data?.symbol, form.buy_date, form.buy_price, form.sell_date, form.sell_price, form.sell_qty])
+
+  useEffect(() => {
+    if (!isEditing || !editPriceCheckParams) {
+      setEditPriceCheckStatus('idle')
+      setEditPriceCheckError('')
+      setEditPriceCheckWarning('')
+      return
+    }
+
+    let cancelled = false
+    setEditPriceCheckStatus('checking')
+    setEditPriceCheckError('')
+    setEditPriceCheckWarning('')
+
+    const timerId = window.setTimeout(async () => {
+      const result = await assessPriceSanityAgainstDailyBars(editPriceCheckParams)
+      if (cancelled) return
+      if (result?.blockingMessage) {
+        setEditPriceCheckStatus('error')
+        setEditPriceCheckError(result.blockingMessage)
+        setEditPriceCheckWarning('')
+        return
+      }
+      setEditPriceCheckStatus('ok')
+      setEditPriceCheckError('')
+      setEditPriceCheckWarning(result?.warnings?.[0] || '')
+    }, 150)
+
+    return () => {
+      cancelled = true
+      window.clearTimeout(timerId)
+    }
+  }, [isEditing, editPriceCheckParams])
+
+  const saveDisabledReason = useMemo(() => {
+    if (!isEditing) return ''
+    if (clientSaveValidationError) return clientSaveValidationError
+    if (!editPriceCheckParams) return '価格チェック待ちです'
+    if (editPriceCheckStatus === 'checking') return '価格を確認中です'
+    if (editPriceCheckStatus === 'error') return editPriceCheckError || '価格を確認してください'
+    if (editPriceCheckStatus !== 'ok') return '価格チェック待ちです'
+    return ''
+  }, [isEditing, clientSaveValidationError, editPriceCheckParams, editPriceCheckStatus, editPriceCheckError])
 
   useEffect(() => {
     if (isOpen && chartMode === 'exit') {
@@ -309,11 +369,6 @@ export default function TradeDetailPage() {
     }
     setChartError('')
   }, [pricesError, isPricesLoading, allBars.length])
-
-  useEffect(() => {
-    if (!editBlockingError) return
-    setEditBlockingError('')
-  }, [form.buy_date, form.buy_price, form.buy_qty, form.sell_date, form.sell_price, form.sell_qty, isEditing])
 
   // 編集開始時に data → form をコピー（レンダー中に setState しない）
   useEffect(() => {
@@ -340,21 +395,19 @@ export default function TradeDetailPage() {
 
   function startEdit() {
     setSaveMsg('')
-    setEditBlockingError('')
     setIsEditing(true)
   }
 
   function cancelEdit() {
     setSaveMsg('')
-    setEditBlockingError('')
     setIsEditing(false)
     // form は useEffect で再同期するのでここでは触らなくてOK
   }
 
   async function saveAll() {
     try {
+      if (saveDisabledReason) return
       setSaveMsg('')
-      setEditBlockingError('')
       const buyDate = String(form.buy_date || '').trim()
       const buyPrice = Number(form.buy_price)
       const buyQty = Number(form.buy_qty)
@@ -362,24 +415,6 @@ export default function TradeDetailPage() {
       const sellPrice = Number(form.sell_price)
       const sellQty = Number(form.sell_qty)
       const hasAllSell = Boolean(sellDate) && String(form.sell_price || '').trim() !== '' && String(form.sell_qty || '').trim() !== ''
-
-      if (clientSaveValidationError) {
-        setEditBlockingError(clientSaveValidationError)
-        return
-      }
-
-      const priceSanityMessage = await validatePriceSanityAgainstDailyBars({
-        market: data.market,
-        symbol: data.symbol,
-        buyDate,
-        buyPrice,
-        sellDate: hasAllSell ? sellDate : null,
-        sellPrice: hasAllSell ? sellPrice : null,
-      })
-      if (priceSanityMessage) {
-        setEditBlockingError(priceSanityMessage)
-        return
-      }
 
       const payload = {
         rating: Number(form.rating || 0) || null,
@@ -640,6 +675,12 @@ export default function TradeDetailPage() {
             </div>
             {isEditing && saveDisabledReason ? (
               <div style={{ marginTop: 2, fontSize: 12, color: '#b42318' }}>{saveDisabledReason}</div>
+            ) : null}
+            {isEditing && !saveDisabledReason && editPriceCheckWarning ? (
+              <div style={{ marginTop: 2, fontSize: 12, color: '#667085' }}>注意: {editPriceCheckWarning}</div>
+            ) : null}
+            {saveMsg ? (
+              <div style={{ marginTop: 2, fontSize: 12, color: saveMsg.includes('失敗') ? '#b42318' : '#475467' }}>{saveMsg}</div>
             ) : null}
           </div>
         </div>
@@ -924,7 +965,6 @@ export default function TradeDetailPage() {
             )}
           </div>
 
-          {saveMsg ? <div style={{ marginTop: 2, fontSize: 12, color: '#475467' }}>{saveMsg}</div> : null}
         </div>
         </div>
 

@@ -2,7 +2,7 @@ import { useEffect, useMemo, useRef, useState } from 'react'
 import { useNavigate, Link } from 'react-router-dom'
 import { api } from '../lib/api'
 import { TAG_OPTIONS } from '../lib/tags'
-import { validatePriceSanityAgainstDailyBars } from '../lib/priceSanity'
+import { assessPriceSanityAgainstDailyBars } from '../lib/priceSanity'
 
 const US_STOCK_CANDIDATES = [
   { market: 'US', symbol: 'AAPL', name: 'Apple Inc', aliases: ['AAPL', 'Apple', 'Apple Inc', 'アップル'] },
@@ -202,7 +202,9 @@ export default function TradesNewPage() {
   const [rating, setRating] = useState(0)
   const [tags, setTags] = useState('')
   const [error, setError] = useState(null)
-  const [blockingError, setBlockingError] = useState(null)
+  const [priceCheckStatus, setPriceCheckStatus] = useState('idle')
+  const [priceCheckError, setPriceCheckError] = useState('')
+  const [priceCheckWarning, setPriceCheckWarning] = useState('')
   const [instrumentQuery, setInstrumentQuery] = useState('')
   const [instrumentConfirmed, setInstrumentConfirmed] = useState(false)
   const [instrumentOpen, setInstrumentOpen] = useState(false)
@@ -826,39 +828,71 @@ export default function TradesNewPage() {
     return null
   }, [instrumentConfirmed, market, symbol, buyDate, sellDate, buyPrice, sellPrice, qty, isOpen])
 
-  const saveDisabledReason = clientValidationError || blockingError
+  const priceCheckParams = useMemo(() => {
+    if (clientValidationError) return null
+    const sym = normalizeSymbol(market, symbol)
+    if (!sym) return null
+    return {
+      market,
+      symbol: sym,
+      buyDate,
+      buyPrice: Number(buyPrice),
+      sellDate: isOpen ? null : sellDate,
+      sellPrice: isOpen ? null : Number(sellPrice),
+    }
+  }, [clientValidationError, market, symbol, buyDate, buyPrice, sellDate, sellPrice, isOpen])
 
   useEffect(() => {
-    setBlockingError(null)
-  }, [market, symbol, buyDate, buyPrice, qty, isOpen, sellDate, sellPrice, instrumentConfirmed])
+    if (!priceCheckParams) {
+      setPriceCheckStatus('idle')
+      setPriceCheckError('')
+      setPriceCheckWarning('')
+      return
+    }
+
+    let cancelled = false
+    setPriceCheckStatus('checking')
+    setPriceCheckError('')
+    setPriceCheckWarning('')
+
+    const timerId = window.setTimeout(async () => {
+      const result = await assessPriceSanityAgainstDailyBars(priceCheckParams)
+      if (cancelled) return
+      if (result?.blockingMessage) {
+        setPriceCheckStatus('error')
+        setPriceCheckError(result.blockingMessage)
+        setPriceCheckWarning('')
+        return
+      }
+      setPriceCheckStatus('ok')
+      setPriceCheckError('')
+      setPriceCheckWarning(result?.warnings?.[0] || '')
+    }, 150)
+
+    return () => {
+      cancelled = true
+      window.clearTimeout(timerId)
+    }
+  }, [priceCheckParams])
+
+  const saveDisabledReason = useMemo(() => {
+    if (clientValidationError) return clientValidationError
+    if (!priceCheckParams) return '価格チェック待ちです'
+    if (priceCheckStatus === 'checking') return '価格を確認中です'
+    if (priceCheckStatus === 'error') return priceCheckError || '価格を確認してください'
+    if (priceCheckStatus !== 'ok') return '価格チェック待ちです'
+    return ''
+  }, [clientValidationError, priceCheckParams, priceCheckStatus, priceCheckError])
 
   async function handleSubmit(e) {
     e.preventDefault()
     setError(null)
-    setBlockingError(null)
+    if (saveDisabledReason) return
 
     const sym = normalizeSymbol(market, symbol)
     const bp = Number(buyPrice)
     const sp = Number(sellPrice)
     const q = Number(qty)
-
-    if (clientValidationError) {
-      setBlockingError(clientValidationError)
-      return
-    }
-
-    const priceSanityMessage = await validatePriceSanityAgainstDailyBars({
-      market,
-      symbol: sym,
-      buyDate,
-      buyPrice: bp,
-      sellDate: isOpen ? null : sellDate,
-      sellPrice: isOpen ? null : sp,
-    })
-    if (priceSanityMessage) {
-      setBlockingError(priceSanityMessage)
-      return
-    }
 
     try {
       await api.post('/api/v1/trades', {
@@ -1237,6 +1271,9 @@ export default function TradesNewPage() {
 
         {saveDisabledReason ? (
           <p style={{ margin: 0, color: '#b42318', fontSize: 12 }}>{saveDisabledReason}</p>
+        ) : null}
+        {!saveDisabledReason && priceCheckWarning ? (
+          <p style={{ margin: 0, color: '#667085', fontSize: 12 }}>注意: {priceCheckWarning}</p>
         ) : null}
 
         {error ? <p style={{ margin: 0, color: '#b42318', fontSize: 12 }}>{error}</p> : null}
