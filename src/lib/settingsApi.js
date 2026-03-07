@@ -100,6 +100,7 @@ export async function downloadMyExport(format = 'json') {
   URL.revokeObjectURL(objectUrl)
 }
 
-export function deleteMyData() {
-  return api.del('/api/v1/settings/me?confirm=true')
+export function deleteMyData(confirmText = 'DELETE') {
+  const value = String(confirmText || '').trim().toUpperCase()
+  return api.del(`/api/v1/settings/me?confirm=true&confirm_text=${encodeURIComponent(value)}`)
 }

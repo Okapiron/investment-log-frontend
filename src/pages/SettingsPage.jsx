@@ -52,7 +52,7 @@ export default function SettingsPage() {
       setWorking('delete')
       setError('')
       setMsg('')
-      const result = await deleteMyData()
+      const result = await deleteMyData(confirmText)
       const deletedTrades = Number(result?.deleted_trades || 0)
       const anonymizedInvites = Number(result?.anonymized_invites || 0)
       const deletedAuthUser = Boolean(result?.deleted_auth_user)
