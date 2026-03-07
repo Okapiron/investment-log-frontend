@@ -61,6 +61,9 @@ async function requestReadinessWithFallback() {
       const appVersion = String(body?.app_version || body?.version || '').trim() || null
       const authEnabled = typeof body?.auth_enabled === 'boolean' ? body.auth_enabled : null
       const inviteRequired = typeof body?.invite_code_required === 'boolean' ? body.invite_code_required : null
+      const inviteActiveCount = Number.isFinite(Number(body?.invite_active_count)) ? Number(body.invite_active_count) : null
+      const inviteOnboardingReady =
+        typeof body?.invite_onboarding_ready === 'boolean' ? body.invite_onboarding_ready : null
       const rateLimitEnabled = typeof body?.rate_limit_enabled === 'boolean' ? body.rate_limit_enabled : null
       const configErrors = Array.isArray(body?.config_errors) ? body.config_errors.map((v) => String(v || '').trim()).filter(Boolean) : []
       const configWarnings = Array.isArray(body?.config_warnings)
@@ -74,6 +77,8 @@ async function requestReadinessWithFallback() {
         app_version: appVersion,
         auth_enabled: authEnabled,
         invite_code_required: inviteRequired,
+        invite_active_count: inviteActiveCount,
+        invite_onboarding_ready: inviteOnboardingReady,
         rate_limit_enabled: rateLimitEnabled,
         config_errors: configErrors,
         config_warnings: configWarnings,
@@ -97,6 +102,8 @@ async function requestReadinessWithFallback() {
       app_version: null,
       auth_enabled: null,
       invite_code_required: null,
+      invite_active_count: null,
+      invite_onboarding_ready: null,
       rate_limit_enabled: null,
       config_errors: [],
       config_warnings: [],

@@ -192,6 +192,16 @@ export default function SettingsPage() {
               <b>{readiness?.invite_code_required == null ? '—' : readiness.invite_code_required ? 'ON' : 'OFF'}</b> / Rate Limit:{' '}
               <b>{readiness?.rate_limit_enabled == null ? '—' : readiness.rate_limit_enabled ? 'ON' : 'OFF'}</b>
             </div>
+            <div style={{ fontSize: 12, color: '#667085' }}>
+              Invite Readiness:{' '}
+              <b>
+                {readiness?.invite_onboarding_ready == null
+                  ? '—'
+                  : readiness.invite_onboarding_ready
+                    ? `READY (${readiness?.invite_active_count ?? 0})`
+                    : `NOT READY (${readiness?.invite_active_count ?? 0})`}
+              </b>
+            </div>
             {(readiness?.config_errors?.length || readiness?.config_warnings?.length) ? (
               <div style={{ fontSize: 12, color: '#b54708', display: 'grid', gap: 2 }}>
                 {readiness?.config_errors?.length ? (
