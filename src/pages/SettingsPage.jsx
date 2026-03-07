@@ -164,6 +164,16 @@ export default function SettingsPage() {
               <b>{readiness?.invite_code_required == null ? '—' : readiness.invite_code_required ? 'ON' : 'OFF'}</b> / Rate Limit:{' '}
               <b>{readiness?.rate_limit_enabled == null ? '—' : readiness.rate_limit_enabled ? 'ON' : 'OFF'}</b>
             </div>
+            {(readiness?.config_errors?.length || readiness?.config_warnings?.length) ? (
+              <div style={{ fontSize: 12, color: '#b54708', display: 'grid', gap: 2 }}>
+                {readiness?.config_errors?.length ? (
+                  <div style={{ color: '#b42318' }}>Release Error: {readiness.config_errors.join(' / ')}</div>
+                ) : null}
+                {readiness?.config_warnings?.length ? <div>Release Warning: {readiness.config_warnings.join(' / ')}</div> : null}
+              </div>
+            ) : (
+              <div style={{ fontSize: 12, color: '#667085' }}>Release Check: 問題なし</div>
+            )}
             {readiness?.status === 'unknown' ? (
               <div style={{ fontSize: 12, color: '#b54708' }}>
                 Runtime確認エンドポイントが未対応のため状態を判定できません（旧バージョンの可能性があります）。

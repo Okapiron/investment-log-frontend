@@ -58,6 +58,10 @@ async function requestReadinessWithFallback() {
       const authEnabled = typeof body?.auth_enabled === 'boolean' ? body.auth_enabled : null
       const inviteRequired = typeof body?.invite_code_required === 'boolean' ? body.invite_code_required : null
       const rateLimitEnabled = typeof body?.rate_limit_enabled === 'boolean' ? body.rate_limit_enabled : null
+      const configErrors = Array.isArray(body?.config_errors) ? body.config_errors.map((v) => String(v || '').trim()).filter(Boolean) : []
+      const configWarnings = Array.isArray(body?.config_warnings)
+        ? body.config_warnings.map((v) => String(v || '').trim()).filter(Boolean)
+        : []
       return {
         status,
         db,
@@ -65,6 +69,8 @@ async function requestReadinessWithFallback() {
         auth_enabled: authEnabled,
         invite_code_required: inviteRequired,
         rate_limit_enabled: rateLimitEnabled,
+        config_errors: configErrors,
+        config_warnings: configWarnings,
       }
     }
 
@@ -84,6 +90,8 @@ async function requestReadinessWithFallback() {
       auth_enabled: null,
       invite_code_required: null,
       rate_limit_enabled: null,
+      config_errors: [],
+      config_warnings: [],
       legacy: true,
     }
   }
