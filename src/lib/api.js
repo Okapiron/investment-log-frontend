@@ -1,6 +1,7 @@
 import { getAccessToken } from './auth'
 
 const API_BASE = import.meta.env.VITE_API_BASE || 'http://localhost:8000/api/v1'
+const REQUEST_TIMEOUT_MS = Number(import.meta.env.VITE_API_TIMEOUT_MS || 15000)
 
 export function resolveApiUrl(path) {
   const base = String(API_BASE || '').replace(/\/+$/, '')
@@ -26,16 +27,27 @@ export function resolveApiUrl(path) {
 async function request(path, options = {}) {
   const url = resolveApiUrl(path)
 
+  const useTimeout = !options.signal && Number.isFinite(REQUEST_TIMEOUT_MS) && REQUEST_TIMEOUT_MS > 0
+  const controller = useTimeout ? new AbortController() : null
+  const timer = controller ? setTimeout(() => controller.abort(), REQUEST_TIMEOUT_MS) : null
+
   let res
   try {
     const accessToken = getAccessToken()
     const authHeader = accessToken ? { Authorization: `Bearer ${accessToken}` } : {}
     res = await fetch(url, {
       headers: { 'Content-Type': 'application/json', ...authHeader, ...(options.headers || {}) },
+      signal: controller ? controller.signal : options.signal,
       ...options,
     })
   } catch {
-    throw new Error('APIに接続できません。バックエンド起動状態またはネットワークを確認してください。')
+    throw new Error(
+      controller?.signal.aborted
+        ? `API応答がタイムアウトしました（${REQUEST_TIMEOUT_MS}ms）。`
+        : 'APIに接続できません。バックエンド起動状態またはネットワークを確認してください。',
+    )
+  } finally {
+    if (timer) clearTimeout(timer)
   }
 
   if (!res.ok) {
