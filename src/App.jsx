@@ -1,9 +1,23 @@
-import { Navigate, Route, Routes } from 'react-router-dom'
+import { Navigate, Route, Routes, useLocation } from 'react-router-dom'
+import { useMemo } from 'react'
 
 import Layout from './components/Layout'
+import AuthCallbackPage from './pages/AuthCallbackPage'
+import AuthPage from './pages/AuthPage'
+import SettingsPage from './pages/SettingsPage'
 import TradesNewPage from './pages/TradesNewPage'
 import TradesPage from './pages/TradesPage'
 import TradeDetailPage from './pages/TradeDetailPage.jsx'
+import { isAuthEnabled, isAuthenticated } from './lib/auth'
+
+function RequireAuth({ children }) {
+  const location = useLocation()
+  const enabled = isAuthEnabled()
+  const authed = useMemo(() => isAuthenticated(), [location.pathname, location.key])
+  if (!enabled) return children
+  if (!authed) return <Navigate to="/auth" replace />
+  return children
+}
 
 export default function App() {
   return (
@@ -11,9 +25,41 @@ export default function App() {
       <Routes>
         <Route path="/" element={<Navigate to="/trades" replace />} />
 
-        <Route path="/trades" element={<TradesPage />} />
-        <Route path="/trades/new" element={<TradesNewPage />} />
-        <Route path="/trades/:id" element={<TradeDetailPage />} />
+        <Route path="/auth" element={<AuthPage />} />
+        <Route path="/auth/callback" element={<AuthCallbackPage />} />
+
+        <Route
+          path="/trades"
+          element={(
+            <RequireAuth>
+              <TradesPage />
+            </RequireAuth>
+          )}
+        />
+        <Route
+          path="/trades/new"
+          element={(
+            <RequireAuth>
+              <TradesNewPage />
+            </RequireAuth>
+          )}
+        />
+        <Route
+          path="/trades/:id"
+          element={(
+            <RequireAuth>
+              <TradeDetailPage />
+            </RequireAuth>
+          )}
+        />
+        <Route
+          path="/settings"
+          element={(
+            <RequireAuth>
+              <SettingsPage />
+            </RequireAuth>
+          )}
+        />
 
         <Route path="/assets/*" element={<Navigate to="/trades" replace />} />
         <Route path="/dashboard" element={<Navigate to="/trades" replace />} />

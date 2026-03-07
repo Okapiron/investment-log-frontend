@@ -1,3 +1,5 @@
+import { getAccessToken } from './auth'
+
 const API_BASE = import.meta.env.VITE_API_BASE || 'http://localhost:8000/api/v1'
 
 async function request(path, options = {}) {
@@ -21,8 +23,10 @@ async function request(path, options = {}) {
 
   let res
   try {
+    const accessToken = getAccessToken()
+    const authHeader = accessToken ? { Authorization: `Bearer ${accessToken}` } : {}
     res = await fetch(url, {
-      headers: { 'Content-Type': 'application/json', ...(options.headers || {}) },
+      headers: { 'Content-Type': 'application/json', ...authHeader, ...(options.headers || {}) },
       ...options,
     })
   } catch {
