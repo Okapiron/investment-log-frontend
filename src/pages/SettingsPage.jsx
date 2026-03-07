@@ -211,6 +211,9 @@ export default function SettingsPage() {
               データを削除
             </button>
           </div>
+          {!canDeleteData ? (
+            <div style={{ fontSize: 12, color: '#b42318' }}>DELETE と入力するとボタンが有効になります。</div>
+          ) : null}
         </div>
       </div>
 
