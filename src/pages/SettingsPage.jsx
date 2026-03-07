@@ -149,8 +149,14 @@ export default function SettingsPage() {
         {!readinessLoading && !readinessError ? (
           <>
             <div style={{ fontSize: 13, color: '#344054' }}>
-              API: <b>{readiness?.status === 'ok' ? 'OK' : 'NG'}</b> / DB: <b>{readiness?.db === 'ok' ? 'OK' : '確認中'}</b>
+              API: <b>{readiness?.status === 'ok' ? 'OK' : readiness?.status === 'unknown' ? '未対応' : 'NG'}</b> / DB:{' '}
+              <b>{readiness?.db === 'ok' ? 'OK' : readiness?.status === 'unknown' ? '未対応' : '確認中'}</b>
             </div>
+            {readiness?.status === 'unknown' ? (
+              <div style={{ fontSize: 12, color: '#b54708' }}>
+                Runtime確認エンドポイントが未対応のため状態を判定できません（旧バージョンの可能性があります）。
+              </div>
+            ) : null}
             <div style={{ fontSize: 12, color: '#667085' }}>
               最終確認: {readinessUpdatedAt ? new Date(readinessUpdatedAt).toLocaleTimeString('ja-JP') : '—'}
             </div>

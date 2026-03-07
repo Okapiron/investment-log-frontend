@@ -33,6 +33,7 @@ async function requestReadinessWithFallback() {
 
   const candidates = ['/api/v1/settings/runtime', '/health/ready', '/api/v1/health/ready', '/health', '/api/v1/health']
   let lastError = null
+  let notFoundCount = 0
 
   for (const path of candidates) {
     const url = resolveApiUrl(path)
@@ -57,10 +58,15 @@ async function requestReadinessWithFallback() {
     }
 
     if (res.status === 404) {
+      notFoundCount += 1
       lastError = new Error('404: Not Found')
       continue
     }
     throw await _buildHttpError(res)
+  }
+
+  if (notFoundCount === candidates.length) {
+    return { status: 'unknown', db: null, legacy: true }
   }
 
   throw lastError || new Error('ヘルスチェックに失敗しました。')
