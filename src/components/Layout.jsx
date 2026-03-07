@@ -14,17 +14,8 @@ export default function Layout({ children }) {
   return (
     <div className="app-shell">
       <header className="header">
-        <div className="mode-tabs">
-          <NavLink
-            to="/trades"
-            className={() => (isTradesMode ? 'mode-tab active' : 'mode-tab')}
-          >
-            投資ログ
-          </NavLink>
-        </div>
-
         <div className="header-main">
-          <h1>Asset MVP</h1>
+          <h1>Trade Trace</h1>
           <nav>
             {navItems.map((item) => (
               <NavLink

@@ -223,7 +223,7 @@ export default function TradesNewPage() {
   const [usLoadState, setUsLoadState] = useState('idle')
   const usLoadStartedRef = useRef(false)
   const baseButtonStyle = {
-    background: '#fff',
+    background: '#f2f4f7',
     color: '#111',
     border: '1px solid #d0d5dd',
     borderRadius: 10,
@@ -232,9 +232,9 @@ export default function TradesNewPage() {
     fontWeight: 500,
   }
   const primaryButtonStyle = {
-    background: '#344054',
+    background: '#2a8871',
     color: '#fff',
-    border: '1px solid #344054',
+    border: '1px solid #2a8871',
     borderRadius: 10,
     padding: '8px 12px',
     cursor: 'pointer',

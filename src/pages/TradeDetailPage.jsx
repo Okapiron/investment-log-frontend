@@ -106,7 +106,7 @@ export default function TradeDetailPage() {
   const [saveMsg, setSaveMsg] = useState('')
   const [chartError, setChartError] = useState('')
   const baseButtonStyle = {
-    background: '#fff',
+    background: '#f2f4f7',
     color: '#111',
     border: '1px solid #d0d5dd',
     borderRadius: 10,
@@ -115,9 +115,9 @@ export default function TradeDetailPage() {
     fontWeight: 500,
   }
   const primaryButtonStyle = {
-    background: '#344054',
+    background: '#2a8871',
     color: '#fff',
-    border: '1px solid #344054',
+    border: '1px solid #2a8871',
     borderRadius: 10,
     padding: '8px 12px',
     cursor: 'pointer',
@@ -578,39 +578,37 @@ export default function TradeDetailPage() {
           </div>
 
           <div style={{ display: 'flex', gap: 8, alignItems: 'center', justifyContent: 'flex-end', flexWrap: 'wrap' }}>
-            {tvExternalUrl ? (
-              <a href={tvExternalUrl} target="_blank" rel="noreferrer" style={{ textDecoration: 'none' }}>
-                <button type="button" style={baseButtonStyle}>TradingViewで開く</button>
-              </a>
-            ) : (
-              <span style={{ fontSize: 12, color: '#b42318' }}>外部リンクなし</span>
-            )}
-
-            <button
-              onClick={deleteTrade}
-              disabled={isEditing}
-              style={{
-                ...dangerButtonStyle,
-                opacity: isEditing ? 0.5 : 1,
-                cursor: isEditing ? 'not-allowed' : 'pointer',
-              }}
-              title={isEditing ? '編集モード中は削除できません' : '削除'}
-            >
-              削除
-            </button>
-
             {!isEditing ? (
-              <button onClick={startEdit} style={primaryButtonStyle}>編集</button>
+              <>
+                {tvExternalUrl ? (
+                  <a href={tvExternalUrl} target="_blank" rel="noreferrer" style={{ textDecoration: 'none' }}>
+                    <button type="button" style={baseButtonStyle}>TradingViewで開く</button>
+                  </a>
+                ) : (
+                  <span style={{ fontSize: 12, color: '#b42318' }}>外部リンクなし</span>
+                )}
+
+                <Link to="/trades" style={{ textDecoration: 'none' }}>
+                  <button style={baseButtonStyle}>← 一覧へ</button>
+                </Link>
+
+                <button onClick={startEdit} style={baseButtonStyle}>編集</button>
+
+                <button
+                  onClick={deleteTrade}
+                  style={dangerButtonStyle}
+                  title="削除"
+                >
+                  削除
+                </button>
+              </>
             ) : (
               <>
-                <button onClick={cancelEdit} style={baseButtonStyle}>キャンセル</button>
                 <button onClick={saveAll} style={primaryButtonStyle}>保存</button>
+                <button onClick={cancelEdit} style={baseButtonStyle}>キャンセル</button>
+                <button onClick={deleteTrade} style={dangerButtonStyle}>削除</button>
               </>
             )}
-
-            <Link to="/trades" style={{ textDecoration: 'none' }}>
-              <button style={baseButtonStyle}>← 一覧へ</button>
-            </Link>
           </div>
         </div>
 

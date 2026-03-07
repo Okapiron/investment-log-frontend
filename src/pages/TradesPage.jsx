@@ -108,7 +108,7 @@ function clampSort(value) {
   if (v === 'rating_desc' || v === 'rating_asc') return 'rating'
 
   const allowed = new Set(SORT_OPTIONS.map((o) => o.value))
-  return allowed.has(v) ? v : 'sell_date'
+  return allowed.has(v) ? v : 'buy_date'
 }
 
 function clampSortDir(value) {
@@ -183,7 +183,7 @@ function formatRoiPct(t) {
 const SORT_OPTIONS = [
   { value: 'buy_date', label: '購入日' },
   { value: 'sell_date', label: '売却日' },
-  { value: 'name', label: '表示名' },
+  { value: 'name', label: '銘柄名' },
   { value: 'profit', label: '損益額' },
   { value: 'roi', label: '損益率' },
   { value: 'holding', label: '保有期間' },
@@ -214,7 +214,7 @@ export default function TradesPage() {
   const [searchParams, setSearchParams] = useSearchParams()
 
   const baseButtonStyle = {
-    background: '#fff',
+    background: '#f2f4f7',
     color: '#111',
     border: '1px solid #d0d5dd',
     borderRadius: 10,
@@ -223,9 +223,9 @@ export default function TradesPage() {
     fontWeight: 500,
   }
   const primaryButtonStyle = {
-    background: '#344054',
+    background: '#2a8871',
     color: '#fff',
-    border: '1px solid #344054',
+    border: '1px solid #2a8871',
     borderRadius: 10,
     padding: '8px 12px',
     cursor: 'pointer',
@@ -293,7 +293,7 @@ export default function TradesPage() {
     if (tagFilters.length > 0) next.set('tag', tagFilters.join(','))
     else next.delete('tag')
 
-    if (sortKey && sortKey !== 'sell_date') next.set('sort', sortKey)
+    if (sortKey && sortKey !== 'buy_date') next.set('sort', sortKey)
     else next.delete('sort')
 
     if (sortDir && sortDir !== 'desc') next.set('sort_dir', sortDir)
@@ -419,7 +419,7 @@ export default function TradesPage() {
     marketFilters.length > 0 ||
     ratingFilters.length > 0 ||
     tagFilters.length > 0 ||
-    sortKey !== 'sell_date' ||
+    sortKey !== 'buy_date' ||
     sortDir !== 'desc' ||
     page !== 1 ||
     limit !== 20 ||
@@ -452,7 +452,7 @@ export default function TradesPage() {
     setMarketFilters([])
     setRatingFilters([])
     setTagFilters([])
-    setSortKey('sell_date')
+    setSortKey('buy_date')
     setSortDir('desc')
     setPage(1)
     setLimit(20)
@@ -604,8 +604,6 @@ export default function TradesPage() {
             title={stats.pendingReviewCount > 0 ? 'クリックで未レビューに絞り込み' : '未レビューはありません'}
             aria-label="未レビュー件数で絞り込み"
             style={{
-              fontSize: 16,
-              fontWeight: 800,
               color: stats.pendingReviewCount > 0 ? '#b42318' : '#344054',
               background: 'transparent',
               border: 'none',
@@ -615,9 +613,20 @@ export default function TradesPage() {
               textDecoration: stats.pendingReviewCount > 0 ? 'underline' : 'none',
               opacity: stats.pendingReviewCount > 0 ? 1 : 0.7,
               width: 'fit-content',
+              fontFamily: 'inherit',
+              lineHeight: 1.2,
             }}
           >
-            {stats.pendingReviewCount}
+            <span
+              style={{
+                fontSize: 16,
+                fontWeight: 800,
+                fontFamily: 'inherit',
+                lineHeight: 1.2,
+              }}
+            >
+              {stats.pendingReviewCount}
+            </span>
           </button>
         </div>
       </div>
