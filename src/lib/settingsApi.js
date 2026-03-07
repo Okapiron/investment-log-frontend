@@ -54,7 +54,8 @@ async function requestReadinessWithFallback() {
       }
       const status = body?.status === 'ok' ? 'ok' : 'ng'
       const db = body?.db === 'ok' ? 'ok' : null
-      return { status, db }
+      const appVersion = String(body?.app_version || body?.version || '').trim() || null
+      return { status, db, app_version: appVersion }
     }
 
     if (res.status === 404) {
@@ -66,7 +67,7 @@ async function requestReadinessWithFallback() {
   }
 
   if (notFoundCount === candidates.length) {
-    return { status: 'unknown', db: null, legacy: true }
+    return { status: 'unknown', db: null, app_version: null, legacy: true }
   }
 
   throw lastError || new Error('ヘルスチェックに失敗しました。')

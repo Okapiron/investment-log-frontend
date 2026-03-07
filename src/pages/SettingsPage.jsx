@@ -152,6 +152,9 @@ export default function SettingsPage() {
               API: <b>{readiness?.status === 'ok' ? 'OK' : readiness?.status === 'unknown' ? '未対応' : 'NG'}</b> / DB:{' '}
               <b>{readiness?.db === 'ok' ? 'OK' : readiness?.status === 'unknown' ? '未対応' : '確認中'}</b>
             </div>
+            <div style={{ fontSize: 12, color: '#667085' }}>
+              Version: <b>{readiness?.app_version || '—'}</b>
+            </div>
             {readiness?.status === 'unknown' ? (
               <div style={{ fontSize: 12, color: '#b54708' }}>
                 Runtime確認エンドポイントが未対応のため状態を判定できません（旧バージョンの可能性があります）。
