@@ -149,6 +149,29 @@ export default function SettingsPage() {
         ) : null}
         {!readinessLoading && !readinessError ? (
           <>
+            <div
+              style={{
+                fontSize: 12,
+                fontWeight: 700,
+                color:
+                  readiness?.release_status === 'error'
+                    ? '#b42318'
+                    : readiness?.release_status === 'warning'
+                      ? '#b54708'
+                      : '#027a48',
+              }}
+            >
+              Release Status:{' '}
+              <b>
+                {readiness?.release_status === 'error'
+                  ? 'ERROR'
+                  : readiness?.release_status === 'warning'
+                    ? 'WARNING'
+                    : readiness?.release_status === 'ok'
+                      ? 'OK'
+                      : 'UNKNOWN'}
+              </b>
+            </div>
             <div style={{ fontSize: 13, color: '#344054' }}>
               API: <b>{readiness?.status === 'ok' ? 'OK' : readiness?.status === 'unknown' ? '未対応' : 'NG'}</b> / DB:{' '}
               <b>{readiness?.db === 'ok' ? 'OK' : readiness?.status === 'unknown' ? '未対応' : '確認中'}</b>

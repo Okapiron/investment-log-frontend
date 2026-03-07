@@ -54,6 +54,9 @@ async function requestReadinessWithFallback() {
       }
       const status = body?.status === 'ok' ? 'ok' : 'ng'
       const db = body?.db === 'ok' ? 'ok' : null
+      const releaseStatus = ['ok', 'warning', 'error'].includes(String(body?.release_status || ''))
+        ? String(body.release_status)
+        : null
       const appVersion = String(body?.app_version || body?.version || '').trim() || null
       const authEnabled = typeof body?.auth_enabled === 'boolean' ? body.auth_enabled : null
       const inviteRequired = typeof body?.invite_code_required === 'boolean' ? body.invite_code_required : null
@@ -65,6 +68,7 @@ async function requestReadinessWithFallback() {
       return {
         status,
         db,
+        release_status: releaseStatus,
         app_version: appVersion,
         auth_enabled: authEnabled,
         invite_code_required: inviteRequired,
@@ -86,6 +90,7 @@ async function requestReadinessWithFallback() {
     return {
       status: 'unknown',
       db: null,
+      release_status: null,
       app_version: null,
       auth_enabled: null,
       invite_code_required: null,
