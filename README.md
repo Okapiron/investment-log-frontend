@@ -13,4 +13,4 @@ npm run dev
 - `.env.example` を参照
 
 ## Ops Runbook
-- `../docs/public_release_ops.md`
+- `docs/public_release_ops.md`
