@@ -54,13 +54,15 @@ export default function SettingsPage() {
       setMsg('')
       const result = await deleteMyData()
       const deletedTrades = Number(result?.deleted_trades || 0)
+      const anonymizedInvites = Number(result?.anonymized_invites || 0)
       const deletedAuthUser = Boolean(result?.deleted_auth_user)
       const authDeleteError = String(result?.auth_delete_error || '').trim()
+      const inviteNotice = anonymizedInvites > 0 ? `招待コード履歴を匿名化しました（${anonymizedInvites}件）。` : ''
       const notice = authDeleteError
-        ? `データを削除しました（${deletedTrades}件）。${authDeleteError}`
+        ? `データを削除しました（${deletedTrades}件）。${inviteNotice}${authDeleteError}`
         : deletedAuthUser
-          ? `データを削除しました（${deletedTrades}件）。Authユーザー削除も完了しました。`
-          : `データを削除しました（${deletedTrades}件）。`
+          ? `データを削除しました（${deletedTrades}件）。${inviteNotice}Authユーザー削除も完了しました。`
+          : `データを削除しました（${deletedTrades}件）。${inviteNotice}`
       setConfirmText('')
 
       if (isAuthEnabled()) {
