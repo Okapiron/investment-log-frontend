@@ -75,15 +75,20 @@ function clampRating(value) {
   return 'all'
 }
 
-function clampPosition(value) {
+function clampStatus(value) {
   const v = String(value || '').trim()
-  if (v === 'open' || v === 'closed' || v === 'all') return v
+  if (v === 'open' || v === 'pending' || v === 'complete' || v === 'all') return v
   return 'all'
 }
 
-function clampReview(value) {
-  const v = String(value || '').trim()
-  if (v === 'all' || v === 'pending' || v === 'done') return v
+function deriveStatusFromLegacy(posValue, reviewValue) {
+  const pos = String(posValue || '').trim()
+  const review = String(reviewValue || '').trim()
+  if (pos === 'open') return 'open'
+  if (pos === 'closed' && review === 'pending') return 'pending'
+  if (pos === 'closed' && review === 'done') return 'complete'
+  if (review === 'pending') return 'pending'
+  if (review === 'done') return 'complete'
   return 'all'
 }
 
@@ -133,7 +138,46 @@ function isOpenTrade(t) {
 
 function isPendingReviewTrade(t) {
   if (!t) return false
-  return !Boolean(t.review_done)
+  return getTradeStatus(t) === 'pending'
+}
+
+function getTradeStatus(t) {
+  if (!t) return 'all'
+  if (isOpenTrade(t)) return 'open'
+  if (Boolean(t.review_done)) return 'complete'
+  return 'pending'
+}
+
+function legacyStatusParams(status) {
+  if (status === 'open') return { pos: 'open', review: undefined }
+  if (status === 'pending') return { pos: 'closed', review: 'pending' }
+  if (status === 'complete') return { pos: 'closed', review: 'done' }
+  return { pos: undefined, review: undefined }
+}
+
+function statusBadgeMeta(status) {
+  if (status === 'complete') {
+    return {
+      label: 'レビュー済',
+      color: '#175cd3',
+      background: '#eff8ff',
+      border: '1px solid #b2ddff',
+    }
+  }
+  if (status === 'open') {
+    return {
+      label: '保有中',
+      color: '#067647',
+      background: '#ecfdf3',
+      border: '1px solid #abefc6',
+    }
+  }
+  return {
+    label: '未レビュー',
+    color: '#b42318',
+    background: '#fdf2f2',
+    border: '1px solid #fecaca',
+  }
 }
 
 function getProfitValue(t) {
@@ -181,6 +225,7 @@ function formatRoiPct(t) {
 }
 
 const SORT_OPTIONS = [
+  { value: 'status', label: 'Status' },
   { value: 'buy_date', label: '購入日' },
   { value: 'sell_date', label: '売却日' },
   { value: 'name', label: '銘柄名' },
@@ -255,9 +300,11 @@ export default function TradesPage() {
     const winTo = clampDate10(searchParams.get('win_to'))
     const winOnly = searchParams.get('win_only') === '1'
     const lossOnly = searchParams.get('loss_only') === '1'
-    const position = clampPosition(searchParams.get('pos'))
-    const review = clampReview(searchParams.get('review'))
-    return { q, market, rating, tag, position, review, sort, sortDir, page, limit, winFrom, winTo, winOnly, lossOnly }
+    const statusRaw = searchParams.get('status')
+    const status = statusRaw
+      ? clampStatus(statusRaw)
+      : deriveStatusFromLegacy(searchParams.get('pos'), searchParams.get('review'))
+    return { q, market, rating, tag, status, sort, sortDir, page, limit, winFrom, winTo, winOnly, lossOnly }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [])
 
@@ -273,8 +320,7 @@ export default function TradesPage() {
   const [winTo, setWinTo] = useState(() => initial.winTo)
   const [winOnly, setWinOnly] = useState(() => initial.winOnly)
   const [lossOnly, setLossOnly] = useState(() => initial.lossOnly)
-  const [position, setPosition] = useState(() => initial.position)
-  const [reviewFilter, setReviewFilter] = useState(() => initial.review)
+  const [statusFilter, setStatusFilter] = useState(() => initial.status)
 
   // state -> URL 同期（戻る対応）
   // - search(q) は入力中に履歴が増えると邪魔なので replace で更新
@@ -315,10 +361,10 @@ export default function TradesPage() {
     else next.delete('win_only')
     if (lossOnly) next.set('loss_only', '1')
     else next.delete('loss_only')
-    if (position && position !== 'all') next.set('pos', position)
-    else next.delete('pos')
-    if (reviewFilter && reviewFilter !== 'all') next.set('review', reviewFilter)
-    else next.delete('review')
+    if (statusFilter && statusFilter !== 'all') next.set('status', statusFilter)
+    else next.delete('status')
+    next.delete('pos')
+    next.delete('review')
 
     // q は別effectで処理（デバウンス）
     // ただし、他フィルタ更新で q が消えないよう現在の q は保持する
@@ -332,7 +378,7 @@ export default function TradesPage() {
 
     setSearchParams(next, { replace: false })
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [marketFilters, ratingFilters, tagFilters, position, reviewFilter, sortKey, sortDir, page, limit, winFrom, winTo, winOnly, lossOnly])
+  }, [marketFilters, ratingFilters, tagFilters, statusFilter, sortKey, sortDir, page, limit, winFrom, winTo, winOnly, lossOnly])
 
   // q はデバウンスして URL 更新（replaceで履歴爆発を防ぐ）
   useEffect(() => {
@@ -361,26 +407,30 @@ export default function TradesPage() {
       return
     }
     setPage(1)
-  }, [search, marketFilters, ratingFilters, tagFilters, position, reviewFilter, sortKey, sortDir, winFrom, winTo, winOnly, lossOnly, limit])
+  }, [search, marketFilters, ratingFilters, tagFilters, statusFilter, sortKey, sortDir, winFrom, winTo, winOnly, lossOnly, limit])
 
   const queryParams = useMemo(
-    () => ({
-      limit,
-      offset: (page - 1) * limit,
-      q: search.trim() || undefined,
-      market: marketFilters.length > 0 ? marketFilters.join(',') : undefined,
-      rating: ratingFilters.length > 0 ? ratingFilters.join(',') : undefined,
-      tag: tagFilters.length > 0 ? tagFilters.join(',') : undefined,
-      pos: position !== 'all' ? position : undefined,
-      review: reviewFilter !== 'all' ? reviewFilter : undefined,
-      win_only: winOnly ? '1' : undefined,
-      loss_only: lossOnly ? '1' : undefined,
-      win_from: winFrom || undefined,
-      win_to: winTo || undefined,
-      sort: sortKey,
-      sort_dir: sortDir,
-    }),
-    [limit, page, search, marketFilters, ratingFilters, tagFilters, position, reviewFilter, winOnly, lossOnly, winFrom, winTo, sortKey, sortDir]
+    () => {
+      const legacy = legacyStatusParams(statusFilter)
+      return {
+        limit,
+        offset: (page - 1) * limit,
+        q: search.trim() || undefined,
+        market: marketFilters.length > 0 ? marketFilters.join(',') : undefined,
+        rating: ratingFilters.length > 0 ? ratingFilters.join(',') : undefined,
+        tag: tagFilters.length > 0 ? tagFilters.join(',') : undefined,
+        status: statusFilter !== 'all' ? statusFilter : undefined,
+        pos: legacy.pos,
+        review: legacy.review,
+        win_only: winOnly ? '1' : undefined,
+        loss_only: lossOnly ? '1' : undefined,
+        win_from: winFrom || undefined,
+        win_to: winTo || undefined,
+        sort: sortKey,
+        sort_dir: sortDir,
+      }
+    },
+    [limit, page, search, marketFilters, ratingFilters, tagFilters, statusFilter, winOnly, lossOnly, winFrom, winTo, sortKey, sortDir]
   )
 
   const { data, isLoading, error } = useQuery({
@@ -425,8 +475,7 @@ export default function TradesPage() {
     limit !== 20 ||
     winOnly ||
     lossOnly ||
-    position !== 'all' ||
-    reviewFilter !== 'all' ||
+    statusFilter !== 'all' ||
     winFrom ||
     winTo
 
@@ -438,14 +487,13 @@ export default function TradesPage() {
     if (search.trim()) parts.push(`Search:"${search.trim()}"`)
     if (winOnly) parts.push('利確のみ')
     if (lossOnly) parts.push('損切りのみ')
-    if (position === 'open') parts.push('保有中')
-    if (position === 'closed') parts.push('確定済')
-    if (reviewFilter === 'pending') parts.push('未レビュー')
-    if (reviewFilter === 'done') parts.push('レビュー済')
+    if (statusFilter === 'open') parts.push('Status:保有中')
+    if (statusFilter === 'pending') parts.push('Status:未レビュー')
+    if (statusFilter === 'complete') parts.push('Status:レビュー済')
     if (winFrom || winTo) parts.push(`Period:${winFrom || '—'}〜${winTo || '—'}`)
     parts.push(`Sort:${sortLabel}(${sortDir === 'asc' ? '昇順' : '降順'})`)
     return parts.join(' / ')
-  }, [marketFilters, ratingFilters, tagFilters, position, reviewFilter, search, sortLabel, sortDir, winOnly, lossOnly, winFrom, winTo])
+  }, [marketFilters, ratingFilters, tagFilters, statusFilter, search, sortLabel, sortDir, winOnly, lossOnly, winFrom, winTo])
 
   function resetAll() {
     setSearch('')
@@ -458,8 +506,7 @@ export default function TradesPage() {
     setLimit(20)
     setWinOnly(false)
     setLossOnly(false)
-    setPosition('all')
-    setReviewFilter('all')
+    setStatusFilter('all')
     setWinFrom('')
     setWinTo('')
   }
@@ -594,7 +641,7 @@ export default function TradesPage() {
             type="button"
             onClick={() => {
               if (stats.pendingReviewCount <= 0) return
-              setReviewFilter('pending')
+              setStatusFilter('pending')
               // "現在の条件" の位置へスクロール（絞り込み結果をすぐ確認できる）
               window.setTimeout(() => {
                 activeConditionsRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' })
@@ -734,28 +781,26 @@ export default function TradesPage() {
         </label>
 
         <div style={{ display: 'grid', gap: 4 }}>
-          <span style={{ fontSize: 12, opacity: 0.8 }}>Review</span>
+          <span style={{ fontSize: 12, opacity: 0.8 }}>Status</span>
           <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6 }}>
+            <FilterChip active={statusFilter === 'all'} onClick={() => setStatusFilter('all')}>All</FilterChip>
             <FilterChip
-              active={reviewFilter === 'all'}
-              onClick={() => {
-                if (reviewFilter === 'all') return
-                setReviewFilter('all')
-              }}
+              active={statusFilter === 'complete'}
+              onClick={() => setStatusFilter((prev) => (prev === 'complete' ? 'all' : 'complete'))}
             >
-              All
+              レビュー済
             </FilterChip>
             <FilterChip
-              active={reviewFilter === 'pending'}
-              onClick={() => setReviewFilter((prev) => (prev === 'pending' ? 'all' : 'pending'))}
+              active={statusFilter === 'pending'}
+              onClick={() => setStatusFilter((prev) => (prev === 'pending' ? 'all' : 'pending'))}
             >
               未レビュー
             </FilterChip>
             <FilterChip
-              active={reviewFilter === 'done'}
-              onClick={() => setReviewFilter((prev) => (prev === 'done' ? 'all' : 'done'))}
+              active={statusFilter === 'open'}
+              onClick={() => setStatusFilter((prev) => (prev === 'open' ? 'all' : 'open'))}
             >
-              レビュー済
+              保有中
             </FilterChip>
           </div>
         </div>
@@ -775,34 +820,6 @@ export default function TradesPage() {
             ))}
           </div>
         </div>
-
-        <div style={{ display: 'grid', gap: 4 }}>
-          <span style={{ fontSize: 12, opacity: 0.8 }}>Position</span>
-          <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6 }}>
-            <FilterChip
-              active={position === 'all'}
-              onClick={() => {
-                if (position === 'all') return
-                setPosition('all')
-              }}
-            >
-              All
-            </FilterChip>
-            <FilterChip
-              active={position === 'closed'}
-              onClick={() => setPosition((prev) => (prev === 'closed' ? 'all' : 'closed'))}
-            >
-              確定済
-            </FilterChip>
-            <FilterChip
-              active={position === 'open'}
-              onClick={() => setPosition((prev) => (prev === 'open' ? 'all' : 'open'))}
-            >
-              保有中
-            </FilterChip>
-          </div>
-        </div>
-
 
         <div style={{ display: 'grid', gap: 4 }}>
           <span style={{ fontSize: 12, opacity: 0.8 }}>Result</span>
@@ -972,47 +989,38 @@ export default function TradesPage() {
         <p>まだ投資記録がありません。右上の「新規トレード」から作成できます。</p>
       )}
 
-      <div style={{ display: 'grid', gap: 10, marginTop: 10 }}>
+      <div style={{ display: 'grid', gap: 10, marginTop: 10, padding: '0 4px' }}>
         {items.map((t) => (
           <Link key={t.id} to={`/trades/${t.id}`} style={{ display: 'block', textDecoration: 'none', color: 'inherit' }}>
-            <div style={{ border: '1px solid #ddd', borderRadius: 12, padding: 10, background: '#fff' }}>
+            <div style={{ border: '1px solid #ddd', borderRadius: 12, padding: '10px 12px', background: '#fff' }}>
               <div style={{ display: 'flex', justifyContent: 'space-between', gap: 12, alignItems: 'baseline' }}>
                 <div>
                   <div style={{ display: 'flex', alignItems: 'baseline', gap: 8, flexWrap: 'wrap' }}>
-                    <span style={{ fontSize: 12, color: '#667085' }}>{t.market}</span>
-                    <span style={{ fontSize: 16, fontWeight: 800, color: '#101828' }}>{t.symbol}</span>
-                    {t.name ? <span style={{ fontSize: 13, color: '#475467' }}>({t.name})</span> : null}
-                    {isPendingReviewTrade(t) ? (
-                      <span
-                        style={{
-                          fontSize: 11,
-                          color: '#344054',
-                          background: '#fdf2f2',
-                          border: '1px solid #fecaca',
-                          borderRadius: 999,
-                          padding: '2px 8px',
-                          lineHeight: 1.2,
-                        }}
-                      >
-                        未レビュー
-                      </span>
+                    <span style={{ fontSize: 12, color: '#667085', width: 24, display: 'inline-block' }}>{t.market}</span>
+                    <span style={{ fontSize: 16, fontWeight: 800, color: '#101828', minWidth: 56, display: 'inline-block' }}>{t.symbol}</span>
+                    {t.name ? (
+                      <>
+                        <span style={{ width: 1, height: '1em', background: '#d0d5dd', flex: '0 0 auto', alignSelf: 'center' }} />
+                        {t.market === 'JP' ? (
+                          <span style={{ fontSize: 14, fontWeight: 400, color: '#344054', marginLeft: -2 }}>{t.name}</span>
+                        ) : (
+                          <span style={{ fontSize: 13, color: '#475467', marginLeft: -2 }}>({t.name})</span>
+                        )}
+                      </>
                     ) : null}
                   </div>
                   {(t.opened_at || t.closed_at) && (
                     <>
-                      <div style={{ marginTop: 1, fontSize: 12, color: '#475467', fontWeight: 700 }}>
-                        {t.opened_at && t.closed_at ? (
-                          <>
-                            {t.opened_at} → {t.closed_at}
-                          </>
-                        ) : t.opened_at ? (
-                          <>
-                            {t.opened_at} → —
-                          </>
+                      <div style={{ marginTop: 1, fontSize: 13, color: '#475467', fontWeight: 700 }}>
+                        {t.opened_at ? (
+                          <span style={{ display: 'inline-flex', alignItems: 'baseline', gap: 6, whiteSpace: 'nowrap' }}>
+                            <span>{t.opened_at}</span>
+                            <span>→</span>
+                            <span>{t.closed_at || '—'}</span>
+                          </span>
                         ) : (
-                          <>{t.closed_at || t.opened_at}</>
+                          <span>{t.closed_at || '—'}</span>
                         )}
-                        {isOpenTrade(t) ? <span style={{ marginLeft: 6, color: '#667085' }}>/ 保有中</span> : null}
                       </div>
                       <div style={{ marginTop: 1, fontSize: 12, color: '#475467', fontWeight: 700 }}>
                         保有 {t.holding_days ?? '—'} 日
@@ -1069,18 +1077,44 @@ export default function TradesPage() {
                   alignItems: 'center',
                 }}
               >
-                {/* タグ（左下） */}
+                {/* Status + タグ（左下） */}
                 <div
                   style={{
                     display: 'flex',
                     alignItems: 'center',
                     gap: 8,
                     minWidth: 0,
-                    flexWrap: 'wrap',
+                    flex: 1,
                     justifyContent: 'flex-start',
                     textAlign: 'left',
                   }}
                 >
+                  {(() => {
+                    const status = getTradeStatus(t)
+                    const badge = statusBadgeMeta(status)
+                    return (
+                      <span
+                        style={{
+                          display: 'inline-flex',
+                          alignItems: 'center',
+                          justifyContent: 'center',
+                          width: 88,
+                          boxSizing: 'border-box',
+                          whiteSpace: 'nowrap',
+                          fontSize: 11,
+                          color: badge.color,
+                          background: badge.background,
+                          border: badge.border,
+                          borderRadius: 999,
+                          padding: '3px 8px',
+                          lineHeight: 1.2,
+                        }}
+                      >
+                        {badge.label}
+                      </span>
+                    )
+                  })()}
+                  <span style={{ width: 1, height: 18, background: '#d0d5dd', flex: '0 0 auto' }} />
                   {parseTags(t.tags).length > 0 ? (
                     <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6, justifyContent: 'flex-start' }}>
                       {parseTags(t.tags).map((tag) => {

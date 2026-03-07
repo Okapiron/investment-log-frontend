@@ -535,49 +535,46 @@ export default function TradeDetailPage() {
               {isOpen ? (
                 <span
                   style={{
-                    fontSize: 11,
-                    color: '#344054',
-                    background: '#f2f4f7',
-                    border: '1px solid #eaecf0',
+                    fontSize: 12,
+                    color: '#067647',
+                    background: '#ecfdf3',
+                    border: '1px solid #abefc6',
                     borderRadius: 999,
-                    padding: '3px 8px',
+                    padding: '4px 10px',
+                    lineHeight: 1.2,
                   }}
                 >
                   保有中
                 </span>
-              ) : null}
-              {/* --- Insert review badge here --- */}
-              {!isOpen ? (
-                isPendingReview ? (
-                  <span
-                    style={{
-                      fontSize: 12,
-                      color: '#344054',
-                      background: '#fdf2f2',
-                      border: '1px solid #fecaca',
-                      borderRadius: 999,
-                      padding: '4px 10px',
-                      lineHeight: 1.2,
-                    }}
-                  >
-                    未レビュー
-                  </span>
-                ) : (
-                  <span
-                    style={{
-                      fontSize: 12,
-                      color: '#175cd3',
-                      background: '#eff8ff',
-                      border: '1px solid #b2ddff',
-                      borderRadius: 999,
-                      padding: '4px 10px',
-                      lineHeight: 1.2,
-                    }}
-                  >
-                    レビュー済{data?.reviewed_at ? ` (${data.reviewed_at})` : ''}
-                  </span>
-                )
-              ) : null}
+              ) : isPendingReview ? (
+                <span
+                  style={{
+                    fontSize: 12,
+                    color: '#b42318',
+                    background: '#fdf2f2',
+                    border: '1px solid #fecaca',
+                    borderRadius: 999,
+                    padding: '4px 10px',
+                    lineHeight: 1.2,
+                  }}
+                >
+                  未レビュー
+                </span>
+              ) : (
+                <span
+                  style={{
+                    fontSize: 12,
+                    color: '#175cd3',
+                    background: '#eff8ff',
+                    border: '1px solid #b2ddff',
+                    borderRadius: 999,
+                    padding: '4px 10px',
+                    lineHeight: 1.2,
+                  }}
+                >
+                  レビュー済{data?.reviewed_at ? ` (${data.reviewed_at})` : ''}
+                </span>
+              )}
             </h2>
 
             {/* tags */}
