@@ -6,7 +6,8 @@
   "scripts": {
     "dev": "vite",
     "build": "vite build",
-    "preview": "vite preview"
+    "preview": "vite preview",
+    "check:release-env": "node tools/check_release_env.mjs"
   },
   "dependencies": {
     "@tanstack/react-query": "^5.56.2",
