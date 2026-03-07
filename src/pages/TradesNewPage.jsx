@@ -143,6 +143,7 @@ export default function TradesNewPage() {
   const MARKET_STORAGE_KEY = 'trades_new_market'
   const INSTRUMENT_CACHE_KEY = 'trades_instrument_cache_v1'
   const JP_MASTER_CACHE_KEY = 'trades_jp_master_cache_v1'
+  const JP_MASTER_META_CACHE_KEY = 'trades_jp_master_meta_v1'
 
   const [market, setMarket] = useState('JP')
   const marketInitializedRef = useRef(false)
@@ -196,35 +197,67 @@ export default function TradesNewPage() {
     jpLoadStartedRef.current = true
     setJpLoadState('loading')
 
-    try {
-      const rawCache = localStorage.getItem(JP_MASTER_CACHE_KEY)
-      const parsedCache = rawCache ? JSON.parse(rawCache) : null
-      if (Array.isArray(parsedCache) && parsedCache.length > 0) {
-        setJpInstruments(parsedCache)
-        setJpLoadState('loaded')
-        return
+    const safeParse = (raw) => {
+      try {
+        return raw ? JSON.parse(raw) : null
+      } catch {
+        return null
       }
-    } catch {
-      // ignore cache parse errors and fallback to fetch
+    }
+
+    const loadFromCache = () => {
+      const cached = safeParse(localStorage.getItem(JP_MASTER_CACHE_KEY))
+      if (Array.isArray(cached) && cached.length > 0) {
+        setJpInstruments(cached)
+        setJpLoadState('loaded')
+        return true
+      }
+      return false
     }
 
     try {
-      const res = await fetch('/jp_instruments.json')
-      if (!res.ok) {
-        throw new Error(`jp master fetch failed: ${res.status}`)
+      // 1) Try fetch meta (cache busting)
+      let remoteMeta = null
+      try {
+        const metaResp = await fetch('/jp_instruments.meta.json', { cache: 'no-store' })
+        if (metaResp.ok) remoteMeta = await metaResp.json()
+      } catch {
+        remoteMeta = null
       }
-      const json = await res.json()
-      if (!Array.isArray(json)) {
-        throw new Error('jp master json is not an array')
+
+      const localMeta = safeParse(localStorage.getItem(JP_MASTER_META_CACHE_KEY))
+
+      const metaMatches =
+        remoteMeta &&
+        localMeta &&
+        remoteMeta.count === localMeta.count &&
+        remoteMeta.source === localMeta.source &&
+        remoteMeta.generated_at === localMeta.generated_at
+
+      // 2) If meta matches, prefer cached instruments
+      if (metaMatches) {
+        if (loadFromCache()) return
       }
+
+      // 3) Fetch fresh instruments and update cache
+      const resp = await fetch('/jp_instruments.json', { cache: 'no-store' })
+      if (!resp.ok) throw new Error(`jp master fetch failed: ${resp.status}`)
+      const json = await resp.json()
+      if (!Array.isArray(json)) throw new Error('jp master json is not an array')
+
       setJpInstruments(json)
       setJpLoadState('loaded')
+
       try {
         localStorage.setItem(JP_MASTER_CACHE_KEY, JSON.stringify(json))
+        const metaToStore = remoteMeta || { generated_at: '', count: json.length, source: 'unknown' }
+        localStorage.setItem(JP_MASTER_META_CACHE_KEY, JSON.stringify(metaToStore))
       } catch {
         // ignore cache write errors
       }
     } catch {
+      // 4) Fallback: use cache if available, else error
+      if (loadFromCache()) return
       setJpLoadState('error')
     }
   }
