@@ -30,6 +30,18 @@ function parseEnvFile(filePath) {
   return env
 }
 
+function loadFallbackEnvFiles() {
+  const merged = {}
+  // Vite-compatible priority (low -> high)
+  const candidates = ['.env', '.env.local', '.env.production', '.env.production.local']
+  for (const name of candidates) {
+    const full = path.resolve(name)
+    if (!fs.existsSync(full)) continue
+    Object.assign(merged, parseEnvFile(full))
+  }
+  return merged
+}
+
 function isTruthy(value) {
   const v = String(value || '').trim().toLowerCase()
   return v === '1' || v === 'true' || v === 'yes' || v === 'on'
@@ -41,8 +53,9 @@ function isBlank(value) {
 
 function main() {
   const args = parseArgs(process.argv.slice(2))
+  const fallbackEnv = args.envFile ? {} : loadFallbackEnvFiles()
   const fileEnv = args.envFile ? parseEnvFile(args.envFile) : {}
-  const env = { ...fileEnv, ...process.env }
+  const env = { ...fallbackEnv, ...fileEnv, ...process.env }
 
   const errors = []
   const warnings = []
