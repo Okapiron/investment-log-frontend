@@ -240,8 +240,8 @@ export default function SettingsPage() {
           </button>
         </div>
 
-        <div style={{ marginTop: 4, padding: 10, border: '1px solid #e4e7ec', borderRadius: 10, background: '#fcfcfd', display: 'grid', gap: 8 }}>
-          <div style={{ fontSize: 13, color: '#344054', fontWeight: 700 }}>アカウントデータ削除</div>
+        <div style={{ marginTop: 4, padding: 10, border: '1px solid #f4c7cc', borderRadius: 10, background: '#fcfcfd', display: 'grid', gap: 8 }}>
+          <div style={{ fontSize: 13, color: '#b42318', fontWeight: 700 }}>アカウントデータ削除</div>
           <div style={{ fontSize: 12, color: '#667085' }}>
             取り消しできません。実行前にエクスポートを推奨します。
           </div>
