@@ -106,6 +106,97 @@ export function consumeAuthSessionFromUrlHash(hash = window.location.hash) {
   return normalized
 }
 
+async function parseAuthError(res, fallback = '認証に失敗しました。') {
+  let msg = fallback
+  try {
+    const body = await res.json()
+    msg = body?.msg || body?.message || body?.error_description || body?.error || msg
+  } catch {
+    // ignore
+  }
+  return String(msg || fallback)
+}
+
+export async function signInWithPassword({ email, password }) {
+  if (!isAuthConfigured()) {
+    throw new Error('Supabase設定が不足しています。VITE_SUPABASE_URL と VITE_SUPABASE_ANON_KEY を設定してください。')
+  }
+  const cleanEmail = String(email || '').trim()
+  const cleanPassword = String(password || '')
+  if (!cleanEmail) throw new Error('メールアドレスを入力してください。')
+  if (!cleanPassword) throw new Error('パスワードを入力してください。')
+
+  const res = await fetch(buildAuthUrl('/token?grant_type=password'), {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      apikey: SUPABASE_ANON_KEY,
+      Authorization: `Bearer ${SUPABASE_ANON_KEY}`,
+    },
+    body: JSON.stringify({
+      email: cleanEmail,
+      password: cleanPassword,
+    }),
+  })
+
+  if (!res.ok) {
+    throw new Error(await parseAuthError(res, 'ログインに失敗しました。メールアドレスまたはパスワードを確認してください。'))
+  }
+
+  const body = await res.json()
+  const session = normalizeSession(body)
+  if (!session) throw new Error('ログインセッションを取得できませんでした。')
+  saveAuthSession(session)
+  return body?.user || null
+}
+
+export async function signUpWithPassword({ email, password, inviteCode = '' }) {
+  if (!isAuthConfigured()) {
+    throw new Error('Supabase設定が不足しています。VITE_SUPABASE_URL と VITE_SUPABASE_ANON_KEY を設定してください。')
+  }
+  const cleanEmail = String(email || '').trim()
+  const cleanPassword = String(password || '')
+  const cleanInviteCode = normalizeInviteCode(inviteCode)
+  if (!cleanEmail) throw new Error('メールアドレスを入力してください。')
+  if (!cleanPassword) throw new Error('パスワードを入力してください。')
+  if (cleanPassword.length < 8) throw new Error('パスワードは8文字以上で入力してください。')
+  if (cleanInviteCode && !isValidInviteCode(cleanInviteCode)) throw new Error('招待コードは英数字8〜12文字で入力してください。')
+
+  const payload = {
+    email: cleanEmail,
+    password: cleanPassword,
+  }
+  if (cleanInviteCode) {
+    payload.data = { invite_code: cleanInviteCode }
+    payload.options = { data: { invite_code: cleanInviteCode } }
+  }
+
+  const res = await fetch(buildAuthUrl('/signup'), {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      apikey: SUPABASE_ANON_KEY,
+      Authorization: `Bearer ${SUPABASE_ANON_KEY}`,
+    },
+    body: JSON.stringify(payload),
+  })
+
+  if (!res.ok) {
+    throw new Error(await parseAuthError(res, 'アカウント作成に失敗しました。'))
+  }
+
+  const body = await res.json()
+  const session = normalizeSession(body)
+  if (session) {
+    saveAuthSession(session)
+    return { needsEmailConfirmation: false }
+  }
+  if (body?.user) {
+    return { needsEmailConfirmation: true }
+  }
+  throw new Error('アカウント作成後の状態を確認できませんでした。')
+}
+
 export async function requestMagicLink({ email, inviteCode, redirectTo }) {
   if (!isAuthConfigured()) {
     throw new Error('Supabase設定が不足しています。VITE_SUPABASE_URL と VITE_SUPABASE_ANON_KEY を設定してください。')

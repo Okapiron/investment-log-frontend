@@ -1,10 +1,13 @@
-import { useMemo, useState } from 'react'
+import { useState } from 'react'
 import { Link, Navigate } from 'react-router-dom'
 
-import { isAuthConfigured, isAuthEnabled, isAuthenticated, requestMagicLink } from '../lib/auth'
+import { isAuthConfigured, isAuthEnabled, isAuthenticated, signInWithPassword, signUpWithPassword } from '../lib/auth'
 
 export default function AuthPage() {
+  const [mode, setMode] = useState('signin')
   const [email, setEmail] = useState('')
+  const [password, setPassword] = useState('')
+  const [passwordConfirm, setPasswordConfirm] = useState('')
   const [inviteCode, setInviteCode] = useState('')
   const [submitting, setSubmitting] = useState(false)
   const [msg, setMsg] = useState('')
@@ -12,7 +15,6 @@ export default function AuthPage() {
 
   const enabled = isAuthEnabled()
   const configured = isAuthConfigured()
-  const redirectTo = useMemo(() => `${window.location.origin}/auth/callback`, [])
 
   if (!enabled) return <Navigate to="/trades" replace />
   if (isAuthenticated()) return <Navigate to="/trades" replace />
@@ -23,10 +25,23 @@ export default function AuthPage() {
       setSubmitting(true)
       setError('')
       setMsg('')
-      await requestMagicLink({ email, inviteCode, redirectTo })
-      setMsg('認証メールを送信しました。メール内リンクからログインしてください。')
+      if (mode === 'signin') {
+        await signInWithPassword({ email, password })
+        setMsg('ログインしました。')
+        return
+      }
+
+      if (password !== passwordConfirm) {
+        throw new Error('確認用パスワードが一致しません。')
+      }
+      const result = await signUpWithPassword({ email, password, inviteCode })
+      if (result?.needsEmailConfirmation) {
+        setMsg('アカウントを作成しました。確認メール内のリンクからログインしてください。')
+      } else {
+        setMsg('アカウントを作成してログインしました。')
+      }
     } catch (err) {
-      setError(String(err?.message || err || '認証メール送信に失敗しました。'))
+      setError(String(err?.message || err || '認証に失敗しました。'))
     } finally {
       setSubmitting(false)
     }
@@ -36,8 +51,46 @@ export default function AuthPage() {
     <div style={{ maxWidth: 520, margin: '24px auto', border: '1px solid #e4e7ec', borderRadius: 12, padding: 16, background: '#fff' }}>
       <h2 style={{ marginTop: 0 }}>ログイン</h2>
       <p style={{ marginTop: 0, color: '#475467', fontSize: 14 }}>
-        招待コード付きマジックリンクでログインします。
+        メールアドレスとパスワードでログインします。
       </p>
+      <div style={{ display: 'inline-flex', gap: 6, marginBottom: 10 }}>
+        <button
+          type="button"
+          onClick={() => {
+            setMode('signin')
+            setMsg('')
+            setError('')
+          }}
+          style={{
+            borderRadius: 999,
+            border: mode === 'signin' ? '1px solid #2a8871' : '1px solid #d0d5dd',
+            background: mode === 'signin' ? '#e8f7f4' : '#f2f4f7',
+            color: '#111',
+            padding: '6px 12px',
+            fontSize: 13,
+          }}
+        >
+          ログイン
+        </button>
+        <button
+          type="button"
+          onClick={() => {
+            setMode('signup')
+            setMsg('')
+            setError('')
+          }}
+          style={{
+            borderRadius: 999,
+            border: mode === 'signup' ? '1px solid #2a8871' : '1px solid #d0d5dd',
+            background: mode === 'signup' ? '#e8f7f4' : '#f2f4f7',
+            color: '#111',
+            padding: '6px 12px',
+            fontSize: 13,
+          }}
+        >
+          新規登録
+        </button>
+      </div>
 
       {!configured ? (
         <div style={{ fontSize: 13, color: '#b42318', background: '#fef3f2', border: '1px solid #fecaca', borderRadius: 8, padding: 10 }}>
@@ -58,25 +111,52 @@ export default function AuthPage() {
           </label>
 
           <label style={{ display: 'grid', gap: 4 }}>
-            <span style={{ fontSize: 12, color: '#667085' }}>招待コード</span>
+            <span style={{ fontSize: 12, color: '#667085' }}>パスワード</span>
             <input
-              type="text"
-              value={inviteCode}
-              onChange={(e) => setInviteCode(String(e.target.value || '').toUpperCase())}
-              placeholder="例: A1B2C3D4E5"
+              type="password"
+              value={password}
+              onChange={(e) => setPassword(e.target.value)}
+              placeholder="8文字以上"
               minLength={8}
-              maxLength={12}
-              pattern="[A-Za-z0-9]{8,12}"
               required
             />
           </label>
+
+          {mode === 'signup' ? (
+            <>
+              <label style={{ display: 'grid', gap: 4 }}>
+                <span style={{ fontSize: 12, color: '#667085' }}>パスワード（確認）</span>
+                <input
+                  type="password"
+                  value={passwordConfirm}
+                  onChange={(e) => setPasswordConfirm(e.target.value)}
+                  placeholder="同じパスワードを再入力"
+                  minLength={8}
+                  required
+                />
+              </label>
+
+              <label style={{ display: 'grid', gap: 4 }}>
+                <span style={{ fontSize: 12, color: '#667085' }}>招待コード（招待制ONの時のみ）</span>
+                <input
+                  type="text"
+                  value={inviteCode}
+                  onChange={(e) => setInviteCode(String(e.target.value || '').toUpperCase())}
+                  placeholder="任意"
+                  minLength={8}
+                  maxLength={12}
+                  pattern="[A-Za-z0-9]{0,12}"
+                />
+              </label>
+            </>
+          ) : null}
 
           <button
             type="submit"
             disabled={submitting}
             style={{ background: '#2a8871', color: '#fff', border: '1px solid #2a8871', opacity: submitting ? 0.6 : 1 }}
           >
-            {submitting ? '送信中…' : '認証メールを送信'}
+            {submitting ? '処理中…' : mode === 'signin' ? 'ログイン' : '新規登録'}
           </button>
         </form>
       )}
