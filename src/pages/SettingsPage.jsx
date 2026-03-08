@@ -3,11 +3,14 @@ import { useQuery } from '@tanstack/react-query'
 import { Link, useNavigate } from 'react-router-dom'
 
 import { clearAuthSession, isAuthEnabled } from '../lib/auth'
+import { CONTACT_FORM_URL, SHOW_RUNTIME_PANEL, SUPPORT_EMAIL } from '../lib/siteConfig'
 import { deleteMyData, downloadMyExport, getMyProfile, getReadiness } from '../lib/settingsApi'
 
 export default function SettingsPage() {
   const navigate = useNavigate()
   const frontendVersion = String(import.meta.env.VITE_APP_VERSION || '').trim() || 'dev-local'
+  const supportEmail = SUPPORT_EMAIL
+  const showRuntime = SHOW_RUNTIME_PANEL
   const [working, setWorking] = useState('')
   const [msg, setMsg] = useState('')
   const [error, setError] = useState('')
@@ -28,6 +31,7 @@ export default function SettingsPage() {
     queryFn: getReadiness,
     retry: 1,
     refetchInterval: 60_000,
+    enabled: showRuntime,
   })
 
   async function handleExport(format) {
@@ -104,9 +108,6 @@ export default function SettingsPage() {
           <>
             <div style={{ fontSize: 13, color: '#344054' }}>User ID: <b>{data?.user_id || '—'}</b></div>
             <div style={{ fontSize: 13, color: '#344054' }}>Email: <b>{data?.email || '—'}</b></div>
-            <div style={{ fontSize: 12, color: '#667085' }}>
-              Auth: {data?.auth_enabled ? 'ON' : 'OFF'} / Invite: {data?.invite_code_required ? 'ON' : 'OFF'}
-            </div>
           </>
         ) : null}
         <div>
@@ -121,108 +122,95 @@ export default function SettingsPage() {
         </div>
       </div>
 
-      <div style={{ border: '1px solid #e4e7ec', borderRadius: 12, padding: 12, background: '#fff', display: 'grid', gap: 8 }}>
-        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 8 }}>
-          <div style={{ fontSize: 13, color: '#667085', fontWeight: 700 }}>Runtime</div>
-          <button
-            type="button"
-            onClick={() => refetchReadiness()}
-            disabled={readinessFetching}
-            style={{
-              background: '#f2f4f7',
-              color: '#111',
-              border: '1px solid #d0d5dd',
-              borderRadius: 8,
-              padding: '6px 10px',
-              fontSize: 12,
-              opacity: readinessFetching ? 0.6 : 1,
-            }}
-          >
-            {readinessFetching ? '確認中…' : '再確認'}
-          </button>
-        </div>
-        {readinessLoading ? <div style={{ fontSize: 13, color: '#475467' }}>確認中…</div> : null}
-        {readinessError ? (
-          <div style={{ fontSize: 13, color: '#b42318' }}>
-            API/DB: 障害の可能性があります（{String(readinessError?.message || readinessError)}）
-          </div>
-        ) : null}
-        {!readinessLoading && !readinessError ? (
-          <>
-            <div
+      {showRuntime ? (
+        <div style={{ border: '1px solid #e4e7ec', borderRadius: 12, padding: 12, background: '#fff', display: 'grid', gap: 8 }}>
+          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 8 }}>
+            <div style={{ fontSize: 13, color: '#667085', fontWeight: 700 }}>Runtime</div>
+            <button
+              type="button"
+              onClick={() => refetchReadiness()}
+              disabled={readinessFetching}
               style={{
+                background: '#f2f4f7',
+                color: '#111',
+                border: '1px solid #d0d5dd',
+                borderRadius: 8,
+                padding: '6px 10px',
                 fontSize: 12,
-                fontWeight: 700,
-                color:
-                  readiness?.release_status === 'error'
-                    ? '#b42318'
-                    : readiness?.release_status === 'warning'
-                      ? '#b54708'
-                      : readiness?.release_status === 'ok'
-                        ? '#027a48'
-                        : '#667085',
+                opacity: readinessFetching ? 0.6 : 1,
               }}
             >
-              Release Status:{' '}
-              <b>
-                {readiness?.release_status === 'error'
-                  ? 'ERROR'
-                  : readiness?.release_status === 'warning'
-                    ? 'WARNING'
-                    : readiness?.release_status === 'ok'
-                      ? 'OK'
-                      : 'UNKNOWN'}
-              </b>
+              {readinessFetching ? '確認中…' : '再確認'}
+            </button>
+          </div>
+          {readinessLoading ? <div style={{ fontSize: 13, color: '#475467' }}>確認中…</div> : null}
+          {readinessError ? (
+            <div style={{ fontSize: 13, color: '#b42318' }}>
+              API/DB: 障害の可能性があります（{String(readinessError?.message || readinessError)}）
             </div>
-            <div style={{ fontSize: 13, color: '#344054' }}>
-              API: <b>{readiness?.status === 'ok' ? 'OK' : readiness?.status === 'unknown' ? '未対応' : 'NG'}</b> / DB:{' '}
-              <b>{readiness?.db === 'ok' ? 'OK' : readiness?.status === 'unknown' ? '未対応' : '確認中'}</b>
-            </div>
-            <div style={{ fontSize: 12, color: '#667085' }}>
-              Backend Version: <b>{readiness?.app_version || '—'}</b>
-            </div>
-            <div style={{ fontSize: 12, color: '#667085' }}>
-              Server Time (UTC): <b>{readiness?.server_time_utc || '—'}</b>
-            </div>
-            <div style={{ fontSize: 12, color: '#667085' }}>
-              Frontend Version: <b>{frontendVersion}</b>
-            </div>
-            <div style={{ fontSize: 12, color: '#667085' }}>
-              Auth: <b>{readiness?.auth_enabled == null ? '—' : readiness.auth_enabled ? 'ON' : 'OFF'}</b> / Invite:{' '}
-              <b>{readiness?.invite_code_required == null ? '—' : readiness.invite_code_required ? 'ON' : 'OFF'}</b> / Rate Limit:{' '}
-              <b>{readiness?.rate_limit_enabled == null ? '—' : readiness.rate_limit_enabled ? 'ON' : 'OFF'}</b>
-            </div>
-            <div style={{ fontSize: 12, color: '#667085' }}>
-              Invite Readiness:{' '}
-              <b>
-                {readiness?.invite_onboarding_ready == null
-                  ? '—'
-                  : readiness.invite_onboarding_ready
-                    ? `READY (${readiness?.invite_active_count ?? 0})`
-                    : `NOT READY (${readiness?.invite_active_count ?? 0})`}
-              </b>
-            </div>
-            {(readiness?.config_errors?.length || readiness?.config_warnings?.length) ? (
-              <div style={{ fontSize: 12, color: '#b54708', display: 'grid', gap: 2 }}>
-                {readiness?.config_errors?.length ? (
-                  <div style={{ color: '#b42318' }}>Release Error: {readiness.config_errors.join(' / ')}</div>
-                ) : null}
-                {readiness?.config_warnings?.length ? <div>Release Warning: {readiness.config_warnings.join(' / ')}</div> : null}
+          ) : null}
+          {!readinessLoading && !readinessError ? (
+            <>
+              <div
+                style={{
+                  fontSize: 12,
+                  fontWeight: 700,
+                  color:
+                    readiness?.release_status === 'error'
+                      ? '#b42318'
+                      : readiness?.release_status === 'warning'
+                        ? '#b54708'
+                        : readiness?.release_status === 'ok'
+                          ? '#027a48'
+                          : '#667085',
+                }}
+              >
+                Release Status:{' '}
+                <b>
+                  {readiness?.release_status === 'error'
+                    ? 'ERROR'
+                    : readiness?.release_status === 'warning'
+                      ? 'WARNING'
+                      : readiness?.release_status === 'ok'
+                        ? 'OK'
+                        : 'UNKNOWN'}
+                </b>
               </div>
-            ) : (
-              <div style={{ fontSize: 12, color: '#667085' }}>Release Check: 問題なし</div>
-            )}
-            {readiness?.status === 'unknown' ? (
-              <div style={{ fontSize: 12, color: '#b54708' }}>
-                Runtime確認エンドポイントが未対応のため状態を判定できません（旧バージョンの可能性があります）。
+              <div style={{ fontSize: 13, color: '#344054' }}>
+                API: <b>{readiness?.status === 'ok' ? 'OK' : readiness?.status === 'unknown' ? '未対応' : 'NG'}</b> / DB:{' '}
+                <b>{readiness?.db === 'ok' ? 'OK' : readiness?.status === 'unknown' ? '未対応' : '確認中'}</b>
               </div>
-            ) : null}
-            <div style={{ fontSize: 12, color: '#667085' }}>
-              最終確認: {readinessUpdatedAt ? new Date(readinessUpdatedAt).toLocaleTimeString('ja-JP') : '—'}
-            </div>
-          </>
-        ) : null}
-      </div>
+              <div style={{ fontSize: 12, color: '#667085' }}>
+                Backend Version: <b>{readiness?.app_version || '—'}</b>
+              </div>
+              <div style={{ fontSize: 12, color: '#667085' }}>
+                Server Time (UTC): <b>{readiness?.server_time_utc || '—'}</b>
+              </div>
+              <div style={{ fontSize: 12, color: '#667085' }}>
+                Frontend Version: <b>{frontendVersion}</b>
+              </div>
+              {(readiness?.config_errors?.length || readiness?.config_warnings?.length) ? (
+                <div style={{ fontSize: 12, color: '#b54708', display: 'grid', gap: 2 }}>
+                  {readiness?.config_errors?.length ? (
+                    <div style={{ color: '#b42318' }}>Release Error: {readiness.config_errors.join(' / ')}</div>
+                  ) : null}
+                  {readiness?.config_warnings?.length ? <div>Release Warning: {readiness.config_warnings.join(' / ')}</div> : null}
+                </div>
+              ) : (
+                <div style={{ fontSize: 12, color: '#667085' }}>Release Check: 問題なし</div>
+              )}
+              {readiness?.status === 'unknown' ? (
+                <div style={{ fontSize: 12, color: '#b54708' }}>
+                  Runtime確認エンドポイントが未対応のため状態を判定できません（旧バージョンの可能性があります）。
+                </div>
+              ) : null}
+              <div style={{ fontSize: 12, color: '#667085' }}>
+                最終確認: {readinessUpdatedAt ? new Date(readinessUpdatedAt).toLocaleTimeString('ja-JP') : '—'}
+              </div>
+            </>
+          ) : null}
+        </div>
+      ) : null}
 
       <div style={{ border: '1px solid #e4e7ec', borderRadius: 12, padding: 12, background: '#fff', display: 'grid', gap: 10 }}>
         <div style={{ fontSize: 13, color: '#667085', fontWeight: 700 }}>Data</div>
@@ -286,8 +274,16 @@ export default function SettingsPage() {
       <div style={{ border: '1px solid #e4e7ec', borderRadius: 12, padding: 12, background: '#fff', display: 'grid', gap: 8 }}>
         <div style={{ fontSize: 13, color: '#667085', fontWeight: 700 }}>Legal</div>
         <div style={{ display: 'flex', gap: 12, flexWrap: 'wrap', fontSize: 13 }}>
+          <Link to="/help">Help</Link>
           <Link to="/terms">利用規約</Link>
           <Link to="/privacy">プライバシーポリシー</Link>
+          {CONTACT_FORM_URL ? (
+            <a href={CONTACT_FORM_URL} target="_blank" rel="noreferrer">
+              お問い合わせフォーム
+            </a>
+          ) : supportEmail ? (
+            <a href={`mailto:${supportEmail}`}>お問い合わせ</a>
+          ) : null}
         </div>
       </div>
 

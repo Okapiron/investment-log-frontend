@@ -4,6 +4,7 @@ import { useMemo } from 'react'
 import Layout from './components/Layout'
 import AuthCallbackPage from './pages/AuthCallbackPage'
 import AuthPage from './pages/AuthPage'
+import HelpPage from './pages/HelpPage'
 import PrivacyPage from './pages/PrivacyPage'
 import SettingsPage from './pages/SettingsPage'
 import TermsPage from './pages/TermsPage'
@@ -34,6 +35,7 @@ export default function App() {
 
         <Route path="/auth" element={<AuthPage />} />
         <Route path="/auth/callback" element={<AuthCallbackPage />} />
+        <Route path="/help" element={<HelpPage />} />
         <Route path="/terms" element={<TermsPage />} />
         <Route path="/privacy" element={<PrivacyPage />} />
 
