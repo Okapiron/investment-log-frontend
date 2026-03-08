@@ -106,7 +106,6 @@ export default function SettingsPage() {
         {meError ? <div style={{ fontSize: 13, color: '#b42318' }}>取得失敗: {String(meError?.message || meError)}</div> : null}
         {!isLoading && !meError ? (
           <>
-            <div style={{ fontSize: 13, color: '#344054' }}>User ID: <b>{data?.user_id || '—'}</b></div>
             <div style={{ fontSize: 13, color: '#344054' }}>Email: <b>{data?.email || '—'}</b></div>
           </>
         ) : null}
@@ -115,7 +114,15 @@ export default function SettingsPage() {
             type="button"
             onClick={handleLogout}
             disabled={!isAuthEnabled()}
-            style={{ background: '#f2f4f7', color: '#111', border: '1px solid #d0d5dd', borderRadius: 8, padding: '8px 12px', opacity: isAuthEnabled() ? 1 : 0.6 }}
+            style={{
+              background: '#2a8871',
+              color: '#fff',
+              border: '1px solid #2a8871',
+              borderRadius: 8,
+              padding: '8px 12px',
+              fontWeight: 700,
+              opacity: isAuthEnabled() ? 1 : 0.6,
+            }}
           >
             Logout
           </button>
@@ -219,7 +226,7 @@ export default function SettingsPage() {
             type="button"
             onClick={() => handleExport('json')}
             disabled={Boolean(working)}
-            style={{ background: '#2a8871', color: '#fff', border: '1px solid #2a8871', borderRadius: 8, padding: '8px 12px', opacity: working ? 0.6 : 1 }}
+            style={{ background: '#f2f4f7', color: '#111', border: '1px solid #d0d5dd', borderRadius: 8, padding: '8px 12px', opacity: working ? 0.6 : 1 }}
           >
             JSONをエクスポート
           </button>
@@ -233,18 +240,18 @@ export default function SettingsPage() {
           </button>
         </div>
 
-        <div style={{ marginTop: 4, padding: 10, border: '1px solid #fecaca', borderRadius: 10, background: '#fef3f2', display: 'grid', gap: 8 }}>
-          <div style={{ fontSize: 13, color: '#b42318', fontWeight: 700 }}>アカウントデータ削除</div>
-          <div style={{ fontSize: 12, color: '#b42318' }}>
+        <div style={{ marginTop: 4, padding: 10, border: '1px solid #e4e7ec', borderRadius: 10, background: '#fcfcfd', display: 'grid', gap: 8 }}>
+          <div style={{ fontSize: 13, color: '#344054', fontWeight: 700 }}>アカウントデータ削除</div>
+          <div style={{ fontSize: 12, color: '#667085' }}>
             取り消しできません。実行前にエクスポートを推奨します。
           </div>
           <label style={{ display: 'grid', gap: 4 }}>
-            <span style={{ fontSize: 12, color: '#b42318' }}>確認文字列（DELETE）</span>
+            <span style={{ fontSize: 12, color: '#667085' }}>確認文字列（DELETE）</span>
             <input
               value={confirmText}
               onChange={(e) => setConfirmText(e.target.value)}
               placeholder="DELETE"
-              style={{ border: '1px solid #fca5a5', borderRadius: 8, padding: '8px 10px' }}
+              style={{ border: '1px solid #d0d5dd', borderRadius: 8, padding: '8px 10px' }}
             />
           </label>
           <div>
@@ -253,9 +260,9 @@ export default function SettingsPage() {
               onClick={handleDeleteData}
               disabled={working === 'delete' || !canDeleteData}
               style={{
-                background: '#fef3f2',
+                background: '#fff5f5',
                 color: '#b42318',
-                border: '1px solid #fecdca',
+                border: '1px solid #f4c7cc',
                 borderRadius: 8,
                 padding: '8px 12px',
                 fontWeight: 700,
@@ -266,7 +273,7 @@ export default function SettingsPage() {
             </button>
           </div>
           {!canDeleteData ? (
-            <div style={{ fontSize: 12, color: '#b42318' }}>DELETE と入力するとボタンが有効になります。</div>
+            <div style={{ fontSize: 12, color: '#98a2b3' }}>DELETE と入力するとボタンが有効になります。</div>
           ) : null}
         </div>
       </div>
