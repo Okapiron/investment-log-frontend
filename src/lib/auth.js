@@ -81,7 +81,14 @@ export function getAuthSession() {
 }
 
 export function getAccessToken() {
-  const session = getAuthSession()
+  let session = getAuthSession()
+  if ((!session?.access_token || !session?.expires_at_ms) && typeof window !== 'undefined') {
+    const fromHash = consumeAuthSessionFromUrlHash(window.location.hash)
+    if (fromHash) {
+      session = fromHash
+      window.history.replaceState({}, document.title, window.location.pathname + window.location.search)
+    }
+  }
   if (!session?.access_token) return ''
   if (!session?.expires_at_ms || Number(session.expires_at_ms) <= Date.now() + 15_000) return ''
   return session.access_token
