@@ -127,6 +127,7 @@ export async function requestMagicLink({ email, inviteCode, redirectTo }) {
     body: JSON.stringify({
       email: cleanEmail,
       create_user: true,
+      email_redirect_to: redirectTo,
       data: {
         invite_code: cleanInviteCode,
       },

@@ -12,6 +12,11 @@ import TradesPage from './pages/TradesPage'
 import TradeDetailPage from './pages/TradeDetailPage.jsx'
 import { isAuthEnabled, isAuthenticated } from './lib/auth'
 
+function RootRedirect() {
+  const location = useLocation()
+  return <Navigate to={{ pathname: '/trades', hash: location.hash, search: location.search }} replace />
+}
+
 function RequireAuth({ children }) {
   const location = useLocation()
   const enabled = isAuthEnabled()
@@ -25,7 +30,7 @@ export default function App() {
   return (
     <Layout>
       <Routes>
-        <Route path="/" element={<Navigate to="/trades" replace />} />
+        <Route path="/" element={<RootRedirect />} />
 
         <Route path="/auth" element={<AuthPage />} />
         <Route path="/auth/callback" element={<AuthCallbackPage />} />
