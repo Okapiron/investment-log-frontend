@@ -1,4 +1,4 @@
-import { SUPPORT_EMAIL } from '../lib/siteConfig'
+import { CONTACT_FORM_URL, SUPPORT_EMAIL } from '../lib/siteConfig'
 
 export default function PrivacyPage() {
   return (
@@ -13,7 +13,13 @@ export default function PrivacyPage() {
         <p><b>5. 利用者の権利</b><br />利用者はSettings画面からデータエクスポートおよび削除を実行できます。</p>
         <p><b>6. 安全管理</b><br />運営者は不正アクセス防止やキー管理を含む合理的な安全管理措置を実施します。</p>
         <p><b>7. ポリシー変更</b><br />本ポリシーは必要に応じて改定され、改定後は本ページ掲載時点で効力を生じます。</p>
-        <p><b>8. お問い合わせ</b><br />{SUPPORT_EMAIL ? <a href={`mailto:${SUPPORT_EMAIL}`}>{SUPPORT_EMAIL}</a> : '問い合わせ先準備中'}</p>
+        <p>
+          <b>8. お問い合わせ</b><br />
+          {CONTACT_FORM_URL ? <a href={CONTACT_FORM_URL} target="_blank" rel="noreferrer">お問い合わせフォーム</a> : null}
+          {CONTACT_FORM_URL && SUPPORT_EMAIL ? ' / ' : null}
+          {SUPPORT_EMAIL ? <a href={`mailto:${SUPPORT_EMAIL}`}>{SUPPORT_EMAIL}</a> : null}
+          {!CONTACT_FORM_URL && !SUPPORT_EMAIL ? '問い合わせ先準備中' : null}
+        </p>
       </div>
     </div>
   )

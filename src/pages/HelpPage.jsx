@@ -82,11 +82,13 @@ export default function HelpPage() {
               <span style={{ fontSize: 12, color: '#667085' }}>宛先: {SUPPORT_EMAIL}</span>
             </div>
           </>
-        ) : (
+        ) : null}
+
+        {!CONTACT_FORM_URL && !SUPPORT_EMAIL ? (
           <div style={{ fontSize: 13, color: '#b54708' }}>
             問い合わせ先メールが未設定です。`VITE_SUPPORT_EMAIL` を設定してください。
           </div>
-        )}
+        ) : null}
       </div>
     </div>
   )

@@ -1,4 +1,4 @@
-import { SUPPORT_EMAIL } from '../lib/siteConfig'
+import { CONTACT_FORM_URL, SUPPORT_EMAIL } from '../lib/siteConfig'
 
 export default function TermsPage() {
   return (
@@ -13,7 +13,13 @@ export default function TermsPage() {
         <p><b>5. アカウント停止・削除</b><br />利用規約違反がある場合、運営者は事前通知なく利用停止または削除を行うことがあります。</p>
         <p><b>6. 仕様変更・提供終了</b><br />運営者は、サービス内容の変更、一時停止、終了を行う場合があります。</p>
         <p><b>7. 規約変更</b><br />本規約は必要に応じて改定されます。改定後は本ページ掲載時点で効力を生じます。</p>
-        <p><b>8. お問い合わせ</b><br />{SUPPORT_EMAIL ? <a href={`mailto:${SUPPORT_EMAIL}`}>{SUPPORT_EMAIL}</a> : '問い合わせ先準備中'}</p>
+        <p>
+          <b>8. お問い合わせ</b><br />
+          {CONTACT_FORM_URL ? <a href={CONTACT_FORM_URL} target="_blank" rel="noreferrer">お問い合わせフォーム</a> : null}
+          {CONTACT_FORM_URL && SUPPORT_EMAIL ? ' / ' : null}
+          {SUPPORT_EMAIL ? <a href={`mailto:${SUPPORT_EMAIL}`}>{SUPPORT_EMAIL}</a> : null}
+          {!CONTACT_FORM_URL && !SUPPORT_EMAIL ? '問い合わせ先準備中' : null}
+        </p>
       </div>
     </div>
   )
