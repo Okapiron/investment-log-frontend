@@ -1,7 +1,14 @@
 import { useState } from 'react'
 import { Link, Navigate } from 'react-router-dom'
 
-import { isAuthConfigured, isAuthEnabled, isAuthenticated, signInWithPassword, signUpWithPassword } from '../lib/auth'
+import {
+  isAuthConfigured,
+  isAuthEnabled,
+  isAuthenticated,
+  requestPasswordReset,
+  signInWithPassword,
+  signUpWithPassword,
+} from '../lib/auth'
 
 export default function AuthPage() {
   const [mode, setMode] = useState('signin')
@@ -28,6 +35,13 @@ export default function AuthPage() {
       if (mode === 'signin') {
         await signInWithPassword({ email, password })
         setMsg('ログインしました。')
+        return
+      }
+
+      if (mode === 'recovery') {
+        const redirectTo = `${window.location.origin}/auth/callback`
+        await requestPasswordReset({ email, redirectTo })
+        setMsg('パスワード再設定メールを送信しました。メール内のリンクを開いて新しいパスワードを設定してください。')
         return
       }
 
@@ -90,6 +104,26 @@ export default function AuthPage() {
         >
           新規登録
         </button>
+        <button
+          type="button"
+          onClick={() => {
+            setMode('recovery')
+            setMsg('')
+            setError('')
+            setPassword('')
+            setPasswordConfirm('')
+          }}
+          style={{
+            borderRadius: 999,
+            border: mode === 'recovery' ? '1px solid #2a8871' : '1px solid #d0d5dd',
+            background: mode === 'recovery' ? '#e8f7f4' : '#f2f4f7',
+            color: '#111',
+            padding: '6px 12px',
+            fontSize: 13,
+          }}
+        >
+          パスワード再設定
+        </button>
       </div>
 
       {!configured ? (
@@ -110,17 +144,23 @@ export default function AuthPage() {
             />
           </label>
 
-          <label style={{ display: 'grid', gap: 4 }}>
-            <span style={{ fontSize: 12, color: '#667085' }}>パスワード</span>
-            <input
-              type="password"
-              value={password}
-              onChange={(e) => setPassword(e.target.value)}
-              placeholder="8文字以上"
-              minLength={8}
-              required
-            />
-          </label>
+          {mode !== 'recovery' ? (
+            <label style={{ display: 'grid', gap: 4 }}>
+              <span style={{ fontSize: 12, color: '#667085' }}>パスワード</span>
+              <input
+                type="password"
+                value={password}
+                onChange={(e) => setPassword(e.target.value)}
+                placeholder="8文字以上"
+                minLength={8}
+                required
+              />
+            </label>
+          ) : (
+            <div style={{ fontSize: 13, color: '#475467', background: '#f8fafc', border: '1px solid #e4e7ec', borderRadius: 8, padding: 10 }}>
+              登録済みメールアドレスを入力すると、パスワード再設定メールを送信します。
+            </div>
+          )}
 
           {mode === 'signup' ? (
             <>
@@ -156,7 +196,7 @@ export default function AuthPage() {
             disabled={submitting}
             style={{ background: '#2a8871', color: '#fff', border: '1px solid #2a8871', opacity: submitting ? 0.6 : 1 }}
           >
-            {submitting ? '処理中…' : mode === 'signin' ? 'ログイン' : '新規登録'}
+            {submitting ? '処理中…' : mode === 'signin' ? 'ログイン' : mode === 'signup' ? '新規登録' : '再設定メールを送信'}
           </button>
         </form>
       )}

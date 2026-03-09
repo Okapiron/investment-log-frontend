@@ -4,6 +4,7 @@ import { useMemo } from 'react'
 import Layout from './components/Layout'
 import AuthCallbackPage from './pages/AuthCallbackPage'
 import AuthPage from './pages/AuthPage'
+import AuthResetPage from './pages/AuthResetPage'
 import HelpPage from './pages/HelpPage'
 import PrivacyPage from './pages/PrivacyPage'
 import SettingsPage from './pages/SettingsPage'
@@ -11,10 +12,13 @@ import TermsPage from './pages/TermsPage'
 import TradesNewPage from './pages/TradesNewPage'
 import TradesPage from './pages/TradesPage'
 import TradeDetailPage from './pages/TradeDetailPage.jsx'
-import { isAuthEnabled, isAuthenticated } from './lib/auth'
+import { hasAuthCallbackParams, isAuthEnabled, isAuthenticated } from './lib/auth'
 
 function RootRedirect() {
   const location = useLocation()
+  if (hasAuthCallbackParams({ hash: location.hash, search: location.search })) {
+    return <Navigate to={{ pathname: '/auth/callback', hash: location.hash, search: location.search }} replace />
+  }
   return <Navigate to={{ pathname: '/trades', hash: location.hash, search: location.search }} replace />
 }
 
@@ -35,6 +39,7 @@ export default function App() {
 
         <Route path="/auth" element={<AuthPage />} />
         <Route path="/auth/callback" element={<AuthCallbackPage />} />
+        <Route path="/auth/reset" element={<AuthResetPage />} />
         <Route path="/help" element={<HelpPage />} />
         <Route path="/terms" element={<TermsPage />} />
         <Route path="/privacy" element={<PrivacyPage />} />
@@ -78,7 +83,7 @@ export default function App() {
         <Route path="/accounts" element={<Navigate to="/trades" replace />} />
         <Route path="/snapshots" element={<Navigate to="/trades" replace />} />
 
-        <Route path="*" element={<Navigate to="/trades" replace />} />
+        <Route path="*" element={<RootRedirect />} />
       </Routes>
     </Layout>
   )
