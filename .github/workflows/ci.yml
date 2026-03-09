@@ -13,9 +13,9 @@ jobs:
       VITE_SUPABASE_URL: https://demo.supabase.co
       VITE_SUPABASE_ANON_KEY: dummy
       VITE_APP_VERSION: ci-${{ github.sha }}
-      VITE_SUPPORT_EMAIL: ${{ vars.VITE_SUPPORT_EMAIL }}
-      VITE_LEGAL_OPERATOR_NAME: ${{ vars.VITE_LEGAL_OPERATOR_NAME }}
-      VITE_LEGAL_ADDRESS: ${{ vars.VITE_LEGAL_ADDRESS }}
+      VITE_SUPPORT_EMAIL: ${{ vars.VITE_SUPPORT_EMAIL || secrets.VITE_SUPPORT_EMAIL }}
+      VITE_LEGAL_OPERATOR_NAME: ${{ vars.VITE_LEGAL_OPERATOR_NAME || secrets.VITE_LEGAL_OPERATOR_NAME }}
+      VITE_LEGAL_ADDRESS: ${{ vars.VITE_LEGAL_ADDRESS || secrets.VITE_LEGAL_ADDRESS }}
 
     steps:
       - name: Checkout
@@ -29,6 +29,17 @@ jobs:
 
       - name: Install dependencies
         run: npm ci
+
+      - name: Validate required release env
+        run: |
+          missing=()
+          [[ -z "${VITE_SUPPORT_EMAIL}" ]] && missing+=("VITE_SUPPORT_EMAIL")
+          [[ -z "${VITE_LEGAL_OPERATOR_NAME}" ]] && missing+=("VITE_LEGAL_OPERATOR_NAME")
+          [[ -z "${VITE_LEGAL_ADDRESS}" ]] && missing+=("VITE_LEGAL_ADDRESS")
+          if (( ${#missing[@]} > 0 )); then
+            echo "::error::Missing required release env in GitHub Actions Variables/Secrets: ${missing[*]}"
+            exit 1
+          fi
 
       - name: Release preflight gate
         run: node tools/preflight_release.mjs --json
