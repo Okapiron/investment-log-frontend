@@ -1,8 +1,18 @@
 const rawSupportEmail = String(import.meta.env.VITE_SUPPORT_EMAIL || '').trim()
 const rawContactFormUrl = String(import.meta.env.VITE_CONTACT_FORM_URL || '').trim()
+const rawLegalOperatorName = String(import.meta.env.VITE_LEGAL_OPERATOR_NAME || '').trim()
+const rawLegalRepresentative = String(import.meta.env.VITE_LEGAL_REPRESENTATIVE || '').trim()
+const rawLegalAddress = String(import.meta.env.VITE_LEGAL_ADDRESS || '').trim()
+const rawLegalGoverningLaw = String(import.meta.env.VITE_LEGAL_GOVERNING_LAW || '').trim()
+const rawLegalJurisdiction = String(import.meta.env.VITE_LEGAL_JURISDICTION || '').trim()
 
 export const SUPPORT_EMAIL = rawSupportEmail
 export const CONTACT_FORM_URL = rawContactFormUrl
+export const LEGAL_OPERATOR_NAME = rawLegalOperatorName
+export const LEGAL_REPRESENTATIVE = rawLegalRepresentative
+export const LEGAL_ADDRESS = rawLegalAddress
+export const LEGAL_GOVERNING_LAW = rawLegalGoverningLaw || '日本法'
+export const LEGAL_JURISDICTION = rawLegalJurisdiction || '東京地方裁判所'
 
 export function getSupportMailto({ subject = '', body = '' } = {}) {
   if (!SUPPORT_EMAIL) return ''
