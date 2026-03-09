@@ -2,4 +2,4 @@ User-agent: *
 Allow: /
 Disallow: /auth/callback
 
-Sitemap: https://investment-log-frontend.vercel.app/sitemap.xml
+Sitemap: https://tradetrace.jp/sitemap.xml
