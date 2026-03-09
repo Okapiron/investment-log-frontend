@@ -66,6 +66,9 @@ function main() {
   const supabaseAnonKey = String(env.VITE_SUPABASE_ANON_KEY || '').trim()
   const timeoutRaw = String(env.VITE_API_TIMEOUT_MS || '').trim()
   const appVersion = String(env.VITE_APP_VERSION || '').trim()
+  const supportEmail = String(env.VITE_SUPPORT_EMAIL || '').trim()
+  const legalOperatorName = String(env.VITE_LEGAL_OPERATOR_NAME || '').trim()
+  const legalAddress = String(env.VITE_LEGAL_ADDRESS || '').trim()
 
   if (isBlank(apiBase)) {
     errors.push('VITE_API_BASE is required')
@@ -97,6 +100,16 @@ function main() {
 
   if (isBlank(appVersion) || appVersion.toLowerCase() === 'dev-local') {
     warnings.push('VITE_APP_VERSION is not set for release (current value looks like local default)')
+  }
+
+  if (isBlank(supportEmail)) {
+    warnings.push('VITE_SUPPORT_EMAIL is not set for release')
+  }
+  if (isBlank(legalOperatorName)) {
+    warnings.push('VITE_LEGAL_OPERATOR_NAME is not set for release')
+  }
+  if (isBlank(legalAddress)) {
+    warnings.push('VITE_LEGAL_ADDRESS is not set for release')
   }
 
   if (errors.length > 0) {
