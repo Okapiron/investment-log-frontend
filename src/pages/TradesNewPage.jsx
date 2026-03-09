@@ -1062,12 +1062,12 @@ export default function TradesNewPage() {
 
         <div
           style={{
-            border: isMobile ? '1px solid #abefc6' : '1px solid #ddd',
+            border: '1px solid #ddd',
             borderRadius: 12,
             padding: 12,
             display: 'grid',
             gap: 10,
-            background: isMobile ? '#f6fef9' : '#fff',
+            background: '#fff',
           }}
         >
           <div style={{ fontWeight: 700 }}>BUY</div>
