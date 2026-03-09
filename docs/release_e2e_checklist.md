@@ -49,6 +49,15 @@
 - [ ] `GET https://<render-backend-host>/health/ready` が `200`
 - [ ] `GET https://<render-backend-host>/openapi.json` が `200`
 
+## 6.1 ケースF: 法務ページ整合（公開前必須）
+- [ ] `https://tradetrace.jp/terms` が表示できる
+- [ ] `https://tradetrace.jp/privacy` が表示できる
+- [ ] Terms が最新版文面（最終更新日: 2026-03-09）になっている
+- [ ] Privacy が最新版文面（最終更新日: 2026-03-09）になっている
+- [ ] Privacy に「開示等の請求手続」が明記されている
+- [ ] `運営者名準備中` / `所在地準備中` / `問い合わせ先準備中` が表示されない
+- [ ] Help / Settings / Terms / Privacy の問い合わせ先が一致している
+
 ## 7. 公開可否判定
 - [ ] FAIL が 0 件
 - [ ] 重大な WARNING が残っていない（公開判断に影響しないと確認済み）
