@@ -1067,7 +1067,6 @@ export default function TradesNewPage() {
             padding: 12,
             display: 'grid',
             gap: 10,
-            background: '#fff',
           }}
         >
           <div style={{ fontWeight: 700 }}>BUY</div>
