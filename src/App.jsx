@@ -6,7 +6,6 @@ import AuthCallbackPage from './pages/AuthCallbackPage'
 import AuthPage from './pages/AuthPage'
 import AuthResetPage from './pages/AuthResetPage'
 import HelpPage from './pages/HelpPage'
-import LandingPage from './pages/LandingPage'
 import PrivacyPage from './pages/PrivacyPage'
 import SettingsPage from './pages/SettingsPage'
 import TermsPage from './pages/TermsPage'
@@ -15,15 +14,12 @@ import TradesPage from './pages/TradesPage'
 import TradeDetailPage from './pages/TradeDetailPage.jsx'
 import { hasAuthCallbackParams, isAuthEnabled, isAuthenticated } from './lib/auth'
 
-function RootEntry() {
+function RootRedirect() {
   const location = useLocation()
   if (hasAuthCallbackParams({ hash: location.hash, search: location.search })) {
     return <Navigate to={{ pathname: '/auth/callback', hash: location.hash, search: location.search }} replace />
   }
-  if (isAuthEnabled() && isAuthenticated()) {
-    return <Navigate to={{ pathname: '/trades', hash: location.hash, search: location.search }} replace />
-  }
-  return <LandingPage />
+  return <Navigate to={{ pathname: '/trades', hash: location.hash, search: location.search }} replace />
 }
 
 function RequireAuth({ children }) {
@@ -39,7 +35,7 @@ export default function App() {
   return (
     <Layout>
       <Routes>
-        <Route path="/" element={<RootEntry />} />
+        <Route path="/" element={<RootRedirect />} />
 
         <Route path="/auth" element={<AuthPage />} />
         <Route path="/auth/callback" element={<AuthCallbackPage />} />
@@ -87,7 +83,7 @@ export default function App() {
         <Route path="/accounts" element={<Navigate to="/trades" replace />} />
         <Route path="/snapshots" element={<Navigate to="/trades" replace />} />
 
-        <Route path="*" element={<Navigate to="/" replace />} />
+        <Route path="*" element={<RootRedirect />} />
       </Routes>
     </Layout>
   )

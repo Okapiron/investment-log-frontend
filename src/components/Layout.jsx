@@ -10,9 +10,8 @@ const tradeNavItems = [
 export default function Layout({ children }) {
   const location = useLocation()
   const isAuthRoute = location.pathname.startsWith('/auth')
-  const isLandingRoute = location.pathname === '/'
 
-  const navItems = isAuthRoute || isLandingRoute ? [] : tradeNavItems
+  const navItems = isAuthRoute ? [] : tradeNavItems
 
   return (
     <div className="app-shell">
@@ -26,25 +25,18 @@ export default function Layout({ children }) {
             </div>
           </div>
           <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-            {isLandingRoute ? (
-              <nav>
-                <NavLink to="/auth?mode=signin" className="nav-link">ログイン</NavLink>
-                <NavLink to="/auth?mode=signup" className="nav-link active">新規登録</NavLink>
-              </nav>
-            ) : (
-              <nav>
-                {navItems.map((item) => (
-                  <NavLink
-                    key={item.to}
-                    to={item.to}
-                    className={({ isActive }) => (isActive ? 'nav-link active' : 'nav-link')}
-                    end={item.to === '/trades'}
-                  >
-                    {item.label}
-                  </NavLink>
-                ))}
-              </nav>
-            )}
+            <nav>
+              {navItems.map((item) => (
+                <NavLink
+                  key={item.to}
+                  to={item.to}
+                  className={({ isActive }) => (isActive ? 'nav-link active' : 'nav-link')}
+                  end={item.to === '/trades'}
+                >
+                  {item.label}
+                </NavLink>
+              ))}
+            </nav>
           </div>
         </div>
       </header>

@@ -1,5 +1,5 @@
-import { useEffect, useState } from 'react'
-import { Link, Navigate, useSearchParams } from 'react-router-dom'
+import { useState } from 'react'
+import { Link, Navigate } from 'react-router-dom'
 
 import {
   isAuthConfigured,
@@ -11,7 +11,6 @@ import {
 } from '../lib/auth'
 
 export default function AuthPage() {
-  const [searchParams] = useSearchParams()
   const [mode, setMode] = useState('signin')
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
@@ -23,22 +22,6 @@ export default function AuthPage() {
 
   const enabled = isAuthEnabled()
   const configured = isAuthConfigured()
-
-  useEffect(() => {
-    const qMode = String(searchParams.get('mode') || '').trim().toLowerCase()
-    if (qMode === 'signin' || qMode === 'signup' || qMode === 'recovery') {
-      setMode(qMode)
-      setMsg('')
-      setError('')
-      if (qMode !== 'signup') {
-        setInviteCode('')
-      }
-      if (qMode === 'recovery') {
-        setPassword('')
-        setPasswordConfirm('')
-      }
-    }
-  }, [searchParams])
 
   if (!enabled) return <Navigate to="/trades" replace />
   if (isAuthenticated()) return <Navigate to="/trades" replace />
