@@ -321,10 +321,39 @@ export default function TradesPage() {
   const [winOnly, setWinOnly] = useState(() => initial.winOnly)
   const [lossOnly, setLossOnly] = useState(() => initial.lossOnly)
   const [statusFilter, setStatusFilter] = useState(() => initial.status)
+  const [isMobile, setIsMobile] = useState(() => {
+    if (typeof window === 'undefined' || typeof window.matchMedia !== 'function') return false
+    return window.matchMedia('(max-width: 767px)').matches
+  })
+  const [mobileShowStats, setMobileShowStats] = useState(false)
+  const [mobileShowFilters, setMobileShowFilters] = useState(false)
 
   // state -> URL 同期（戻る対応）
   // - search(q) は入力中に履歴が増えると邪魔なので replace で更新
   const searchDebounceRef = useRef(null)
+
+  useEffect(() => {
+    if (typeof window === 'undefined' || typeof window.matchMedia !== 'function') return undefined
+    const media = window.matchMedia('(max-width: 767px)')
+    const onChange = () => setIsMobile(media.matches)
+    onChange()
+    if (typeof media.addEventListener === 'function') {
+      media.addEventListener('change', onChange)
+      return () => media.removeEventListener('change', onChange)
+    }
+    media.addListener(onChange)
+    return () => media.removeListener(onChange)
+  }, [])
+
+  useEffect(() => {
+    if (!isMobile) {
+      setMobileShowStats(true)
+      setMobileShowFilters(true)
+    } else {
+      setMobileShowStats(true)
+      setMobileShowFilters(false)
+    }
+  }, [isMobile])
 
   // Market/Rating/Tag/Sort は即時 URL 更新（履歴を残す）
   useEffect(() => {
@@ -528,11 +557,21 @@ export default function TradesPage() {
   }
 
   return (
-    <div style={{ padding: 16, maxWidth: 900, margin: '0 auto' }}>
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 12, marginTop: 0, marginBottom: 0 }}>
+    <div style={{ padding: isMobile ? 12 : 16, maxWidth: 900, margin: '0 auto' }}>
+      <div
+        style={{
+          display: 'flex',
+          flexDirection: isMobile ? 'column' : 'row',
+          justifyContent: 'space-between',
+          alignItems: isMobile ? 'stretch' : 'center',
+          gap: 12,
+          marginTop: 0,
+          marginBottom: 0,
+        }}
+      >
         <h2 style={{ margin: 0 }}>投資記録</h2>
-        <Link to="/trades/new">
-          <button style={actionBtnStyle}>＋ 新規トレード</button>
+        <Link to="/trades/new" style={{ alignSelf: isMobile ? 'stretch' : 'auto' }}>
+          <button style={{ ...actionBtnStyle, minHeight: isMobile ? 42 : undefined, width: isMobile ? '100%' : undefined }}>＋ 新規トレード</button>
         </Link>
       </div>
 
@@ -589,21 +628,41 @@ export default function TradesPage() {
         )}
       </div>
 
+      {isMobile ? (
+        <div style={{ marginTop: 10, display: 'grid', gap: 8, gridTemplateColumns: '1fr 1fr' }}>
+          <button
+            type="button"
+            onClick={() => setMobileShowStats((v) => !v)}
+            style={{ ...baseButtonStyle, minHeight: 38, fontWeight: 700 }}
+          >
+            {mobileShowStats ? '統計を閉じる' : '統計を表示'}
+          </button>
+          <button
+            type="button"
+            onClick={() => setMobileShowFilters((v) => !v)}
+            style={{ ...baseButtonStyle, minHeight: 38, fontWeight: 700 }}
+          >
+            {mobileShowFilters ? '絞り込みを閉じる' : '絞り込みを表示'}
+          </button>
+        </div>
+      ) : null}
+
 
       {/* サマリー統計 */}
-      <div
-        style={{
-          marginTop: 10,
-          border: '1px solid #eee',
-          borderRadius: 12,
-          padding: '10px 12px',
-          background: '#fafafa',
-          display: 'grid',
-          gridTemplateColumns: 'repeat(auto-fit, minmax(160px, 1fr))',
-          gap: 10,
-          alignItems: 'start',
-        }}
-      >
+      {!isMobile || mobileShowStats ? (
+        <div
+          style={{
+            marginTop: 10,
+            border: '1px solid #eee',
+            borderRadius: 12,
+            padding: '10px 12px',
+            background: '#fafafa',
+            display: 'grid',
+            gridTemplateColumns: 'repeat(auto-fit, minmax(160px, 1fr))',
+            gap: 10,
+            alignItems: 'start',
+          }}
+        >
         <div style={{ display: 'grid', gap: 2 }}>
           <div style={{ fontSize: 12, color: '#667085' }}>合計損益（JPY）</div>
           <div
@@ -696,18 +755,20 @@ export default function TradesPage() {
           </div>
         </div>
 
-      </div>
+        </div>
+      ) : null}
 
       {/* 期間 + Sort（横並び） */}
-      <div
-        style={{
-          marginTop: 12,
-          display: 'grid',
-          gridTemplateColumns: 'repeat(auto-fit, minmax(320px, 1fr))',
-          gap: 10,
-          alignItems: 'start',
-        }}
-      >
+      {!isMobile || mobileShowFilters ? (
+        <div
+          style={{
+            marginTop: 12,
+            display: 'grid',
+            gridTemplateColumns: 'repeat(auto-fit, minmax(320px, 1fr))',
+            gap: 10,
+            alignItems: 'start',
+          }}
+        >
         {/* Period */}
         <div
           style={{
@@ -787,10 +848,12 @@ export default function TradesPage() {
             <span style={{ fontSize: 11, color: '#667085' }}>{sortDir === 'asc' ? '昇順' : '降順'}</span>
           </div>
         </div>
-      </div>
+        </div>
+      ) : null}
 
       {/* 統合フィルター */}
-      <div style={{ marginTop: 10, border: '1px solid #eee', borderRadius: 12, padding: '10px 12px', background: '#fafafa', display: 'grid', gap: 10 }}>
+      {!isMobile || mobileShowFilters ? (
+        <div style={{ marginTop: 10, border: '1px solid #eee', borderRadius: 12, padding: '10px 12px', background: '#fafafa', display: 'grid', gap: 10 }}>
         <label style={{ display: 'grid', gap: 4 }}>
           <span style={{ fontSize: 12, opacity: 0.8 }}>Search（Key word）</span>
           <input
@@ -918,51 +981,61 @@ export default function TradesPage() {
             </div>
           </div>
         )}
-      </div>
+        </div>
+      ) : null}
 
       {/* 現在の条件 + リセット（フィルターの直下） */}
-      <div
-        ref={activeConditionsRef}
-        style={{
-          marginTop: 6,
-          display: 'flex',
-          justifyContent: 'space-between',
-          gap: 12,
-          alignItems: 'center',
-        }}
-      >
-        <div style={{ fontSize: 12, opacity: 0.65, lineHeight: 1.2 }}>
-          <b>現在の条件</b>：{activeLabel}
-          <span style={{ marginLeft: 8 }}>(件数 {total})</span>
-        </div>
-
-        <button
-          type="button"
-          disabled={!hasAnyFilter}
-          onClick={() => {
-            if (!hasAnyFilter) return
-            resetAll()
-          }}
+      {!isMobile || mobileShowFilters ? (
+        <div
+          ref={activeConditionsRef}
           style={{
-            ...baseButtonStyle,
-            opacity: hasAnyFilter ? 1 : 0.45,
-            cursor: hasAnyFilter ? 'pointer' : 'not-allowed',
+            marginTop: 6,
+            display: 'flex',
+            justifyContent: 'space-between',
+            gap: 12,
+            alignItems: isMobile ? 'stretch' : 'center',
+            flexDirection: isMobile ? 'column' : 'row',
           }}
         >
-          全てクリア
-        </button>
-      </div>
+          <div style={{ fontSize: isMobile ? 13 : 12, opacity: 0.72, lineHeight: 1.3 }}>
+            <b>現在の条件</b>：{activeLabel}
+            <span style={{ marginLeft: 8 }}>(件数 {total})</span>
+          </div>
 
-      <div
-        style={{
-          marginTop: 8,
-          display: 'flex',
-          justifyContent: 'space-between',
-          alignItems: 'center',
-          gap: 12,
-          flexWrap: 'wrap',
-        }}
-      >
+          <button
+            type="button"
+            disabled={!hasAnyFilter}
+            onClick={() => {
+              if (!hasAnyFilter) return
+              resetAll()
+            }}
+            style={{
+              ...baseButtonStyle,
+              alignSelf: isMobile ? 'flex-end' : 'auto',
+              opacity: hasAnyFilter ? 1 : 0.45,
+              cursor: hasAnyFilter ? 'pointer' : 'not-allowed',
+            }}
+          >
+            全てクリア
+          </button>
+        </div>
+      ) : hasAnyFilter ? (
+        <div style={{ marginTop: 8, fontSize: 12, color: '#667085' }}>
+          条件適用中（{total}件）。「絞り込みを表示」から内容を確認できます。
+        </div>
+      ) : null}
+
+      {!isMobile || mobileShowFilters ? (
+        <div
+          style={{
+            marginTop: 8,
+            display: 'flex',
+            justifyContent: 'space-between',
+            alignItems: 'center',
+            gap: 12,
+            flexWrap: 'wrap',
+          }}
+        >
         <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap' }}>
           <span style={{ fontSize: 12, opacity: 0.8 }}>表示件数</span>
           {[20, 50, 100].map((n) => (
@@ -997,7 +1070,8 @@ export default function TradesPage() {
             ▶
           </button>
         </div>
-      </div>
+        </div>
+      ) : null}
 
       {/* 一覧との区切り */}
       <div style={{ marginTop: 10, borderTop: '1px solid #eaecf0' }} />
@@ -1009,11 +1083,11 @@ export default function TradesPage() {
         <p>まだ投資記録がありません。右上の「新規トレード」から作成できます。</p>
       )}
 
-      <div style={{ display: 'grid', gap: 10, marginTop: 10, padding: '0 4px' }}>
+      <div style={{ display: 'grid', gap: isMobile ? 8 : 10, marginTop: 10, padding: isMobile ? 0 : '0 4px' }}>
         {items.map((t) => (
           <Link key={t.id} to={`/trades/${t.id}`} style={{ display: 'block', textDecoration: 'none', color: 'inherit' }}>
-            <div style={{ border: '1px solid #ddd', borderRadius: 12, padding: '10px 12px', background: '#fff' }}>
-              <div style={{ display: 'flex', justifyContent: 'space-between', gap: 12, alignItems: 'baseline' }}>
+            <div style={{ border: '1px solid #ddd', borderRadius: 12, padding: isMobile ? '10px 10px' : '10px 12px', background: '#fff' }}>
+              <div style={{ display: 'flex', flexDirection: isMobile ? 'column' : 'row', justifyContent: 'space-between', gap: isMobile ? 8 : 12, alignItems: isMobile ? 'stretch' : 'baseline' }}>
                 <div>
                   <div style={{ display: 'flex', alignItems: 'baseline', gap: 8, flexWrap: 'wrap' }}>
                     <span style={{ fontSize: 12, color: '#667085', width: 24, display: 'inline-block' }}>{t.market}</span>
@@ -1048,7 +1122,7 @@ export default function TradesPage() {
                     </>
                   )}
                 </div>
-                <div style={{ textAlign: 'right', display: 'grid', gap: 4, justifyItems: 'end' }}>
+                <div style={{ textAlign: isMobile ? 'left' : 'right', display: 'grid', gap: 4, justifyItems: isMobile ? 'start' : 'end' }}>
                   {isOpenTrade(t) ? (
                     <>
                       <div style={{ fontWeight: 800, color: '#344054' }}>—</div>
@@ -1092,9 +1166,10 @@ export default function TradesPage() {
                 style={{
                   marginTop: 6,
                   display: 'flex',
-                  justifyContent: 'space-between',
+                  justifyContent: isMobile ? 'flex-start' : 'space-between',
                   gap: 10,
-                  alignItems: 'center',
+                  alignItems: isMobile ? 'stretch' : 'center',
+                  flexDirection: isMobile ? 'column' : 'row',
                 }}
               >
                 {/* Status + タグ（左下） */}
@@ -1171,7 +1246,7 @@ export default function TradesPage() {
                 </div>
 
                 {/* 評価（右下） */}
-                <div style={{ fontSize: 13, whiteSpace: 'nowrap', textAlign: 'right' }}>
+                <div style={{ fontSize: 13, whiteSpace: 'nowrap', textAlign: isMobile ? 'left' : 'right' }}>
                   <Rating value={t.rating} />
                 </div>
               </div>

@@ -226,6 +226,11 @@ export default function TradesNewPage() {
   const [usInstruments, setUsInstruments] = useState([])
   const [usLoadState, setUsLoadState] = useState('idle')
   const usLoadStartedRef = useRef(false)
+  const [isMobile, setIsMobile] = useState(() => {
+    if (typeof window === 'undefined' || typeof window.matchMedia !== 'function') return false
+    return window.matchMedia('(max-width: 767px)').matches
+  })
+  const [isThoughtLogOpenMobile, setIsThoughtLogOpenMobile] = useState(false)
   const baseButtonStyle = {
     background: '#f2f4f7',
     color: '#111',
@@ -256,6 +261,24 @@ export default function TradesNewPage() {
       // ignore
     }
   }, [])
+
+  useEffect(() => {
+    if (typeof window === 'undefined' || typeof window.matchMedia !== 'function') return undefined
+    const media = window.matchMedia('(max-width: 767px)')
+    const onChange = () => setIsMobile(media.matches)
+    onChange()
+    if (typeof media.addEventListener === 'function') {
+      media.addEventListener('change', onChange)
+      return () => media.removeEventListener('change', onChange)
+    }
+    media.addListener(onChange)
+    return () => media.removeListener(onChange)
+  }, [])
+
+  useEffect(() => {
+    if (!isMobile) setIsThoughtLogOpenMobile(true)
+    else setIsThoughtLogOpenMobile(false)
+  }, [isMobile])
 
   async function loadJpInstrumentsIfNeeded() {
     if (jpLoadStartedRef.current || jpLoadState !== 'idle') return
@@ -926,18 +949,33 @@ export default function TradesNewPage() {
   }
 
   return (
-    <div style={{ padding: 16, maxWidth: 700, margin: '0 auto' }}>
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 12 }}>
+    <div
+      style={{
+        padding: 16,
+        maxWidth: 700,
+        margin: '0 auto',
+        paddingBottom: isMobile ? 'calc(16px + env(safe-area-inset-bottom))' : 16,
+      }}
+    >
+      <div
+        style={{
+          display: 'flex',
+          flexDirection: isMobile ? 'column' : 'row',
+          justifyContent: 'space-between',
+          alignItems: isMobile ? 'stretch' : 'center',
+          gap: 12,
+        }}
+      >
         <h2 style={{ margin: 0 }}>新規トレード作成</h2>
-        <Link to="/trades" style={{ textDecoration: 'none' }}>
-          <button style={baseButtonStyle}>← 一覧へ</button>
+        <Link to="/trades" style={{ textDecoration: 'none', alignSelf: isMobile ? 'flex-end' : 'auto' }}>
+          <button style={{ ...baseButtonStyle, minHeight: isMobile ? 40 : undefined }}>← 一覧へ</button>
         </Link>
       </div>
 
       <form onSubmit={handleSubmit} style={{ display: 'grid', gap: 12, marginTop: 12 }}>
         <div ref={instrumentWrapRef} style={{ display: 'grid', gap: 8, position: 'relative', marginBottom: 12 }}>
           <label style={{ fontWeight: 700 }}>銘柄</label>
-          <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
+          <div style={{ display: 'flex', flexDirection: isMobile ? 'column' : 'row', gap: 8, alignItems: isMobile ? 'stretch' : 'center' }}>
             <input
               ref={instrumentInputRef}
               placeholder="銘柄名 or 銘柄コード"
@@ -954,10 +992,19 @@ export default function TradesNewPage() {
                 setInstrumentOpen(true)
               }}
               onKeyDown={handleInstrumentKeyDown}
-              style={{ flex: 1 }}
+              style={{ flex: 1, minHeight: isMobile ? 42 : undefined }}
             />
             {instrumentConfirmed ? (
-              <button type="button" onClick={clearConfirmedInstrument} title="銘柄確定を解除" style={baseButtonStyle}>
+              <button
+                type="button"
+                onClick={clearConfirmedInstrument}
+                title="銘柄確定を解除"
+                style={{
+                  ...baseButtonStyle,
+                  minHeight: isMobile ? 40 : undefined,
+                  alignSelf: isMobile ? 'flex-end' : 'auto',
+                }}
+              >
                 ×
               </button>
             ) : null}
@@ -1013,7 +1060,16 @@ export default function TradesNewPage() {
 
 
 
-        <div style={{ border: '1px solid #ddd', borderRadius: 12, padding: 12, display: 'grid', gap: 10 }}>
+        <div
+          style={{
+            border: isMobile ? '1px solid #abefc6' : '1px solid #ddd',
+            borderRadius: 12,
+            padding: 12,
+            display: 'grid',
+            gap: 10,
+            background: isMobile ? '#f6fef9' : '#fff',
+          }}
+        >
           <div style={{ fontWeight: 700 }}>BUY</div>
           <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
             <input
@@ -1025,12 +1081,12 @@ export default function TradesNewPage() {
               onBlur={() => setBuyDate((v) => normalizeYmd(v))}
               required
               onKeyDown={handleKeyNav}
-              style={{ flex: 1 }}
+              style={{ flex: 1, minHeight: isMobile ? 42 : undefined }}
             />
             <button
               type="button"
               onClick={() => openDatePicker(buyDatePickerRef)}
-              style={{ ...baseButtonStyle, padding: '8px 10px' }}
+              style={{ ...baseButtonStyle, padding: isMobile ? '10px 12px' : '8px 10px' }}
               title="カレンダーから選択"
             >
               📅
@@ -1068,7 +1124,7 @@ export default function TradesNewPage() {
               onChange={(e) => setBuyPrice(normalizeDecimalInput(e.target.value))}
               required
               onKeyDown={handleKeyNav}
-              style={{ width: '100%', paddingLeft: 36 }}
+              style={{ width: '100%', paddingLeft: 36, minHeight: isMobile ? 42 : undefined }}
             />
           </div>
           <input
@@ -1079,6 +1135,7 @@ export default function TradesNewPage() {
             onChange={(e) => setQty(normalizeIntInput(e.target.value))}
             required
             onKeyDown={handleKeyNav}
+            style={{ minHeight: isMobile ? 42 : undefined }}
           />
         </div>
 
@@ -1101,114 +1158,182 @@ export default function TradesNewPage() {
               </label>
             </div>
           </div>
-          <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
-            <input
-              type="text"
-              inputMode="numeric"
-              placeholder="YYYYMMDD（例: 20260206）"
-              value={sellDate}
-              onChange={(e) => setSellDate(normalizeYmd(e.target.value))}
-              onBlur={() => setSellDate((v) => normalizeYmd(v))}
-              required={!isOpen}
-              disabled={isOpen}
-              onKeyDown={handleKeyNav}
-              style={{ flex: 1 }}
-            />
-            <button
-              type="button"
-              onClick={() => openDatePicker(sellDatePickerRef)}
-              disabled={isOpen}
-              style={{
-                ...baseButtonStyle,
-                padding: '8px 10px',
-                cursor: isOpen ? 'not-allowed' : 'pointer',
-                opacity: isOpen ? 0.5 : 1,
-              }}
-              title={isOpen ? '未売却のため選択できません' : 'カレンダーから選択'}
-            >
-              📅
-            </button>
-            <input
-              ref={sellDatePickerRef}
-              type="date"
-              value={isFullYmd(sellDate) ? sellDate : ''}
-              onChange={(e) => setSellDate(e.target.value)}
-              disabled={isOpen}
-              style={{ position: 'absolute', opacity: 0, width: 1, height: 1, pointerEvents: 'none' }}
-              tabIndex={-1}
-              aria-hidden="true"
-            />
-          </div>
-          <div style={{ position: 'relative' }}>
+          {isOpen ? (
             <div
               style={{
-                position: 'absolute',
-                left: 12,
-                top: '50%',
-                transform: 'translateY(-50%)',
-                fontWeight: 700,
-                opacity: 1,
-                color: '#111',
-                pointerEvents: 'none',
+                fontSize: 12,
+                opacity: 0.82,
+                padding: '10px 12px',
+                borderRadius: 10,
+                background: '#f9fafb',
+                border: '1px dashed #d0d5dd',
               }}
             >
-              {market === 'JP' ? '¥' : '$'}
+              未売却のため SELL 入力は表示していません。保有中をOFFにすると入力できます。
             </div>
-            <input
-              type="text"
-              inputMode="decimal"
-              placeholder="売値"
-              value={sellPrice}
-              onChange={(e) => setSellPrice(normalizeDecimalInput(e.target.value))}
-              required={!isOpen}
-              disabled={isOpen}
-              onKeyDown={handleKeyNav}
-              style={{ width: '100%', paddingLeft: 36 }}
-            />
-          </div>
-          <div style={{ fontSize: 12, opacity: 0.75 }}>
-            {isOpen ? (
-              <>未売却のため SELL は入力しません</>
+          ) : (
+            <>
+              <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
+                <input
+                  type="text"
+                  inputMode="numeric"
+                  placeholder="YYYYMMDD（例: 20260206）"
+                  value={sellDate}
+                  onChange={(e) => setSellDate(normalizeYmd(e.target.value))}
+                  onBlur={() => setSellDate((v) => normalizeYmd(v))}
+                  required={!isOpen}
+                  disabled={isOpen}
+                  onKeyDown={handleKeyNav}
+                  style={{ flex: 1, minHeight: isMobile ? 42 : undefined }}
+                />
+                <button
+                  type="button"
+                  onClick={() => openDatePicker(sellDatePickerRef)}
+                  disabled={isOpen}
+                  style={{
+                    ...baseButtonStyle,
+                    padding: isMobile ? '10px 12px' : '8px 10px',
+                    cursor: isOpen ? 'not-allowed' : 'pointer',
+                    opacity: isOpen ? 0.5 : 1,
+                  }}
+                  title={isOpen ? '未売却のため選択できません' : 'カレンダーから選択'}
+                >
+                  📅
+                </button>
+                <input
+                  ref={sellDatePickerRef}
+                  type="date"
+                  value={isFullYmd(sellDate) ? sellDate : ''}
+                  onChange={(e) => setSellDate(e.target.value)}
+                  disabled={isOpen}
+                  style={{ position: 'absolute', opacity: 0, width: 1, height: 1, pointerEvents: 'none' }}
+                  tabIndex={-1}
+                  aria-hidden="true"
+                />
+              </div>
+              <div style={{ position: 'relative' }}>
+                <div
+                  style={{
+                    position: 'absolute',
+                    left: 12,
+                    top: '50%',
+                    transform: 'translateY(-50%)',
+                    fontWeight: 700,
+                    opacity: 1,
+                    color: '#111',
+                    pointerEvents: 'none',
+                  }}
+                >
+                  {market === 'JP' ? '¥' : '$'}
+                </div>
+                <input
+                  type="text"
+                  inputMode="decimal"
+                  placeholder="売値"
+                  value={sellPrice}
+                  onChange={(e) => setSellPrice(normalizeDecimalInput(e.target.value))}
+                  required={!isOpen}
+                  disabled={isOpen}
+                  onKeyDown={handleKeyNav}
+                  style={{ width: '100%', paddingLeft: 36, minHeight: isMobile ? 42 : undefined }}
+                />
+              </div>
+              <div style={{ fontSize: 12, opacity: 0.75 }}>
+                <>数量: <b>{qty || '—'}</b>（BUYと同じ数量で保存します）</>
+              </div>
+            </>
+          )}
+        </div>
+
+        {isMobile ? (
+          <div style={{ border: '1px solid #ddd', borderRadius: 12, padding: 12, display: 'grid', gap: 10 }}>
+            <button
+              type="button"
+              onClick={() => setIsThoughtLogOpenMobile((v) => !v)}
+              style={{
+                ...baseButtonStyle,
+                textAlign: 'left',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'space-between',
+                width: '100%',
+                minHeight: 40,
+              }}
+            >
+              <span style={{ fontWeight: 700 }}>思考ログ（任意）</span>
+              <span style={{ fontSize: 12, opacity: 0.75 }}>{isThoughtLogOpenMobile ? '閉じる' : '開く'}</span>
+            </button>
+            {!isThoughtLogOpenMobile ? (
+              <div style={{ fontSize: 12, opacity: 0.75 }}>初回は未入力でも保存できます。必要なときだけ開いて記録してください。</div>
             ) : (
-              <>数量: <b>{qty || '—'}</b>（BUYと同じ数量で保存します）</>
+              <div style={{ display: 'grid', gap: 10 }}>
+                {isOpen ? (
+                  <div style={{ fontSize: 12, opacity: 0.75 }}>
+                    保有中のため、売却理由・考察・自己評価は入力しません
+                  </div>
+                ) : null}
+                <textarea
+                  placeholder="購入理由"
+                  value={notesBuy}
+                  onChange={(e) => setNotesBuy(e.target.value)}
+                  rows={3}
+                  onKeyDown={handleKeyNav}
+                />
+                <textarea
+                  placeholder="売却理由"
+                  value={notesSell}
+                  onChange={(e) => setNotesSell(e.target.value)}
+                  rows={3}
+                  disabled={isOpen}
+                  onKeyDown={handleKeyNav}
+                />
+                <textarea
+                  placeholder="考察"
+                  value={notesReview}
+                  onChange={(e) => setNotesReview(e.target.value)}
+                  rows={3}
+                  disabled={isOpen}
+                  onKeyDown={handleKeyNav}
+                />
+              </div>
             )}
           </div>
-        </div>
+        ) : (
+          <div style={{ border: '1px solid #ddd', borderRadius: 12, padding: 12, display: 'grid', gap: 10 }}>
+            <div style={{ fontWeight: 700 }}>思考ログ</div>
+            {isOpen ? (
+              <div style={{ fontSize: 12, opacity: 0.75 }}>
+                保有中のため、売却理由・考察・自己評価は入力しません
+              </div>
+            ) : null}
 
-        <div style={{ border: '1px solid #ddd', borderRadius: 12, padding: 12, display: 'grid', gap: 10 }}>
-          <div style={{ fontWeight: 700 }}>思考ログ</div>
-          {isOpen ? (
-            <div style={{ fontSize: 12, opacity: 0.75 }}>
-              保有中のため、売却理由・考察・自己評価は入力しません
-            </div>
-          ) : null}
+            <textarea
+              placeholder="購入理由"
+              value={notesBuy}
+              onChange={(e) => setNotesBuy(e.target.value)}
+              rows={3}
+              onKeyDown={handleKeyNav}
+            />
 
-          <textarea
-            placeholder="購入理由"
-            value={notesBuy}
-            onChange={(e) => setNotesBuy(e.target.value)}
-            rows={3}
-            onKeyDown={handleKeyNav}
-          />
+            <textarea
+              placeholder="売却理由"
+              value={notesSell}
+              onChange={(e) => setNotesSell(e.target.value)}
+              rows={3}
+              disabled={isOpen}
+              onKeyDown={handleKeyNav}
+            />
 
-          <textarea
-            placeholder="売却理由"
-            value={notesSell}
-            onChange={(e) => setNotesSell(e.target.value)}
-            rows={3}
-            disabled={isOpen}
-            onKeyDown={handleKeyNav}
-          />
-
-          <textarea
-            placeholder="考察"
-            value={notesReview}
-            onChange={(e) => setNotesReview(e.target.value)}
-            rows={3}
-            disabled={isOpen}
-            onKeyDown={handleKeyNav}
-          />
-        </div>
+            <textarea
+              placeholder="考察"
+              value={notesReview}
+              onChange={(e) => setNotesReview(e.target.value)}
+              rows={3}
+              disabled={isOpen}
+              onKeyDown={handleKeyNav}
+            />
+          </div>
+        )}
 
         <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
           <label style={{ fontWeight: 700 }}>自己評価</label>
@@ -1260,23 +1385,47 @@ export default function TradesNewPage() {
           </div>
         </div>
 
-        <button
-          type="submit"
-          disabled={Boolean(saveDisabledReason)}
-          title={saveDisabledReason || ''}
-          style={{ ...primaryButtonStyle, opacity: saveDisabledReason ? 0.55 : 1, cursor: saveDisabledReason ? 'not-allowed' : 'pointer' }}
+        <div
+          style={
+            isMobile
+              ? {
+                  position: 'sticky',
+                  bottom: 0,
+                  zIndex: 10,
+                  marginTop: 6,
+                  paddingTop: 8,
+                  paddingBottom: 'calc(8px + env(safe-area-inset-bottom))',
+                  background: 'linear-gradient(180deg, rgba(246,247,242,0) 0%, rgba(246,247,242,0.92) 20%, rgba(246,247,242,1) 100%)',
+                  display: 'grid',
+                  gap: 6,
+                }
+              : { display: 'grid', gap: 6 }
+          }
         >
-          保存
-        </button>
+          <button
+            type="submit"
+            disabled={Boolean(saveDisabledReason)}
+            title={saveDisabledReason || ''}
+            style={{
+              ...primaryButtonStyle,
+              minHeight: isMobile ? 44 : undefined,
+              width: '100%',
+              opacity: saveDisabledReason ? 0.55 : 1,
+              cursor: saveDisabledReason ? 'not-allowed' : 'pointer',
+            }}
+          >
+            保存
+          </button>
 
-        {saveDisabledReason ? (
-          <p style={{ margin: 0, color: '#b42318', fontSize: 12 }}>{saveDisabledReason}</p>
-        ) : null}
-        {!saveDisabledReason && priceCheckWarning ? (
-          <p style={{ margin: 0, color: '#667085', fontSize: 12 }}>注意: {priceCheckWarning}</p>
-        ) : null}
+          {saveDisabledReason ? (
+            <p style={{ margin: 0, color: '#b42318', fontSize: 12 }}>{saveDisabledReason}</p>
+          ) : null}
+          {!saveDisabledReason && priceCheckWarning ? (
+            <p style={{ margin: 0, color: '#667085', fontSize: 12 }}>注意: {priceCheckWarning}</p>
+          ) : null}
 
-        {error ? <p style={{ margin: 0, color: '#b42318', fontSize: 12 }}>{error}</p> : null}
+          {error ? <p style={{ margin: 0, color: '#b42318', fontSize: 12 }}>{error}</p> : null}
+        </div>
       </form>
       {toast ? (
         <div
