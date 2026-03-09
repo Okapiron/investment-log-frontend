@@ -26,20 +26,37 @@ export default function HelpPage() {
       <div style={{ border: '1px solid #e4e7ec', borderRadius: 12, padding: 12, background: '#fff', lineHeight: 1.7, fontSize: 14 }}>
         <h3 style={{ marginTop: 0 }}>はじめかた</h3>
         <ol style={{ margin: 0, paddingLeft: 18 }}>
-          <li>「New」からトレードを登録します。</li>
-          <li>「Trades」で一覧を確認します。</li>
-          <li>詳細画面で売買理由・考察・評価を更新します。</li>
-          <li>条件を満たしたらレビュー済みにします。</li>
+          <li>
+            「New」から新しいトレードを登録します。
+            <br />
+            まずは銘柄・買付日・買値・数量などの基本情報を入力します。
+          </li>
+          <li>
+            「Trades」で登録したトレードの一覧を確認します。
+            <br />
+            保有中・未レビュー・レビュー済みなどの状態も確認できます。
+          </li>
+          <li>
+            各トレードの詳細画面で内容を更新します。
+            <br />
+            売却情報、売買理由、考察、自己評価などをあとから追記できます。
+          </li>
+          <li>
+            振り返りが完了したらレビュー済みにします。
+            <br />
+            自分の学びや反省点を残して、次回の判断に活かせます。
+          </li>
         </ol>
       </div>
 
       <div style={{ border: '1px solid #e4e7ec', borderRadius: 12, padding: 12, background: '#fff', lineHeight: 1.7, fontSize: 14 }}>
         <h3 style={{ marginTop: 0 }}>基本操作</h3>
         <ul style={{ margin: 0, paddingLeft: 18 }}>
-          <li>トレード作成: 「New」→ 必須項目入力 → 保存</li>
-          <li>トレード編集: 詳細画面右上「編集」→ 保存</li>
-          <li>エクスポート: Settings → Data → JSON/CSV</li>
-          <li>ログアウト: Settings → Account → Logout</li>
+          <li>トレード作成: 「New」→ 必須項目を入力 → 保存</li>
+          <li>トレード編集: 「Trades」→ 対象トレードを開く → 「編集」→ 保存</li>
+          <li>レビュー更新: トレード詳細画面で、売却理由・考察・自己評価を入力して更新</li>
+          <li>エクスポート: 「Settings」→ 「Data」→ JSON / CSV を選んでダウンロード</li>
+          <li>ログアウト: 「Settings」→ 「Account」→ 「Logout」</li>
         </ul>
       </div>
 
