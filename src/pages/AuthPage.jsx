@@ -15,7 +15,6 @@ export default function AuthPage() {
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
   const [passwordConfirm, setPasswordConfirm] = useState('')
-  const [inviteCode, setInviteCode] = useState('')
   const [submitting, setSubmitting] = useState(false)
   const [msg, setMsg] = useState('')
   const [error, setError] = useState('')
@@ -48,7 +47,7 @@ export default function AuthPage() {
       if (password !== passwordConfirm) {
         throw new Error('確認用パスワードが一致しません。')
       }
-      const result = await signUpWithPassword({ email, password, inviteCode })
+      const result = await signUpWithPassword({ email, password })
       if (result?.needsEmailConfirmation) {
         setMsg('アカウントを作成しました。確認メール内のリンクからログインしてください。')
       } else {
@@ -163,32 +162,17 @@ export default function AuthPage() {
           )}
 
           {mode === 'signup' ? (
-            <>
-              <label style={{ display: 'grid', gap: 4 }}>
-                <span style={{ fontSize: 12, color: '#667085' }}>パスワード（確認）</span>
-                <input
-                  type="password"
-                  value={passwordConfirm}
-                  onChange={(e) => setPasswordConfirm(e.target.value)}
-                  placeholder="同じパスワードを再入力"
-                  minLength={8}
-                  required
-                />
-              </label>
-
-              <label style={{ display: 'grid', gap: 4 }}>
-                <span style={{ fontSize: 12, color: '#667085' }}>招待コード（招待制ONの時のみ）</span>
-                <input
-                  type="text"
-                  value={inviteCode}
-                  onChange={(e) => setInviteCode(String(e.target.value || '').toUpperCase())}
-                  placeholder="任意"
-                  minLength={8}
-                  maxLength={12}
-                  pattern="[A-Za-z0-9]{0,12}"
-                />
-              </label>
-            </>
+            <label style={{ display: 'grid', gap: 4 }}>
+              <span style={{ fontSize: 12, color: '#667085' }}>パスワード（確認）</span>
+              <input
+                type="password"
+                value={passwordConfirm}
+                onChange={(e) => setPasswordConfirm(e.target.value)}
+                placeholder="同じパスワードを再入力"
+                minLength={8}
+                required
+              />
+            </label>
           ) : null}
 
           <button
