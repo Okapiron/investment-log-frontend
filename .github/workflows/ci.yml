@@ -13,7 +13,7 @@ jobs:
       VITE_SUPABASE_URL: https://demo.supabase.co
       VITE_SUPABASE_ANON_KEY: dummy
       VITE_APP_VERSION: ci-${{ github.sha }}
-      VITE_SUPPORT_EMAIL: ${{ vars.VITE_SUPPORT_EMAIL || secrets.VITE_SUPPORT_EMAIL }}
+      VITE_SUPPORT_EMAIL: ${{ vars.VITE_SUPPORT_EMAIL || secrets.VITE_SUPPORT_EMAIL || 'support@tradetrace.jp' }}
       VITE_LEGAL_OPERATOR_NAME: ${{ vars.VITE_LEGAL_OPERATOR_NAME || secrets.VITE_LEGAL_OPERATOR_NAME }}
       VITE_LEGAL_ADDRESS: ${{ vars.VITE_LEGAL_ADDRESS || secrets.VITE_LEGAL_ADDRESS }}
 

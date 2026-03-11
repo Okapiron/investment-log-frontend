@@ -1,3 +1,4 @@
+const DEFAULT_SUPPORT_EMAIL = 'support@tradetrace.jp'
 const rawSupportEmail = String(import.meta.env.VITE_SUPPORT_EMAIL || '').trim()
 const rawContactFormUrl = String(import.meta.env.VITE_CONTACT_FORM_URL || '').trim()
 const rawLegalOperatorName = String(import.meta.env.VITE_LEGAL_OPERATOR_NAME || '').trim()
@@ -13,7 +14,7 @@ function normalizeHttpUrl(value) {
   return v
 }
 
-export const SUPPORT_EMAIL = rawSupportEmail
+export const SUPPORT_EMAIL = rawSupportEmail || DEFAULT_SUPPORT_EMAIL
 export const CONTACT_FORM_URL = normalizeHttpUrl(rawContactFormUrl)
 export const LEGAL_OPERATOR_NAME = rawLegalOperatorName || 'TradeTrace'
 export const LEGAL_REPRESENTATIVE = rawLegalRepresentative || LEGAL_OPERATOR_NAME
@@ -23,7 +24,7 @@ export const LEGAL_JURISDICTION = rawLegalJurisdiction || '東京地方裁判所
 
 export const HAS_LEGAL_OPERATOR_NAME = rawLegalOperatorName !== ''
 export const HAS_LEGAL_ADDRESS = rawLegalAddress !== ''
-export const HAS_SUPPORT_EMAIL = rawSupportEmail !== ''
+export const HAS_SUPPORT_EMAIL = SUPPORT_EMAIL !== ''
 
 export function getSupportMailto({ subject = '', body = '' } = {}) {
   if (!SUPPORT_EMAIL) return ''

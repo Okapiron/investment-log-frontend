@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { Link, Navigate } from 'react-router-dom'
+import { Navigate } from 'react-router-dom'
 
 import {
   isAuthConfigured,
@@ -128,7 +128,7 @@ export default function AuthPage() {
 
       {!configured ? (
         <div style={{ fontSize: 13, color: '#b42318', background: '#fef3f2', border: '1px solid #fecaca', borderRadius: 8, padding: 10 }}>
-          Supabase設定が不足しています。`VITE_SUPABASE_URL` と `VITE_SUPABASE_ANON_KEY` を設定してください。
+          現在、認証機能の設定を確認中です。時間を置いて再度お試しください。
         </div>
       ) : (
         <form onSubmit={onSubmit} style={{ display: 'grid', gap: 10 }}>
@@ -203,10 +203,6 @@ export default function AuthPage() {
 
       {msg ? <div style={{ marginTop: 10, fontSize: 13, color: '#175cd3' }}>{msg}</div> : null}
       {error ? <div style={{ marginTop: 10, fontSize: 13, color: '#b42318' }}>{error}</div> : null}
-
-      <div style={{ marginTop: 12, fontSize: 12, color: '#667085' }}>
-        <Link to="/trades">開発モードでそのまま使う</Link>
-      </div>
     </div>
   )
 }
