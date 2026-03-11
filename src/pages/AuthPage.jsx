@@ -1,5 +1,5 @@
-import { useState } from 'react'
-import { Navigate } from 'react-router-dom'
+import { useEffect, useState } from 'react'
+import { Navigate, useLocation } from 'react-router-dom'
 
 import {
   isAuthConfigured,
@@ -11,6 +11,7 @@ import {
 } from '../lib/auth'
 
 export default function AuthPage() {
+  const location = useLocation()
   const [mode, setMode] = useState('signin')
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
@@ -21,6 +22,16 @@ export default function AuthPage() {
 
   const enabled = isAuthEnabled()
   const configured = isAuthConfigured()
+
+  useEffect(() => {
+    const params = new URLSearchParams(location.search)
+    const modeParam = String(params.get('mode') || '').trim()
+    if (modeParam === 'signin' || modeParam === 'signup' || modeParam === 'recovery') {
+      setMode(modeParam)
+      setMsg('')
+      setError('')
+    }
+  }, [location.search])
 
   if (!enabled) return <Navigate to="/trades" replace />
   if (isAuthenticated()) return <Navigate to="/trades" replace />

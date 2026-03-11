@@ -1,4 +1,5 @@
-import { NavLink, useLocation } from 'react-router-dom'
+import { Link, NavLink, useLocation } from 'react-router-dom'
+import { isAuthEnabled, isAuthenticated } from '../lib/auth'
 
 const tradeNavItems = [
   { to: '/trades', label: 'Trades' },
@@ -10,8 +11,10 @@ const tradeNavItems = [
 export default function Layout({ children }) {
   const location = useLocation()
   const isAuthRoute = location.pathname.startsWith('/auth')
-
-  const navItems = isAuthRoute ? [] : tradeNavItems
+  const authEnabled = isAuthEnabled()
+  const authed = isAuthenticated()
+  const isPublicLanding = location.pathname === '/' && authEnabled && !authed
+  const navItems = isAuthRoute || isPublicLanding ? [] : tradeNavItems
 
   return (
     <div className="app-shell">
@@ -26,6 +29,16 @@ export default function Layout({ children }) {
           </div>
           <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
             <nav>
+              {isPublicLanding ? (
+                <>
+                  <Link to="/auth" className="nav-link nav-link-public" data-cta="header-login">
+                    ログイン
+                  </Link>
+                  <Link to="/auth?mode=signup" className="nav-link nav-link-primary" data-cta="header-signup">
+                    新規登録
+                  </Link>
+                </>
+              ) : null}
               {navItems.map((item) => (
                 <NavLink
                   key={item.to}

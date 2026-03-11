@@ -6,6 +6,7 @@ import AuthCallbackPage from './pages/AuthCallbackPage'
 import AuthPage from './pages/AuthPage'
 import AuthResetPage from './pages/AuthResetPage'
 import HelpPage from './pages/HelpPage'
+import LandingPage from './pages/LandingPage'
 import PrivacyPage from './pages/PrivacyPage'
 import SettingsPage from './pages/SettingsPage'
 import TermsPage from './pages/TermsPage'
@@ -14,12 +15,21 @@ import TradesPage from './pages/TradesPage'
 import TradeDetailPage from './pages/TradeDetailPage.jsx'
 import { hasAuthCallbackParams, isAuthEnabled, isAuthenticated } from './lib/auth'
 
-function RootRedirect() {
+function RootEntry() {
   const location = useLocation()
+  const enabled = isAuthEnabled()
+  const authed = useMemo(() => isAuthenticated(), [location.pathname, location.key])
+
   if (hasAuthCallbackParams({ hash: location.hash, search: location.search })) {
     return <Navigate to={{ pathname: '/auth/callback', hash: location.hash, search: location.search }} replace />
   }
-  return <Navigate to={{ pathname: '/trades', hash: location.hash, search: location.search }} replace />
+  if (!enabled) {
+    return <Navigate to={{ pathname: '/trades', hash: location.hash, search: location.search }} replace />
+  }
+  if (authed) {
+    return <Navigate to={{ pathname: '/trades', hash: location.hash, search: location.search }} replace />
+  }
+  return <LandingPage />
 }
 
 function RequireAuth({ children }) {
@@ -35,7 +45,7 @@ export default function App() {
   return (
     <Layout>
       <Routes>
-        <Route path="/" element={<RootRedirect />} />
+        <Route path="/" element={<RootEntry />} />
 
         <Route path="/auth" element={<AuthPage />} />
         <Route path="/auth/callback" element={<AuthCallbackPage />} />
@@ -83,7 +93,7 @@ export default function App() {
         <Route path="/accounts" element={<Navigate to="/trades" replace />} />
         <Route path="/snapshots" element={<Navigate to="/trades" replace />} />
 
-        <Route path="*" element={<RootRedirect />} />
+        <Route path="*" element={<RootEntry />} />
       </Routes>
     </Layout>
   )
