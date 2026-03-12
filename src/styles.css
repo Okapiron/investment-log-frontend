@@ -610,25 +610,38 @@ button.danger { background: var(--danger); }
   position: absolute;
   inset: 0;
   pointer-events: none;
-  z-index: 5;
+  z-index: 10;
 }
 
-.lp-cycle-loop-svg {
-  width: 100%;
-  height: 100%;
+.lp-cycle-connector-icon {
+  position: absolute;
+  width: 38px;
+  height: 38px;
+  opacity: 0.94;
+  filter: drop-shadow(0 2px 8px rgba(26, 71, 61, 0.35));
 }
 
-.lp-cycle-loop-svg line {
-  stroke: #21584d;
-  stroke-width: 3.2;
-  opacity: 0.98;
-  vector-effect: non-scaling-stroke;
-  filter: drop-shadow(0 2px 6px rgba(30, 76, 67, 0.28));
+.lp-cycle-connector-top {
+  top: calc(50% - 132px);
+  left: calc(50% - 19px);
+  transform: rotate(90deg);
 }
 
-.lp-cycle-loop-svg marker path {
-  fill: #21584d;
-  opacity: 1;
+.lp-cycle-connector-right {
+  top: calc(50% - 19px);
+  right: 18px;
+  transform: rotate(180deg);
+}
+
+.lp-cycle-connector-bottom {
+  bottom: calc(50% - 132px);
+  left: calc(50% - 19px);
+  transform: rotate(270deg);
+}
+
+.lp-cycle-connector-left {
+  top: calc(50% - 19px);
+  left: 18px;
 }
 
 .lp-cycle-grid {

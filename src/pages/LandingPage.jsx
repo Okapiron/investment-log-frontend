@@ -183,24 +183,10 @@ export default function LandingPage() {
         </p>
         <div className="lp-cycle-layout">
           <div className="lp-cycle-connectors" aria-hidden>
-            <svg className="lp-cycle-loop-svg" viewBox="0 0 100 100" preserveAspectRatio="none" aria-hidden>
-              <defs>
-                <marker
-                  id="lp-cycle-arrow"
-                  markerWidth="5"
-                  markerHeight="5"
-                  refX="4.2"
-                  refY="2.5"
-                  orient="auto"
-                >
-                  <path d="M0,0 L5,2.5 L0,5 z" />
-                </marker>
-              </defs>
-              <line x1="40" y1="25" x2="60" y2="25" markerEnd="url(#lp-cycle-arrow)" />
-              <line x1="75" y1="40" x2="75" y2="60" markerEnd="url(#lp-cycle-arrow)" />
-              <line x1="60" y1="75" x2="40" y2="75" markerEnd="url(#lp-cycle-arrow)" />
-              <line x1="25" y1="60" x2="25" y2="40" markerEnd="url(#lp-cycle-arrow)" />
-            </svg>
+            <img src="/lp/cycle-arrow.svg" alt="" className="lp-cycle-connector-icon lp-cycle-connector-top" />
+            <img src="/lp/cycle-arrow.svg" alt="" className="lp-cycle-connector-icon lp-cycle-connector-right" />
+            <img src="/lp/cycle-arrow.svg" alt="" className="lp-cycle-connector-icon lp-cycle-connector-bottom" />
+            <img src="/lp/cycle-arrow.svg" alt="" className="lp-cycle-connector-icon lp-cycle-connector-left" />
           </div>
           <div className="lp-cycle-grid" aria-label="TradeTrace 改善サイクル">
             {cycleSteps.map((step, idx) => (
