@@ -551,6 +551,81 @@ button.danger { background: var(--danger); }
   line-height: 1.7;
 }
 
+.lp-cycle-section {
+  background: linear-gradient(155deg, #fcfffe 0%, #f6fbf9 100%);
+}
+
+.lp-cycle-lead {
+  margin-bottom: 16px !important;
+}
+
+.lp-cycle-grid {
+  display: grid;
+  gap: 14px;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+
+.lp-cycle-card {
+  position: relative;
+  border: 1px solid #dbe5e1;
+  border-radius: 14px;
+  background: #fff;
+  padding: 14px;
+  display: grid;
+  gap: 10px;
+}
+
+.lp-cycle-head {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.lp-cycle-index {
+  width: 28px;
+  height: 28px;
+  border-radius: 999px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  background: #e9f6f2;
+  color: #1f5b4e;
+  font-size: 13px;
+  font-weight: 700;
+}
+
+.lp-cycle-head h4 {
+  margin: 0;
+  color: #193632;
+  font-size: 17px;
+  letter-spacing: 0.02em;
+}
+
+.lp-cycle-shot {
+  border: 1px solid #d8e2de;
+  border-radius: 12px;
+  height: 172px;
+  background-color: #eff4f2;
+  background-repeat: no-repeat;
+  background-size: cover;
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.8), 0 8px 20px rgba(30, 60, 53, 0.09);
+}
+
+.lp-cycle-card p {
+  margin: 0;
+  color: #2e4541;
+  line-height: 1.7;
+}
+
+.lp-cycle-arrow {
+  position: absolute;
+  right: 12px;
+  bottom: 10px;
+  color: #5c746f;
+  font-weight: 700;
+  font-size: 18px;
+}
+
 .lp-product-strip {
   display: grid;
   grid-template-columns: repeat(3, minmax(0, 1fr));
@@ -631,7 +706,8 @@ button.danger { background: var(--danger); }
   .lp-card-grid,
   .lp-steps,
   .lp-usage,
-  .lp-product-strip {
+  .lp-product-strip,
+  .lp-cycle-grid {
     grid-template-columns: 1fr;
   }
 
@@ -667,6 +743,15 @@ button.danger { background: var(--danger); }
 
   .lp-btn {
     width: 100%;
+  }
+
+  .lp-cycle-shot {
+    height: 160px;
+  }
+
+  .lp-cycle-arrow {
+    right: 10px;
+    bottom: 9px;
   }
 }
 

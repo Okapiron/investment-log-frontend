@@ -28,6 +28,37 @@ const valueProps = [
   },
 ]
 
+const cycleSteps = [
+  {
+    key: 'PLAN',
+    title: 'PLAN',
+    body: '過去の記録から、次の判断軸を持つ',
+    image: '/lp/cycle-plan-trades-overview.png',
+    position: 'center top',
+  },
+  {
+    key: 'DO',
+    title: 'DO',
+    body: '理由とともに売買を記録する',
+    image: '/lp/cycle-do-new-trade.png',
+    position: 'center 24%',
+  },
+  {
+    key: 'CHECK',
+    title: 'CHECK',
+    body: '結果だけでなく、判断の質まで振り返る',
+    image: '/lp/cycle-check-detail-chart-log.png',
+    position: 'center 45%',
+  },
+  {
+    key: 'ACT',
+    title: 'ACT',
+    body: '経験を蓄積し、次の一手に活かす',
+    image: '/lp/cycle-act-trade-cards.png',
+    position: 'center 34%',
+  },
+]
+
 const audienceItems = [
   '初心者〜中級の個人投資家',
   '売買の記録をメモだけで終わらせたくない人',
@@ -177,6 +208,33 @@ export default function LandingPage() {
             <article key={item.title} className="lp-card lp-card-value">
               <h4>{item.title}</h4>
               <p>{item.body}</p>
+            </article>
+          ))}
+        </div>
+      </section>
+
+      <section className="lp-section lp-cycle-section lp-reveal">
+        <h3>記録から改善につながる、4つの循環</h3>
+        <p className="lp-cycle-lead">
+          TradeTrace は「記録して終わり」ではなく、振り返りを次の判断へつなげることを重視しています。
+        </p>
+        <div className="lp-cycle-grid" aria-label="TradeTrace 改善サイクル">
+          {cycleSteps.map((step, idx) => (
+            <article key={step.key} className="lp-cycle-card">
+              <div className="lp-cycle-head">
+                <span className="lp-cycle-index">{idx + 1}</span>
+                <h4>{step.title}</h4>
+              </div>
+              <div
+                className="lp-cycle-shot"
+                role="img"
+                aria-label={`${step.title} 画面イメージ`}
+                style={{ backgroundImage: `url(${step.image})`, backgroundPosition: step.position }}
+              />
+              <p>{step.body}</p>
+              <span className="lp-cycle-arrow" aria-hidden>
+                {idx < cycleSteps.length - 1 ? '→' : '↺'}
+              </span>
             </article>
           ))}
         </div>
