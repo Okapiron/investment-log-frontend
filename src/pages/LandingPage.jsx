@@ -153,8 +153,8 @@ export default function LandingPage() {
               </figure>
             </div>
             <div className="lp-float-chip lp-float-chip-a">改善</div>
-            <div className="lp-float-chip lp-float-chip-b">振り返り</div>
-            <div className="lp-float-chip lp-float-chip-c">記録</div>
+            <div className="lp-float-chip lp-float-chip-b">記録</div>
+            <div className="lp-float-chip lp-float-chip-c">振り返り</div>
           </div>
         </div>
       </section>
