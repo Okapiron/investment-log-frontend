@@ -139,23 +139,22 @@ export default function LandingPage() {
                 詳しく見る
               </a>
             </div>
-            <p className="lp-note">特定の銘柄や売買を推奨するサービスではありません。</p>
           </div>
           <div className="lp-hero-visual">
             <div className="lp-hero-stack">
               <figure className="lp-hero-shot lp-hero-shot-main">
                 <img src="/lp/cycle-plan-trades-overview.png" alt="投資記録一覧の画面" loading="eager" />
-                <figcaption>一覧とサマリーで全体を把握</figcaption>
               </figure>
               <figure className="lp-hero-shot lp-hero-shot-a">
                 <img src="/lp/cycle-do-new-trade.png" alt="新規トレード作成の画面" loading="lazy" />
-                <figcaption>新規記録</figcaption>
               </figure>
               <figure className="lp-hero-shot lp-hero-shot-b">
                 <img src="/lp/cycle-check-detail-chart-log.png" alt="トレード詳細の画面" loading="lazy" />
-                <figcaption>詳細レビュー</figcaption>
               </figure>
             </div>
+            <div className="lp-float-chip lp-float-chip-a">記録</div>
+            <div className="lp-float-chip lp-float-chip-b">振り返り</div>
+            <div className="lp-float-chip lp-float-chip-c">改善</div>
           </div>
         </div>
       </section>

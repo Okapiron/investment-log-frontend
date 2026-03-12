@@ -349,12 +349,6 @@ button.danger { background: var(--danger); }
   box-shadow: 0 10px 22px rgba(24, 39, 75, 0.16);
 }
 
-.lp-note {
-  margin-top: 16px;
-  font-size: 13px;
-  color: #4f645f;
-}
-
 .lp-hero-visual {
   position: relative;
 }
@@ -377,15 +371,6 @@ button.danger { background: var(--danger); }
   display: block;
   width: 100%;
   height: auto;
-}
-
-.lp-hero-shot figcaption {
-  padding: 8px 10px;
-  border-top: 1px solid #ebf1ee;
-  background: #f7fbf9;
-  color: #39544f;
-  font-size: 12px;
-  font-weight: 600;
 }
 
 .lp-hero-shot-main {
@@ -412,6 +397,22 @@ button.danger { background: var(--danger); }
   top: 20px;
   transform: rotate(1.8deg);
 }
+
+.lp-float-chip {
+  position: absolute;
+  padding: 5px 10px;
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.9);
+  border: 1px solid #cadcd5;
+  font-size: 12px;
+  color: #2b5a50;
+  font-weight: 700;
+  box-shadow: 0 8px 16px rgba(42, 72, 66, 0.13);
+}
+
+.lp-float-chip-a { top: -10px; left: 16px; }
+.lp-float-chip-b { top: 39%; right: -10px; }
+.lp-float-chip-c { bottom: 9px; left: -10px; }
 
 .lp-orb {
   position: absolute;
