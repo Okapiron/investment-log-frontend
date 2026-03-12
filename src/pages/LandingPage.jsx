@@ -152,9 +152,9 @@ export default function LandingPage() {
                 <img src="/lp/cycle-check-detail-chart-log.png" alt="トレード詳細の画面" loading="lazy" />
               </figure>
             </div>
-            <div className="lp-float-chip lp-float-chip-a">記録</div>
+            <div className="lp-float-chip lp-float-chip-a">改善</div>
             <div className="lp-float-chip lp-float-chip-b">振り返り</div>
-            <div className="lp-float-chip lp-float-chip-c">改善</div>
+            <div className="lp-float-chip lp-float-chip-c">記録</div>
           </div>
         </div>
       </section>
