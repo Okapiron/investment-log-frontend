@@ -602,36 +602,60 @@ button.danger { background: var(--danger); }
   margin-bottom: 16px !important;
 }
 
-.lp-cycle-flow {
-  display: grid;
-  grid-template-columns: repeat(4, minmax(0, 1fr));
-  gap: 8px;
-  margin-bottom: 14px;
+.lp-cycle-layout {
+  position: relative;
 }
 
-.lp-cycle-flow-item {
-  display: flex;
+.lp-cycle-connectors {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  z-index: 2;
+}
+
+.lp-cycle-connector {
+  position: absolute;
+  display: inline-flex;
   align-items: center;
   justify-content: center;
-  gap: 7px;
-  border: 1px solid #d7e3de;
+  width: 42px;
+  height: 42px;
   border-radius: 999px;
-  background: #ffffffd1;
-  color: #25403c;
-  padding: 7px 10px;
-  font-size: 12px;
-  font-weight: 700;
+  background: rgba(255, 255, 255, 0.9);
+  border: 1px solid #cfe1db;
+  color: #2d5f54;
+  font-size: 24px;
+  font-weight: 800;
+  box-shadow: 0 10px 18px rgba(32, 66, 59, 0.12);
 }
 
-.lp-cycle-flow-item i {
-  font-style: normal;
-  color: #56706a;
+.lp-cycle-connector-top {
+  top: calc(50% - 132px);
+  left: calc(50% - 21px);
+}
+
+.lp-cycle-connector-right {
+  top: calc(50% - 21px);
+  right: 18px;
+}
+
+.lp-cycle-connector-bottom {
+  bottom: calc(50% - 132px);
+  left: calc(50% - 21px);
+}
+
+.lp-cycle-connector-left {
+  top: calc(50% - 21px);
+  left: 18px;
 }
 
 .lp-cycle-grid {
   display: grid;
-  gap: 14px;
+  gap: 16px;
   grid-template-columns: repeat(2, minmax(0, 1fr));
+  grid-template-areas:
+    "plan do"
+    "act check";
 }
 
 .lp-cycle-card {
@@ -639,47 +663,60 @@ button.danger { background: var(--danger); }
   border: 1px solid #dbe5e1;
   border-radius: 14px;
   background: #fff;
-  padding: 14px;
+  padding: 16px;
   display: grid;
-  gap: 10px;
+  gap: 12px;
+  z-index: 3;
+}
+
+.lp-cycle-card-plan {
+  grid-area: plan;
+}
+
+.lp-cycle-card-do {
+  grid-area: do;
+}
+
+.lp-cycle-card-check {
+  grid-area: check;
+}
+
+.lp-cycle-card-act {
+  grid-area: act;
 }
 
 .lp-cycle-head {
   display: flex;
   align-items: flex-start;
-  gap: 8px;
+  gap: 10px;
 }
 
-.lp-cycle-icon {
-  width: 28px;
-  height: 28px;
-  border-radius: 999px;
+.lp-cycle-number {
+  min-width: 42px;
+  height: 42px;
+  border-radius: 12px;
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  border: 1px solid #c7dfd6;
-  background: #edf8f4;
-  color: #1f584c;
-  font-size: 13px;
-  font-weight: 700;
+  border: 1px solid #bdd9cf;
+  background: linear-gradient(165deg, #edf8f4, #def1ea);
+  color: #1d5549;
+  font-size: 24px;
+  font-weight: 800;
+  line-height: 1;
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.7);
 }
 
 .lp-cycle-head-text {
   display: grid;
-  gap: 1px;
-}
-
-.lp-cycle-index {
-  color: #66817b;
-  font-size: 11px;
-  font-weight: 700;
-  letter-spacing: 0.05em;
+  gap: 0;
+  align-content: center;
 }
 
 .lp-cycle-head h4 {
-  margin: 0;
+  margin: 3px 0 0;
   color: #193632;
-  font-size: 17px;
+  font-size: 19px;
   letter-spacing: 0.02em;
 }
 
@@ -699,13 +736,8 @@ button.danger { background: var(--danger); }
   line-height: 1.7;
 }
 
-.lp-cycle-arrow {
-  position: absolute;
-  right: 12px;
-  bottom: 10px;
-  color: #5c746f;
-  font-weight: 700;
-  font-size: 18px;
+.lp-cycle-mobile-arrow {
+  display: none;
 }
 
 .lp-diff-section {
@@ -888,7 +920,6 @@ button.danger { background: var(--danger); }
   .lp-usage,
   .lp-product-strip,
   .lp-cycle-grid,
-  .lp-cycle-flow,
   .lp-diff-grid {
     grid-template-columns: 1fr;
   }
@@ -911,6 +942,27 @@ button.danger { background: var(--danger); }
 
   .lp-hero-copy h2 {
     font-size: 31px;
+  }
+
+  .lp-cycle-connectors {
+    display: none;
+  }
+
+  .lp-cycle-grid {
+    grid-template-areas:
+      "plan"
+      "do"
+      "check"
+      "act";
+  }
+
+  .lp-cycle-mobile-arrow {
+    display: inline-flex;
+    margin: 2px auto 0;
+    color: #4f6a63;
+    font-size: 24px;
+    font-weight: 800;
+    line-height: 1;
   }
 
   .lp-hero-stack {
@@ -972,22 +1024,9 @@ button.danger { background: var(--danger); }
     height: 160px;
   }
 
-  .lp-cycle-arrow {
-    right: 10px;
-    bottom: 9px;
-  }
-
   .lp-hero-signal {
     grid-template-columns: 1fr;
     gap: 4px;
-  }
-
-  .lp-cycle-flow-item {
-    justify-content: space-between;
-  }
-
-  .lp-cycle-flow-item i {
-    transform: rotate(90deg);
   }
 }
 

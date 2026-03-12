@@ -18,36 +18,40 @@ const differentiationProps = [
 
 const cycleSteps = [
   {
+    number: 1,
+    area: 'plan',
     key: 'PLAN',
     title: 'PLAN',
     body: '過去の記録から、次の判断軸を持つ',
     image: '/lp/cycle-plan-trades-overview.png',
     position: 'center top',
-    icon: 'P',
   },
   {
+    number: 2,
+    area: 'do',
     key: 'DO',
     title: 'DO',
     body: '理由とともに売買を記録する',
     image: '/lp/cycle-do-new-trade.png',
     position: 'center 24%',
-    icon: 'D',
   },
   {
+    number: 3,
+    area: 'check',
     key: 'CHECK',
     title: 'CHECK',
     body: '結果だけでなく、判断の質まで振り返る',
     image: '/lp/cycle-check-detail-chart-log.png',
     position: 'center 45%',
-    icon: 'C',
   },
   {
+    number: 4,
+    area: 'act',
     key: 'ACT',
     title: 'ACT',
     body: '経験を蓄積し、次の一手に活かす',
     image: '/lp/cycle-act-trade-cards.png',
     position: 'center 34%',
-    icon: 'A',
   },
 ]
 
@@ -177,36 +181,37 @@ export default function LandingPage() {
         <p className="lp-cycle-lead">
           TradeTrace は「記録して終わり」ではなく、振り返りを次の判断へつなげることを重視しています。
         </p>
-        <div className="lp-cycle-flow" aria-hidden>
-          {cycleSteps.map((step, idx) => (
-            <div key={step.key} className="lp-cycle-flow-item">
-              <span>{step.key}</span>
-              <i>{idx < cycleSteps.length - 1 ? '→' : '↺'}</i>
-            </div>
-          ))}
-        </div>
-        <div className="lp-cycle-grid" aria-label="TradeTrace 改善サイクル">
-          {cycleSteps.map((step, idx) => (
-            <article key={step.key} className="lp-cycle-card">
-              <div className="lp-cycle-head">
-                <span className={`lp-cycle-icon lp-cycle-icon-${step.key.toLowerCase()}`}>{step.icon}</span>
-                <div className="lp-cycle-head-text">
-                  <span className="lp-cycle-index">{`STEP ${idx + 1}`}</span>
-                  <h4>{step.title}</h4>
+        <div className="lp-cycle-layout">
+          <div className="lp-cycle-connectors" aria-hidden>
+            <span className="lp-cycle-connector lp-cycle-connector-top">→</span>
+            <span className="lp-cycle-connector lp-cycle-connector-right">↓</span>
+            <span className="lp-cycle-connector lp-cycle-connector-bottom">←</span>
+            <span className="lp-cycle-connector lp-cycle-connector-left">↑</span>
+          </div>
+          <div className="lp-cycle-grid" aria-label="TradeTrace 改善サイクル">
+            {cycleSteps.map((step, idx) => (
+              <article key={step.key} className={`lp-cycle-card lp-cycle-card-${step.area}`}>
+                <div className="lp-cycle-head">
+                  <span className="lp-cycle-number">{step.number}</span>
+                  <div className="lp-cycle-head-text">
+                    <h4>{step.title}</h4>
+                  </div>
                 </div>
-              </div>
-              <div
-                className="lp-cycle-shot"
-                role="img"
-                aria-label={`${step.title} 画面イメージ`}
-                style={{ backgroundImage: `url(${step.image})`, backgroundPosition: step.position }}
-              />
-              <p>{step.body}</p>
-              <span className="lp-cycle-arrow" aria-hidden>
-                {idx < cycleSteps.length - 1 ? '→' : '↺'}
-              </span>
-            </article>
-          ))}
+                <div
+                  className="lp-cycle-shot"
+                  role="img"
+                  aria-label={`${step.title} 画面イメージ`}
+                  style={{ backgroundImage: `url(${step.image})`, backgroundPosition: step.position }}
+                />
+                <p>{step.body}</p>
+                {idx < cycleSteps.length - 1 ? (
+                  <span className="lp-cycle-mobile-arrow" aria-hidden>
+                    ↓
+                  </span>
+                ) : null}
+              </article>
+            ))}
+          </div>
         </div>
       </section>
 
