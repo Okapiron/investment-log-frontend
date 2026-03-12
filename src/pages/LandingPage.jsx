@@ -210,7 +210,7 @@ export default function LandingPage() {
         </div>
       </section>
 
-      <section className="lp-section lp-reveal">
+      <section className="lp-section lp-early-note lp-reveal">
         <h3>公開初期として改善を続けています</h3>
         <p>
           TradeTrace は公開初期のため、使いやすさと導線を継続的に改善しています。ご意見は X DM
@@ -218,15 +218,15 @@ export default function LandingPage() {
         </p>
       </section>
 
-      <section className="lp-section lp-reveal">
+      <section className="lp-disclaimer lp-reveal" aria-label="ご利用にあたって">
         <h3>ご利用にあたって</h3>
         <p>
-          TradeTrace は投資の記録と振り返りを支援するサービスです。
-          特定の銘柄や売買を推奨するものではありません。
+          TradeTrace は投資の記録と振り返りを支援するサービスです。特定の銘柄や売買を推奨するものではありません。
         </p>
       </section>
 
       <section className="lp-section lp-final-cta lp-reveal">
+        <span className="lp-final-kicker">Ready to Start</span>
         <h3>まずは、記録を残すところから。</h3>
         <p>投資の記録とレビューを続けやすくしたい方は、TradeTrace をご確認ください。</p>
         <div className="lp-final-actions">
