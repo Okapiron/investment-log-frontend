@@ -610,7 +610,7 @@ button.danger { background: var(--danger); }
   position: absolute;
   inset: 0;
   pointer-events: none;
-  z-index: 2;
+  z-index: 5;
 }
 
 .lp-cycle-loop-svg {
@@ -619,20 +619,22 @@ button.danger { background: var(--danger); }
 }
 
 .lp-cycle-loop-svg line {
-  stroke: #2a6d5f;
-  stroke-width: 2.4;
-  opacity: 0.9;
+  stroke: #21584d;
+  stroke-width: 3.2;
+  opacity: 0.98;
   vector-effect: non-scaling-stroke;
+  filter: drop-shadow(0 2px 6px rgba(30, 76, 67, 0.28));
 }
 
 .lp-cycle-loop-svg marker path {
-  fill: #2a6d5f;
-  opacity: 0.95;
+  fill: #21584d;
+  opacity: 1;
 }
 
 .lp-cycle-grid {
   display: grid;
-  gap: 16px;
+  column-gap: 76px;
+  row-gap: 72px;
   grid-template-columns: repeat(2, minmax(0, 1fr));
   grid-template-areas:
     "plan do"
@@ -672,20 +674,21 @@ button.danger { background: var(--danger); }
   gap: 10px;
 }
 
-.lp-cycle-number {
-  min-width: 34px;
-  height: 34px;
-  border-radius: 10px;
+.lp-cycle-step {
+  min-width: 74px;
+  height: 30px;
+  border-radius: 999px;
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  border: 1px solid #cfe2db;
-  background: #f3f9f6;
-  color: #3f6f64;
-  font-size: 17px;
+  border: 1px solid #c6ddd4;
+  background: #f2f9f6;
+  color: #3c6960;
+  font-size: 12px;
   font-weight: 700;
+  letter-spacing: 0.05em;
   line-height: 1;
-  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.65);
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.72);
 }
 
 .lp-cycle-head-text {
@@ -695,7 +698,7 @@ button.danger { background: var(--danger); }
 }
 
 .lp-cycle-head h4 {
-  margin: 3px 0 0;
+  margin: 4px 0 0;
   color: #193632;
   font-size: 19px;
   letter-spacing: 0.02em;
@@ -930,6 +933,8 @@ button.danger { background: var(--danger); }
   }
 
   .lp-cycle-grid {
+    row-gap: 16px;
+    column-gap: 0;
     grid-template-areas:
       "plan"
       "do"

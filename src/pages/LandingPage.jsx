@@ -206,7 +206,7 @@ export default function LandingPage() {
             {cycleSteps.map((step, idx) => (
               <article key={step.key} className={`lp-cycle-card lp-cycle-card-${step.area}`}>
                 <div className="lp-cycle-head">
-                  <span className="lp-cycle-number">{step.number}</span>
+                  <span className="lp-cycle-step">{`STEP ${step.number}`}</span>
                   <div className="lp-cycle-head-text">
                     <h4>{step.title}</h4>
                   </div>
