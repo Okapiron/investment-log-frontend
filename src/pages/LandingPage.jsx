@@ -1,33 +1,6 @@
 import { useEffect } from 'react'
 import { Link } from 'react-router-dom'
 
-const problemItems = [
-  '売買した理由を、あとでうまく思い出せない',
-  '数字は残っても、判断の背景までは振り返りにくい',
-  '勝ち負けだけでは、次に活かせる学びが残りにくい',
-]
-
-const solutionSteps = [
-  '売買を記録する',
-  'チャートとあわせて見返す',
-  '次の投資の再現性につなげる',
-]
-
-const valueProps = [
-  {
-    title: '記録を残す',
-    body: '売買内容やメモを、あとで見返せる形で整理しやすくします。',
-  },
-  {
-    title: 'チャートで振り返る',
-    body: '履歴だけでは見えにくい場面も、チャートと並べて整理しやすくします。',
-  },
-  {
-    title: 'レビュー習慣を作る',
-    body: '単発で終わらず、振り返りを続けやすい流れを目指しています。',
-  },
-]
-
 const differentiationProps = [
   {
     title: '記録で終わらない',
@@ -76,13 +49,6 @@ const cycleSteps = [
     position: 'center 34%',
     icon: 'A',
   },
-]
-
-const audienceItems = [
-  '初心者〜中級の個人投資家',
-  '売買の記録をメモだけで終わらせたくない人',
-  '自分の判断をあとで振り返りたい人',
-  'レビュー習慣を少しずつ作りたい人',
 ]
 
 function trackCtaClick(name) {
@@ -165,13 +131,11 @@ export default function LandingPage() {
               >
                 新規登録
               </Link>
-              <a href="#lp-problem" className="lp-btn lp-btn-secondary" data-cta="hero-more">
+              <a href="#lp-cycle" className="lp-btn lp-btn-secondary" data-cta="hero-more">
                 詳しく見る
               </a>
             </div>
-            <p className="lp-note">
-              特定の銘柄や売買を推奨するサービスではありません。
-            </p>
+            <p className="lp-note">特定の銘柄や売買を推奨するサービスではありません。</p>
           </div>
           <div className="lp-hero-visual">
             <div className="lp-hero-stack">
@@ -195,41 +159,6 @@ export default function LandingPage() {
         </div>
       </section>
 
-      <section id="lp-problem" className="lp-section lp-reveal">
-        <h3>こんな状態になりやすくありませんか</h3>
-        <div className="lp-card-grid">
-          {problemItems.map((item) => (
-            <article key={item} className="lp-card lp-card-problem">
-              {item}
-            </article>
-          ))}
-        </div>
-      </section>
-
-      <section className="lp-section lp-reveal">
-        <h3>TradeTrace は、記録と振り返りをつなげます</h3>
-        <div className="lp-steps">
-          {solutionSteps.map((step, idx) => (
-            <article key={step} className="lp-step">
-              <div className="lp-step-index">{idx + 1}</div>
-              <div className="lp-step-text">{step}</div>
-            </article>
-          ))}
-        </div>
-      </section>
-
-      <section className="lp-section lp-reveal">
-        <h3>TradeTraceでできること</h3>
-        <div className="lp-card-grid lp-value-grid">
-          {valueProps.map((item) => (
-            <article key={item.title} className="lp-card lp-card-value">
-              <h4>{item.title}</h4>
-              <p>{item.body}</p>
-            </article>
-          ))}
-        </div>
-      </section>
-
       <section className="lp-section lp-diff-section lp-reveal">
         <h3>TradeTraceの違い</h3>
         <div className="lp-diff-grid">
@@ -243,7 +172,7 @@ export default function LandingPage() {
         </div>
       </section>
 
-      <section className="lp-section lp-cycle-section lp-reveal">
+      <section id="lp-cycle" className="lp-section lp-cycle-section lp-reveal">
         <h3>記録から改善につながる、4つの循環</h3>
         <p className="lp-cycle-lead">
           TradeTrace は「記録して終わり」ではなく、振り返りを次の判断へつなげることを重視しています。
@@ -282,68 +211,10 @@ export default function LandingPage() {
       </section>
 
       <section className="lp-section lp-reveal">
-        <h3>プロダクトイメージ</h3>
-        <div className="lp-product-strip">
-          <article className="lp-product-panel">
-            <h4>一覧画面</h4>
-            <p>保有中・未レビュー・レビュー済みを見分けながら、記録を整理します。</p>
-            <div className="lp-product-rows">
-              <span>7203 / 保有中</span>
-              <span>AAPL / レビュー済</span>
-              <span>9432 / 未レビュー</span>
-            </div>
-          </article>
-          <article className="lp-product-panel">
-            <h4>新規記録</h4>
-            <p>銘柄、BUY、SELL、思考ログを1つの流れで記録できます。</p>
-            <div className="lp-product-inputs">
-              <span>銘柄</span>
-              <span>BUY</span>
-              <span>SELL</span>
-            </div>
-          </article>
-          <article className="lp-product-panel">
-            <h4>レビュー更新</h4>
-            <p>売買理由・考察・自己評価を追記して、次回の判断に活かします。</p>
-            <div className="lp-product-tags">
-              <span>売買理由</span>
-              <span>考察</span>
-              <span>自己評価</span>
-            </div>
-          </article>
-        </div>
-      </section>
-
-      <section className="lp-section lp-reveal">
-        <h3>利用イメージ</h3>
-        <div className="lp-usage">
-          <article className="lp-usage-item">
-            <h4>1. 売買を記録する</h4>
-            <p>あとで振り返る前提で、取引内容やメモを残します。</p>
-          </article>
-          <article className="lp-usage-item">
-            <h4>2. 記録を見返す</h4>
-            <p>チャートや履歴を見ながら、そのときの判断を整理します。</p>
-          </article>
-          <article className="lp-usage-item">
-            <h4>3. 次のレビューに活かす</h4>
-            <p>自分の傾向や改善点を、次回の振り返りにつなげやすくします。</p>
-          </article>
-        </div>
-      </section>
-
-      <section className="lp-section lp-reveal">
-        <h3>こんな人に向いています</h3>
-        <ul className="lp-audience-list">
-          {audienceItems.map((item) => <li key={item}>{item}</li>)}
-        </ul>
-      </section>
-
-      <section className="lp-section lp-reveal">
         <h3>公開初期として改善を続けています</h3>
         <p>
-          TradeTrace は公開初期のため、使いやすさや導線を改善しながら運用しています。
-          ご意見やご要望は X DM で受け付けています。正式なお問い合わせはメールまたはフォームをご案内します。
+          TradeTrace は公開初期のため、使いやすさと導線を継続的に改善しています。ご意見は X DM
+          で受け付けています。正式なお問い合わせはメールまたはフォームをご案内します。
         </p>
       </section>
 
