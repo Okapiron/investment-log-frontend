@@ -123,7 +123,7 @@ export default function LandingPage() {
               </div>
               <div className="lp-hero-signal">
                 <strong>改善</strong>
-                <span>レビューを次の判断へ接続</span>
+                <span>自己分析を次の投資判断へ活かす</span>
               </div>
             </div>
             <div className="lp-hero-actions">
@@ -156,9 +156,6 @@ export default function LandingPage() {
                 <figcaption>詳細レビュー</figcaption>
               </figure>
             </div>
-            <div className="lp-float-chip lp-float-chip-a">記録</div>
-            <div className="lp-float-chip lp-float-chip-b">振り返り</div>
-            <div className="lp-float-chip lp-float-chip-c">レビュー</div>
           </div>
         </div>
       </section>
