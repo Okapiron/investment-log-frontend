@@ -28,6 +28,21 @@ const valueProps = [
   },
 ]
 
+const differentiationProps = [
+  {
+    title: '記録で終わらない',
+    body: '一覧で状況を把握し、未レビューを次の振り返りに回しやすくします。',
+  },
+  {
+    title: '理由まで残せる',
+    body: '売買理由・考察・自己評価まで同じ文脈で残し、後から読み返せます。',
+  },
+  {
+    title: '振り返りまで1つで完結',
+    body: '新規記録、詳細チャート確認、レビュー更新を分断せずにつなげます。',
+  },
+]
+
 const cycleSteps = [
   {
     key: 'PLAN',
@@ -35,6 +50,7 @@ const cycleSteps = [
     body: '過去の記録から、次の判断軸を持つ',
     image: '/lp/cycle-plan-trades-overview.png',
     position: 'center top',
+    icon: 'P',
   },
   {
     key: 'DO',
@@ -42,6 +58,7 @@ const cycleSteps = [
     body: '理由とともに売買を記録する',
     image: '/lp/cycle-do-new-trade.png',
     position: 'center 24%',
+    icon: 'D',
   },
   {
     key: 'CHECK',
@@ -49,6 +66,7 @@ const cycleSteps = [
     body: '結果だけでなく、判断の質まで振り返る',
     image: '/lp/cycle-check-detail-chart-log.png',
     position: 'center 45%',
+    icon: 'C',
   },
   {
     key: 'ACT',
@@ -56,6 +74,7 @@ const cycleSteps = [
     body: '経験を蓄積し、次の一手に活かす',
     image: '/lp/cycle-act-trade-cards.png',
     position: 'center 34%',
+    icon: 'A',
   },
 ]
 
@@ -123,6 +142,20 @@ export default function LandingPage() {
               TradeTrace は投資の売買記録と根拠を残し、チャートとあわせて振り返りやすくするためのサービスです。
               個人投資家が自分の判断をあとから整理し、投資の再現性を高めていくことを目指しています。
             </p>
+            <div className="lp-hero-signals">
+              <div className="lp-hero-signal">
+                <strong>記録</strong>
+                <span>売買と理由を一緒に残す</span>
+              </div>
+              <div className="lp-hero-signal">
+                <strong>振り返り</strong>
+                <span>チャートとメモを並べて確認</span>
+              </div>
+              <div className="lp-hero-signal">
+                <strong>改善</strong>
+                <span>レビューを次の判断へ接続</span>
+              </div>
+            </div>
             <div className="lp-hero-actions">
               <Link
                 to="/auth?mode=signup"
@@ -141,35 +174,19 @@ export default function LandingPage() {
             </p>
           </div>
           <div className="lp-hero-visual">
-            <div className="lp-app-mock">
-              <div className="lp-mock-topbar">
-                <span />
-                <span />
-                <span />
-              </div>
-              <div className="lp-mock-content">
-                <div className="lp-mock-card">
-                  <div className="lp-mock-title">Trades</div>
-                  <div className="lp-mock-row">
-                    <strong>8306</strong>
-                    <span>未レビュー</span>
-                  </div>
-                  <div className="lp-mock-row">
-                    <strong>AAPL</strong>
-                    <span>レビュー済</span>
-                  </div>
-                  <div className="lp-mock-row">
-                    <strong>9432</strong>
-                    <span>保有中</span>
-                  </div>
-                </div>
-                <div className="lp-mock-grid">
-                  <div className="lp-mock-pill">売買理由</div>
-                  <div className="lp-mock-pill">考察</div>
-                  <div className="lp-mock-pill">自己評価</div>
-                </div>
-                <div className="lp-mock-chart" />
-              </div>
+            <div className="lp-hero-stack">
+              <figure className="lp-hero-shot lp-hero-shot-main">
+                <img src="/lp/cycle-plan-trades-overview.png" alt="投資記録一覧の画面" loading="eager" />
+                <figcaption>一覧とサマリーで全体を把握</figcaption>
+              </figure>
+              <figure className="lp-hero-shot lp-hero-shot-a">
+                <img src="/lp/cycle-do-new-trade.png" alt="新規トレード作成の画面" loading="lazy" />
+                <figcaption>新規記録</figcaption>
+              </figure>
+              <figure className="lp-hero-shot lp-hero-shot-b">
+                <img src="/lp/cycle-check-detail-chart-log.png" alt="トレード詳細の画面" loading="lazy" />
+                <figcaption>詳細レビュー</figcaption>
+              </figure>
             </div>
             <div className="lp-float-chip lp-float-chip-a">記録</div>
             <div className="lp-float-chip lp-float-chip-b">振り返り</div>
@@ -213,17 +230,41 @@ export default function LandingPage() {
         </div>
       </section>
 
+      <section className="lp-section lp-diff-section lp-reveal">
+        <h3>TradeTraceの違い</h3>
+        <div className="lp-diff-grid">
+          {differentiationProps.map((item, idx) => (
+            <article key={item.title} className="lp-diff-card">
+              <span className="lp-diff-badge">{`0${idx + 1}`}</span>
+              <h4>{item.title}</h4>
+              <p>{item.body}</p>
+            </article>
+          ))}
+        </div>
+      </section>
+
       <section className="lp-section lp-cycle-section lp-reveal">
         <h3>記録から改善につながる、4つの循環</h3>
         <p className="lp-cycle-lead">
           TradeTrace は「記録して終わり」ではなく、振り返りを次の判断へつなげることを重視しています。
         </p>
+        <div className="lp-cycle-flow" aria-hidden>
+          {cycleSteps.map((step, idx) => (
+            <div key={step.key} className="lp-cycle-flow-item">
+              <span>{step.key}</span>
+              <i>{idx < cycleSteps.length - 1 ? '→' : '↺'}</i>
+            </div>
+          ))}
+        </div>
         <div className="lp-cycle-grid" aria-label="TradeTrace 改善サイクル">
           {cycleSteps.map((step, idx) => (
             <article key={step.key} className="lp-cycle-card">
               <div className="lp-cycle-head">
-                <span className="lp-cycle-index">{idx + 1}</span>
-                <h4>{step.title}</h4>
+                <span className={`lp-cycle-icon lp-cycle-icon-${step.key.toLowerCase()}`}>{step.icon}</span>
+                <div className="lp-cycle-head-text">
+                  <span className="lp-cycle-index">{`STEP ${idx + 1}`}</span>
+                  <h4>{step.title}</h4>
+                </div>
               </div>
               <div
                 className="lp-cycle-shot"
