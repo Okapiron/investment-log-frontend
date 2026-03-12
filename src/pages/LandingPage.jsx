@@ -143,18 +143,18 @@ export default function LandingPage() {
           <div className="lp-hero-visual">
             <div className="lp-hero-stack">
               <figure className="lp-hero-shot lp-hero-shot-main">
-                <img src="/lp/cycle-plan-trades-overview.png" alt="投資記録一覧の画面" loading="eager" />
+                <img src="/lp/cycle-do-new-trade.png" alt="新規トレード作成の画面" loading="eager" />
               </figure>
               <figure className="lp-hero-shot lp-hero-shot-a">
-                <img src="/lp/cycle-do-new-trade.png" alt="新規トレード作成の画面" loading="lazy" />
+                <img src="/lp/cycle-plan-trades-overview.png" alt="投資記録一覧の画面" loading="lazy" />
               </figure>
               <figure className="lp-hero-shot lp-hero-shot-b">
                 <img src="/lp/cycle-check-detail-chart-log.png" alt="トレード詳細の画面" loading="lazy" />
               </figure>
             </div>
-            <div className="lp-float-chip lp-float-chip-a">改善</div>
+            <div className="lp-float-chip lp-float-chip-a">記録</div>
             <div className="lp-float-chip lp-float-chip-b">振り返り</div>
-            <div className="lp-float-chip lp-float-chip-c">記録</div>
+            <div className="lp-float-chip lp-float-chip-c">改善</div>
           </div>
         </div>
       </section>
