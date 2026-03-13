@@ -3,6 +3,7 @@ import { useNavigate, Link } from 'react-router-dom'
 import { api } from '../lib/api'
 import { TAG_OPTIONS } from '../lib/tags'
 import { assessPriceSanityAgainstDailyBars } from '../lib/priceSanity'
+import { marketPriceInputMode, marketPriceValidationError, normalizePriceInputByMarket, parsePriceText } from '../lib/marketPrice'
 
 const US_STOCK_CANDIDATES = [
   { market: 'US', symbol: 'AAPL', name: 'Apple Inc', aliases: ['AAPL', 'Apple', 'Apple Inc', 'アップル'] },
@@ -108,21 +109,6 @@ function toHiragana(input) {
 
 function toHalfWidthDigits(raw) {
   return String(raw || '').replace(/[０-９]/g, (ch) => String.fromCharCode(ch.charCodeAt(0) - 0xfee0))
-}
-
-function normalizeDecimalInput(raw) {
-  // 全角数字・全角ドット・カンマ等を吸収して "1234.56" 形式へ
-  const half = toHalfWidthDigits(raw)
-    .replace(/[．。]/g, '.')
-    .replace(/[，,、\s]/g, '')
-
-  const cleaned = half.replace(/[^0-9.]/g, '')
-  const firstDot = cleaned.indexOf('.')
-  if (firstDot === -1) return cleaned
-  // keep only the first dot
-  const head = cleaned.slice(0, firstDot + 1)
-  const tail = cleaned.slice(firstDot + 1).replace(/\./g, '')
-  return head + tail
 }
 
 function normalizeIntInput(raw) {
@@ -832,8 +818,8 @@ export default function TradesNewPage() {
     if (!sym) return '銘柄（symbol）を入力してください'
     if (!/^[0-9A-Z]{1,5}$/.test(sym)) return '銘柄（symbol）は半角英数字5文字以内で入力してください'
 
-    const bp = parseNumberOrNull(buyPrice)
-    const sp = parseNumberOrNull(sellPrice)
+    const bp = parsePriceText(buyPrice)
+    const sp = parsePriceText(sellPrice)
     const q = parseNumberOrNull(qty)
 
     if (!buyDate) return '買い日付を入力してください'
@@ -844,8 +830,12 @@ export default function TradesNewPage() {
       if (sellDate && buyDate && sellDate < buyDate) return '売り日付は買い日付以降にしてください'
     }
 
-    if (bp === null || bp <= 0) return '買値は 0 より大きい数で入力してください'
-    if (!isOpen && (sp === null || sp <= 0)) return '売値は 0 より大きい数で入力してください'
+    const buyPriceErr = marketPriceValidationError(market, buyPrice, '買値')
+    if (buyPriceErr) return buyPriceErr
+    if (!isOpen) {
+      const sellPriceErr = marketPriceValidationError(market, sellPrice, '売値')
+      if (sellPriceErr) return sellPriceErr
+    }
     if (q === null || q <= 0) return '数量は 0 より大きい数で入力してください'
 
     return null
@@ -859,9 +849,9 @@ export default function TradesNewPage() {
       market,
       symbol: sym,
       buyDate,
-      buyPrice: Number(buyPrice),
+      buyPrice: parsePriceText(buyPrice),
       sellDate: isOpen ? null : sellDate,
-      sellPrice: isOpen ? null : Number(sellPrice),
+      sellPrice: isOpen ? null : parsePriceText(sellPrice),
     }
   }, [clientValidationError, market, symbol, buyDate, buyPrice, sellDate, sellPrice, isOpen])
 
@@ -881,15 +871,9 @@ export default function TradesNewPage() {
     const timerId = window.setTimeout(async () => {
       const result = await assessPriceSanityAgainstDailyBars(priceCheckParams)
       if (cancelled) return
-      if (result?.blockingMessage) {
-        setPriceCheckStatus('error')
-        setPriceCheckError(result.blockingMessage)
-        setPriceCheckWarning('')
-        return
-      }
       setPriceCheckStatus('ok')
       setPriceCheckError('')
-      setPriceCheckWarning(result?.warnings?.[0] || '')
+      setPriceCheckWarning(result?.warnings?.[0] || result?.blockingMessage || '')
     }, 150)
 
     return () => {
@@ -902,7 +886,6 @@ export default function TradesNewPage() {
     if (clientValidationError) return clientValidationError
     if (!priceCheckParams) return '価格チェック待ちです'
     if (priceCheckStatus === 'checking') return '価格を確認中です'
-    if (priceCheckStatus === 'error') return priceCheckError || '価格を確認してください'
     if (priceCheckStatus !== 'ok') return '価格チェック待ちです'
     return ''
   }, [clientValidationError, priceCheckParams, priceCheckStatus, priceCheckError])
@@ -913,8 +896,8 @@ export default function TradesNewPage() {
     if (saveDisabledReason) return
 
     const sym = normalizeSymbol(market, symbol)
-    const bp = Number(buyPrice)
-    const sp = Number(sellPrice)
+    const bp = parsePriceText(buyPrice)
+    const sp = parsePriceText(sellPrice)
     const q = Number(qty)
 
     try {
@@ -1128,10 +1111,10 @@ export default function TradesNewPage() {
             </div>
             <input
               type="text"
-              inputMode="decimal"
+              inputMode={marketPriceInputMode(market)}
               placeholder="買値"
               value={buyPrice}
-              onChange={(e) => setBuyPrice(normalizeDecimalInput(e.target.value))}
+              onChange={(e) => setBuyPrice(normalizePriceInputByMarket(market, e.target.value))}
               required
               onKeyDown={handleKeyNav}
               style={{ width: '100%', paddingLeft: 36, minHeight: isMobile ? 42 : undefined }}
@@ -1250,10 +1233,10 @@ export default function TradesNewPage() {
                 </div>
                 <input
                   type="text"
-                  inputMode="decimal"
+                  inputMode={marketPriceInputMode(market)}
                   placeholder="売値"
                   value={sellPrice}
-                  onChange={(e) => setSellPrice(normalizeDecimalInput(e.target.value))}
+                  onChange={(e) => setSellPrice(normalizePriceInputByMarket(market, e.target.value))}
                   required={!isOpen}
                   disabled={isOpen}
                   onKeyDown={handleKeyNav}
@@ -1443,7 +1426,7 @@ export default function TradesNewPage() {
             <p style={{ margin: 0, color: '#b42318', fontSize: 12 }}>{saveDisabledReason}</p>
           ) : null}
           {!saveDisabledReason && priceCheckWarning ? (
-            <p style={{ margin: 0, color: '#667085', fontSize: 12 }}>注意: {priceCheckWarning}</p>
+            <p style={{ margin: 0, color: '#667085', fontSize: 12 }}>注意: {priceCheckWarning}（内容を確認したうえで保存できます）</p>
           ) : null}
 
           {error ? <p style={{ margin: 0, color: '#b42318', fontSize: 12 }}>{error}</p> : null}

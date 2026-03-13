@@ -6,6 +6,7 @@ import { TAG_OPTIONS } from '../lib/tags'
 import TradeChart from '../components/TradeChart'
 import { patchTrade, updateTradeReview } from '../lib/tradesApi'
 import { assessPriceSanityAgainstDailyBars } from '../lib/priceSanity'
+import { marketPriceInputMode, marketPriceValidationError, normalizePriceInputByMarket, parsePriceText } from '../lib/marketPrice'
 
 function addTagCSV(csv, tag) {
   if (tag === '未設定') return ''
@@ -313,21 +314,23 @@ export default function TradeDetailPage() {
     if (!isEditing) return ''
 
     const buyDate = String(form.buy_date || '').trim()
-    const buyPrice = Number(form.buy_price)
+    const buyPrice = parsePriceText(form.buy_price)
     const buyQty = Number(form.buy_qty)
-    const sellPrice = Number(form.sell_price)
+    const sellPrice = parsePriceText(form.sell_price)
     const sellQty = Number(form.sell_qty)
     const { hasAnySell, hasAllSell, sellDate } = getSellCompletion(form)
 
     if (!isYmd(buyDate)) return 'BUY日付は YYYY-MM-DD 形式で入力してください'
-    if (!Number.isFinite(buyPrice) || buyPrice <= 0) return 'BUY価格は 0 より大きい数値で入力してください'
+    const buyPriceError = marketPriceValidationError(data?.market, form.buy_price, 'BUY価格')
+    if (buyPriceError) return buyPriceError
     if (!Number.isFinite(buyQty) || buyQty <= 0) return 'BUY数量は 1 以上で入力してください'
 
     if (!editIsOpen && !hasAllSell) return '売却済トレードを保存するには SELL日付・SELL価格・SELL数量が必要です'
     if (hasAnySell && !hasAllSell) return 'SELL日付・SELL価格・SELL数量は3つとも入力してください'
     if (hasAllSell) {
       if (!isYmd(sellDate)) return 'SELL日付は YYYY-MM-DD 形式で入力してください'
-      if (!Number.isFinite(sellPrice) || sellPrice <= 0) return 'SELL価格は 0 より大きい数値で入力してください'
+      const sellPriceError = marketPriceValidationError(data?.market, form.sell_price, 'SELL価格')
+      if (sellPriceError) return sellPriceError
       if (!Number.isFinite(sellQty) || sellQty <= 0) return 'SELL数量は 1 以上で入力してください'
     }
 
@@ -344,9 +347,9 @@ export default function TradeDetailPage() {
       market: data.market,
       symbol: data.symbol,
       buyDate: String(form.buy_date || '').trim(),
-      buyPrice: Number(form.buy_price),
+      buyPrice: parsePriceText(form.buy_price),
       sellDate: !editIsOpen && hasAllSell ? sellDate : null,
-      sellPrice: !editIsOpen && hasAllSell ? Number(form.sell_price) : null,
+      sellPrice: !editIsOpen && hasAllSell ? parsePriceText(form.sell_price) : null,
     }
   }, [isEditing, clientSaveValidationError, data?.market, data?.symbol, form, editIsOpen])
 
@@ -366,21 +369,9 @@ export default function TradeDetailPage() {
     const timerId = window.setTimeout(async () => {
       const result = await assessPriceSanityAgainstDailyBars(editPriceCheckParams)
       if (cancelled) return
-      if (result?.blockingMessage) {
-        if (editIsOpen) {
-          setEditPriceCheckStatus('ok')
-          setEditPriceCheckError('')
-          setEditPriceCheckWarning(result.blockingMessage)
-          return
-        }
-        setEditPriceCheckStatus('error')
-        setEditPriceCheckError(result.blockingMessage)
-        setEditPriceCheckWarning('')
-        return
-      }
       setEditPriceCheckStatus('ok')
       setEditPriceCheckError('')
-      setEditPriceCheckWarning(result?.warnings?.[0] || '')
+      setEditPriceCheckWarning(result?.warnings?.[0] || result?.blockingMessage || '')
     }, 150)
 
     return () => {
@@ -395,7 +386,6 @@ export default function TradeDetailPage() {
     if (editIsOpen) return ''
     if (!editPriceCheckParams) return '価格チェック待ちです'
     if (editPriceCheckStatus === 'checking') return '価格を確認中です'
-    if (editPriceCheckStatus === 'error') return editPriceCheckError || '価格を確認してください'
     if (editPriceCheckStatus !== 'ok') return '価格チェック待ちです'
     return ''
   }, [isEditing, clientSaveValidationError, editIsOpen, editPriceCheckParams, editPriceCheckStatus, editPriceCheckError])
@@ -530,9 +520,9 @@ export default function TradeDetailPage() {
       if (saveDisabledReason) return
       setSaveMsg('')
       const buyDate = String(form.buy_date || '').trim()
-      const buyPrice = Number(form.buy_price)
+      const buyPrice = parsePriceText(form.buy_price)
       const buyQty = Number(form.buy_qty)
-      const sellPrice = Number(form.sell_price)
+      const sellPrice = parsePriceText(form.sell_price)
       const sellQty = Number(form.sell_qty)
       const { hasAllSell, sellDate } = getSellCompletion(form)
 
@@ -799,11 +789,11 @@ export default function TradeDetailPage() {
                     onChange={(e) => setForm((p) => ({ ...p, buy_date: e.target.value }))}
                   />
                   <input
-                    type="number"
+                    type="text"
                     min="1"
-                    step="1"
+                    inputMode={marketPriceInputMode(data?.market)}
                     value={form.buy_price}
-                    onChange={(e) => setForm((p) => ({ ...p, buy_price: e.target.value }))}
+                    onChange={(e) => setForm((p) => ({ ...p, buy_price: normalizePriceInputByMarket(data?.market, e.target.value) }))}
                     placeholder="BUY価格"
                   />
                   <input
@@ -849,11 +839,11 @@ export default function TradeDetailPage() {
                     style={{ opacity: editIsOpen ? 0.6 : 1 }}
                   />
                   <input
-                    type="number"
+                    type="text"
                     min="1"
-                    step="1"
+                    inputMode={marketPriceInputMode(data?.market)}
                     value={form.sell_price}
-                    onChange={(e) => setForm((p) => ({ ...p, sell_price: e.target.value }))}
+                    onChange={(e) => setForm((p) => ({ ...p, sell_price: normalizePriceInputByMarket(data?.market, e.target.value) }))}
                     placeholder="SELL価格"
                     disabled={editIsOpen}
                     style={{ opacity: editIsOpen ? 0.6 : 1 }}

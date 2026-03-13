@@ -26,6 +26,19 @@ function findBarByDateOrPrev(bars, date) {
   return candidate
 }
 
+function resolveReferenceBar({ market, bars, inputDate, latestDate }) {
+  const exactBar = findBarByDate(bars, inputDate)
+  if (exactBar) return { bar: exactBar, exactBar, fallbackBar: null }
+
+  if (market === 'US' && latestDate && inputDate && inputDate > latestDate) {
+    const latestBar = bars[bars.length - 1] || null
+    return { bar: latestBar, exactBar: null, fallbackBar: latestBar }
+  }
+
+  const fallbackBar = findBarByDateOrPrev(bars, inputDate)
+  return { bar: fallbackBar, exactBar: null, fallbackBar }
+}
+
 function findBarByDate(bars, date) {
   if (!Array.isArray(bars) || !date) return null
   return bars.find((b) => b?.time === date) || null
@@ -61,6 +74,28 @@ function collectDateWarnings({ sideLabel, inputDate, exactBar, fallbackBar, late
   }
   if (latestDate && inputDate > latestDate && inputDate === TODAY_YMD()) {
     warnings.push(`価格データの最新日付は ${latestDate} です。最新データ反映前の可能性があります。`)
+  }
+  return warnings
+}
+
+function collectDateWarningsByMarket({ market, sideLabel, inputDate, exactBar, fallbackBar, latestDate }) {
+  if (market !== 'US') return collectDateWarnings({ sideLabel, inputDate, exactBar, fallbackBar, latestDate })
+  if (!inputDate || exactBar) return []
+
+  const warnings = []
+  if (fallbackBar?.time) {
+    if (latestDate && inputDate > latestDate) {
+      warnings.push(
+        `${sideLabel}日付 ${inputDate} は US 市場の最新確定日（${latestDate}）より新しいため、${fallbackBar.time} を参照しました。時差により当日終値が未反映の可能性があります。`
+      )
+    } else {
+      warnings.push(`${sideLabel}日付 ${inputDate} の価格データがなく、${fallbackBar.time} を代替参照しました。`)
+    }
+  } else {
+    warnings.push(`${sideLabel}日付 ${inputDate} の価格データを参照できませんでした。`)
+  }
+  if (latestDate && inputDate > latestDate && inputDate === TODAY_YMD()) {
+    warnings.push(`US市場データの最新日付は ${latestDate} です。時差により当日データが反映前の可能性があります。`)
   }
   return warnings
 }
@@ -105,9 +140,18 @@ export async function assessPriceSanityAgainstDailyBars({ market, symbol, buyDat
     const warnings = []
     const latestDate = bars[bars.length - 1]?.time || ''
 
-    const buyExactBar = findBarByDate(bars, buyDate)
-    const buyBar = buyExactBar || findBarByDateOrPrev(bars, buyDate)
-    warnings.push(...collectDateWarnings({ sideLabel: 'BUY', inputDate: buyDate, exactBar: buyExactBar, fallbackBar: buyBar, latestDate }))
+    const buyRef = resolveReferenceBar({ market: normalizedMarket, bars, inputDate: buyDate, latestDate })
+    const buyBar = buyRef.bar
+    warnings.push(
+      ...collectDateWarningsByMarket({
+        market: normalizedMarket,
+        sideLabel: 'BUY',
+        inputDate: buyDate,
+        exactBar: buyRef.exactBar,
+        fallbackBar: buyRef.fallbackBar,
+        latestDate,
+      })
+    )
     if (buyBar) {
       const buyMessage = validateOneSide({
         market: normalizedMarket,
@@ -116,13 +160,22 @@ export async function assessPriceSanityAgainstDailyBars({ market, symbol, buyDat
         inputPrice: Number(buyPrice),
         bar: buyBar,
       })
-      if (buyMessage) return { blockingMessage: buyMessage, warnings }
+      if (buyMessage) warnings.push(buyMessage)
     }
 
     if (sellDate && sellPrice != null) {
-      const sellExactBar = findBarByDate(bars, sellDate)
-      const sellBar = sellExactBar || findBarByDateOrPrev(bars, sellDate)
-      warnings.push(...collectDateWarnings({ sideLabel: 'SELL', inputDate: sellDate, exactBar: sellExactBar, fallbackBar: sellBar, latestDate }))
+      const sellRef = resolveReferenceBar({ market: normalizedMarket, bars, inputDate: sellDate, latestDate })
+      const sellBar = sellRef.bar
+      warnings.push(
+        ...collectDateWarningsByMarket({
+          market: normalizedMarket,
+          sideLabel: 'SELL',
+          inputDate: sellDate,
+          exactBar: sellRef.exactBar,
+          fallbackBar: sellRef.fallbackBar,
+          latestDate,
+        })
+      )
       if (sellBar) {
         const sellMessage = validateOneSide({
           market: normalizedMarket,
@@ -131,11 +184,11 @@ export async function assessPriceSanityAgainstDailyBars({ market, symbol, buyDat
           inputPrice: Number(sellPrice),
           bar: sellBar,
         })
-        if (sellMessage) return { blockingMessage: sellMessage, warnings }
+        if (sellMessage) warnings.push(sellMessage)
       }
     }
 
-    return { blockingMessage: null, warnings }
+    return { blockingMessage: null, warnings: Array.from(new Set(warnings)) }
   } catch {
     return { blockingMessage: null, warnings: ['価格データ取得エラーのため、価格チェックをスキップしました。'] }
   }
