@@ -402,12 +402,12 @@ button.danger { background: var(--danger); }
 }
 
 .lp-hero-shot-a {
-  left: -24px;
-  bottom: 10px;
-  width: 56%;
-  max-width: 300px;
+  left: -30px;
+  bottom: 8px;
+  width: 60%;
+  max-width: 340px;
   transform: rotate(-2deg);
-  z-index: 4;
+  z-index: 5;
 }
 
 .lp-hero-shot-b {
