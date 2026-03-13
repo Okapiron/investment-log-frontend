@@ -430,7 +430,7 @@ button.danger { background: var(--danger); }
   box-shadow: 0 8px 16px rgba(42, 72, 66, 0.13);
 }
 
-.lp-float-chip-a { top: -2px; left: 8px; }
+.lp-float-chip-a { right: 12px; bottom: 12px; }
 .lp-float-chip-b { top: 39%; right: -10px; }
 .lp-float-chip-c { bottom: 9px; left: -10px; }
 
