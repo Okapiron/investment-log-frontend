@@ -24,7 +24,7 @@ export default function Layout({ children }) {
             <div className="brand-mark" aria-hidden>TT</div>
             <div className="brand-copy">
               <h1>TradeTrace</h1>
-              <div className="brand-sub">Review First Trading Journal</div>
+              <div className="brand-sub">トレードを振り返るための投資ノート</div>
             </div>
           </div>
           <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
