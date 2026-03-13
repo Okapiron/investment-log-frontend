@@ -165,7 +165,11 @@ export default function LandingPage() {
         <h3>TradeTraceの生み出す価値</h3>
         <div className="lp-diff-grid">
           {differentiationProps.map((item) => (
-            <article key={item.title} className="lp-diff-card">
+            <article
+              key={item.title}
+              className="lp-diff-card"
+              style={{ '--lp-diff-watermark': `url(${item.icon})` }}
+            >
               <div className="lp-diff-meta">
                 <span className="lp-diff-icon-wrap" aria-hidden>
                   <img src={item.icon} alt="" className="lp-diff-icon" loading="lazy" />
