@@ -3,16 +3,22 @@ import { Link } from 'react-router-dom'
 
 const differentiationProps = [
   {
-    title: '記録で終わらない',
-    body: '一覧で状況を把握し、未レビューを次の振り返りに回しやすくします。',
+    label: 'RECORD',
+    title: '記録を資産に',
+    body: '売買データだけでなく、判断の理由まで残してあとから見返せます。',
+    icon: '/lp/value-record.svg',
   },
   {
-    title: '理由まで残せる',
-    body: '売買理由・考察・自己評価まで同じ文脈で残し、後から読み返せます。',
+    label: 'REVIEW',
+    title: '振り返りを習慣に',
+    body: 'チャートと記録を並べて、結果だけでなく判断の質まで振り返れます。',
+    icon: '/lp/value-review.svg',
   },
   {
-    title: '振り返りで改善につながる',
-    body: '新規記録、詳細チャート確認、レビュー更新を分断せずにつなげます。',
+    label: 'IMPROVE',
+    title: '改善を次の一手に',
+    body: '記録とレビューを積み重ねながら、次の投資判断に活かしていけます。',
+    icon: '/lp/value-improve.svg',
   },
 ]
 
@@ -161,14 +167,15 @@ export default function LandingPage() {
       <section className="lp-section lp-diff-section lp-reveal">
         <h3>TradeTraceの生み出す価値</h3>
         <div className="lp-diff-grid">
-          {differentiationProps.map((item, idx) => (
+          {differentiationProps.map((item) => (
             <article key={item.title} className="lp-diff-card">
-              <div className="lp-diff-head">
-                <span className="lp-diff-badge">{`0${idx + 1}`}</span>
-                <div className="lp-diff-head-text">
-                  <h4>{item.title}</h4>
-                </div>
+              <div className="lp-diff-meta">
+                <span className="lp-diff-icon-wrap" aria-hidden>
+                  <img src={item.icon} alt="" className="lp-diff-icon" loading="lazy" />
+                </span>
+                <span className="lp-diff-label">{item.label}</span>
               </div>
+              <h4>{item.title}</h4>
               <p>{item.body}</p>
             </article>
           ))}
