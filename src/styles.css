@@ -734,18 +734,36 @@ button.danger { background: var(--danger); }
 .lp-diff-card::after {
   content: "";
   position: absolute;
-  right: -2px;
-  bottom: -8px;
-  width: 132px;
-  height: 132px;
+  right: 0;
+  bottom: 0;
+  width: var(--lp-diff-watermark-size, 128px);
+  height: var(--lp-diff-watermark-size, 128px);
   background-image: var(--lp-diff-watermark);
   background-repeat: no-repeat;
-  background-position: center;
+  background-position: var(--lp-diff-watermark-x, 78%) var(--lp-diff-watermark-y, 76%);
   background-size: contain;
   opacity: 0.1;
   filter: saturate(52%) hue-rotate(-8deg) brightness(0.95);
   pointer-events: none;
   z-index: 0;
+}
+
+.lp-diff-card-record::after {
+  --lp-diff-watermark-size: 130px;
+  --lp-diff-watermark-x: 80%;
+  --lp-diff-watermark-y: 78%;
+}
+
+.lp-diff-card-review::after {
+  --lp-diff-watermark-size: 124px;
+  --lp-diff-watermark-x: 76%;
+  --lp-diff-watermark-y: 74%;
+}
+
+.lp-diff-card-improve::after {
+  --lp-diff-watermark-size: 134px;
+  --lp-diff-watermark-x: 74%;
+  --lp-diff-watermark-y: 78%;
 }
 
 .lp-diff-meta {

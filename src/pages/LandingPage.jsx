@@ -167,7 +167,7 @@ export default function LandingPage() {
           {differentiationProps.map((item) => (
             <article
               key={item.title}
-              className="lp-diff-card"
+              className={`lp-diff-card lp-diff-card-${item.label.toLowerCase()}`}
               style={{ '--lp-diff-watermark': `url(${item.icon})` }}
             >
               <div className="lp-diff-meta">
