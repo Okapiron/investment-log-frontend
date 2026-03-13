@@ -235,6 +235,27 @@ export default function TradesNewPage() {
     cursor: 'pointer',
     fontWeight: 600,
   }
+  const mobileDateInputWrapStyle = {
+    position: 'relative',
+  }
+  const mobileDateInputStyle = {
+    width: '100%',
+    minHeight: 44,
+    fontSize: 16,
+    borderRadius: 10,
+    border: '1px solid #cfd8d3',
+    background: '#fff',
+    padding: '10px 12px',
+  }
+  const mobileDateHintStyle = {
+    position: 'absolute',
+    left: 12,
+    top: '50%',
+    transform: 'translateY(-50%)',
+    fontSize: 14,
+    color: '#667085',
+    pointerEvents: 'none',
+  }
   // Load instrument cache (履歴ゼロでも入力を回すため)
   useEffect(() => {
     try {
@@ -1054,14 +1075,22 @@ export default function TradesNewPage() {
         >
           <div style={{ fontWeight: 700 }}>BUY</div>
           {isMobile ? (
-            <input
-              type="date"
-              value={isFullYmd(buyDate) ? buyDate : ''}
-              onChange={(e) => setBuyDate(e.target.value)}
-              required
-              onKeyDown={handleKeyNav}
-              style={{ minHeight: 44, fontSize: 16 }}
-            />
+            <div style={mobileDateInputWrapStyle}>
+              <input
+                type="date"
+                value={isFullYmd(buyDate) ? buyDate : ''}
+                onChange={(e) => setBuyDate(e.target.value)}
+                required
+                onKeyDown={handleKeyNav}
+                style={{
+                  ...mobileDateInputStyle,
+                  color: isFullYmd(buyDate) ? '#111' : 'transparent',
+                  caretColor: '#111',
+                }}
+                aria-label="BUY日付"
+              />
+              {!isFullYmd(buyDate) ? <span style={mobileDateHintStyle}>タップして日付を選択する</span> : null}
+            </div>
           ) : (
             <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
               <input
@@ -1167,15 +1196,23 @@ export default function TradesNewPage() {
           ) : (
             <>
               {isMobile ? (
-                <input
-                  type="date"
-                  value={isFullYmd(sellDate) ? sellDate : ''}
-                  onChange={(e) => setSellDate(e.target.value)}
-                  required={!isOpen}
-                  disabled={isOpen}
-                  onKeyDown={handleKeyNav}
-                  style={{ minHeight: 44, fontSize: 16 }}
-                />
+                <div style={mobileDateInputWrapStyle}>
+                  <input
+                    type="date"
+                    value={isFullYmd(sellDate) ? sellDate : ''}
+                    onChange={(e) => setSellDate(e.target.value)}
+                    required={!isOpen}
+                    disabled={isOpen}
+                    onKeyDown={handleKeyNav}
+                    style={{
+                      ...mobileDateInputStyle,
+                      color: isFullYmd(sellDate) ? '#111' : 'transparent',
+                      caretColor: '#111',
+                    }}
+                    aria-label="SELL日付"
+                  />
+                  {!isFullYmd(sellDate) ? <span style={mobileDateHintStyle}>タップして日付を選択する</span> : null}
+                </div>
               ) : (
                 <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
                   <input
