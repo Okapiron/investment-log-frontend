@@ -106,11 +106,10 @@ export default function LandingPage() {
         <div className="lp-orb lp-orb-right" aria-hidden />
         <div className="lp-hero-grid">
           <div className="lp-hero-copy">
-            <div className="lp-kicker">Review First Trading Journal</div>
             <h2>投資記録を振り返りやすく</h2>
             <p>
               TradeTrace は投資の売買記録と根拠を残し、チャートとあわせて振り返りやすくするためのサービスです。
-              個人投資家が自分の判断をあとから整理し、投資の再現性を高めていくことを目指しています。
+              個人投資家が自分の判断をあとから整理し、投資成績の改善につなげていけることを目指しています。
             </p>
             <div className="lp-hero-signals">
               <div className="lp-hero-signal">

@@ -252,19 +252,6 @@ button.danger { background: var(--danger); }
   grid-template-columns: 1.05fr 0.95fr;
 }
 
-.lp-kicker {
-  display: inline-flex;
-  padding: 5px 10px;
-  border-radius: 999px;
-  border: 1px solid #c9ddd4;
-  color: #1d554e;
-  background: #f6fffb;
-  font-size: 12px;
-  font-weight: 600;
-  letter-spacing: 0.03em;
-  margin-bottom: 12px;
-}
-
 .lp-hero-copy h2 {
   margin: 0 0 12px;
   font-size: clamp(30px, 4vw, 44px);
