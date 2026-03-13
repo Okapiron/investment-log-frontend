@@ -795,8 +795,8 @@ button.danger { background: var(--danger); }
 }
 
 .lp-diff-label {
-  font-size: 14px;
-  font-weight: 800;
+  font-size: 18px;
+  font-weight: 700;
   letter-spacing: 0.05em;
   color: #4f6f68;
   line-height: 1;
