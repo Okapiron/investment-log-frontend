@@ -734,15 +734,15 @@ button.danger { background: var(--danger); }
 .lp-diff-card::after {
   content: "";
   position: absolute;
-  right: -18px;
-  bottom: -22px;
-  width: 164px;
-  height: 164px;
+  right: -2px;
+  bottom: -8px;
+  width: 132px;
+  height: 132px;
   background-image: var(--lp-diff-watermark);
   background-repeat: no-repeat;
   background-position: center;
   background-size: contain;
-  opacity: 0.11;
+  opacity: 0.1;
   filter: saturate(52%) hue-rotate(-8deg) brightness(0.95);
   pointer-events: none;
   z-index: 0;
