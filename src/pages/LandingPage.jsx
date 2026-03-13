@@ -3,17 +3,14 @@ import { Link } from 'react-router-dom'
 
 const differentiationProps = [
   {
-    subtitle: 'VALUE 1',
     title: '記録で終わらない',
     body: '一覧で状況を把握し、未レビューを次の振り返りに回しやすくします。',
   },
   {
-    subtitle: 'VALUE 2',
     title: '理由まで残せる',
     body: '売買理由・考察・自己評価まで同じ文脈で残し、後から読み返せます。',
   },
   {
-    subtitle: 'VALUE 3',
     title: '振り返りで改善につながる',
     body: '新規記録、詳細チャート確認、レビュー更新を分断せずにつなげます。',
   },
@@ -170,7 +167,6 @@ export default function LandingPage() {
               <div className="lp-diff-head">
                 <span className="lp-diff-badge">{`0${idx + 1}`}</span>
                 <div className="lp-diff-head-text">
-                  <span className="lp-diff-subtitle">{item.subtitle}</span>
                   <h4>{item.title}</h4>
                 </div>
               </div>
@@ -181,7 +177,7 @@ export default function LandingPage() {
       </section>
 
       <section id="lp-cycle" className="lp-section lp-cycle-section lp-reveal">
-        <h3>投資成績改善への4STEPサイクル</h3>
+        <h3>投資成績の改善へ4STEPサイクル</h3>
         <p className="lp-cycle-lead">
           TradeTrace は「記録して終わり」ではなく、振り返りを次の判断へつなげることを重視しています。
         </p>
@@ -232,7 +228,7 @@ export default function LandingPage() {
       <section className="lp-section lp-final-cta lp-reveal">
         <span className="lp-final-kicker">Ready to Start</span>
         <h3>まずは、やってみよう。</h3>
-        <p>トレード記録をきちんとつけてみたい方はぜひTradeTrace をお試しください。</p>
+        <p>トレード記録をきちんとつけるならTradeTrace をお試しください。</p>
         <div className="lp-final-actions">
           <Link
             to="/auth?mode=signup"
