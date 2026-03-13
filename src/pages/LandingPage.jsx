@@ -217,11 +217,7 @@ export default function LandingPage() {
           TradeTrace は公開初期のため、使いやすさと導線を継続的に改善しています。ご意見は X DM
           で受け付けています。正式なお問い合わせはメールまたはフォームをご案内します。
         </p>
-      </section>
-
-      <section className="lp-disclaimer lp-reveal" aria-label="ご利用にあたって">
-        <h3>ご利用にあたって</h3>
-        <p>
+        <p className="lp-early-note-disclaimer">
           TradeTrace は投資の記録と振り返りを支援するサービスです。特定の銘柄や売買を推奨するものではありません。
         </p>
       </section>

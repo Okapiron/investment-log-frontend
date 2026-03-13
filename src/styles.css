@@ -497,26 +497,13 @@ button.danger { background: var(--danger); }
   color: #3d5651;
 }
 
-.lp-disclaimer {
-  padding: 12px 18px;
-  border: 1px dashed #cad7d1;
-  border-radius: 12px;
-  background: rgba(252, 255, 254, 0.55);
-}
-
-.lp-disclaimer h3 {
-  margin: 0 0 6px;
-  color: #46635d;
-  font-size: 14px;
-  font-weight: 700;
-  letter-spacing: 0.04em;
-}
-
-.lp-disclaimer p {
-  margin: 0;
-  color: #5f7671;
-  font-size: 13px;
-  line-height: 1.65;
+.lp-early-note-disclaimer {
+  margin-top: 10px !important;
+  padding-top: 8px;
+  border-top: 1px dashed #cfddd7;
+  color: #5f7671 !important;
+  font-size: 13px !important;
+  line-height: 1.65 !important;
 }
 
 .lp-card-grid {
@@ -927,10 +914,6 @@ button.danger { background: var(--danger); }
 
   .lp-section {
     padding: 18px;
-  }
-
-  .lp-disclaimer {
-    padding: 12px 14px;
   }
 
   .lp-final-cta {
