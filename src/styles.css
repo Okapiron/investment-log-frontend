@@ -396,7 +396,9 @@ button.danger { background: var(--danger); }
 }
 
 .lp-hero-shot-b img {
-  object-position: center 14%;
+  object-fit: contain;
+  object-position: center center;
+  background: #f7fbf9;
 }
 
 .lp-hero-shot-a {
@@ -411,7 +413,7 @@ button.danger { background: var(--danger); }
 .lp-hero-shot-b {
   right: -10px;
   top: 20px;
-  transform: rotate(1.8deg);
+  transform: rotate(1deg);
   z-index: 3;
 }
 

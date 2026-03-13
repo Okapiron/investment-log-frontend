@@ -149,7 +149,7 @@ export default function LandingPage() {
                 <img src="/lp/cycle-check-detail-chart-log.png" alt="トレード詳細の画面" loading="lazy" />
               </figure>
               <figure className="lp-hero-shot lp-hero-shot-b">
-                <img src="/lp/cycle-do-new-trade.png" alt="新規トレード作成の画面" loading="lazy" />
+                <img src="/lp/cycle-act-trade-cards.png" alt="トレード一覧カードの画面" loading="lazy" />
               </figure>
             </div>
             <div className="lp-float-chip lp-float-chip-a">改善</div>
