@@ -1070,36 +1070,47 @@ export default function TradesNewPage() {
           }}
         >
           <div style={{ fontWeight: 700 }}>BUY</div>
-          <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
+          {isMobile ? (
             <input
-              type="text"
-              inputMode="numeric"
-              placeholder="YYYYMMDD（例: 20260206）"
-              value={buyDate}
-              onChange={(e) => setBuyDate(normalizeYmd(e.target.value))}
-              onBlur={() => setBuyDate((v) => normalizeYmd(v))}
-              required
-              onKeyDown={handleKeyNav}
-              style={{ flex: 1, minHeight: isMobile ? 42 : undefined }}
-            />
-            <button
-              type="button"
-              onClick={() => openDatePicker(buyDatePickerRef)}
-              style={{ ...baseButtonStyle, padding: isMobile ? '10px 12px' : '8px 10px' }}
-              title="カレンダーから選択"
-            >
-              📅
-            </button>
-            <input
-              ref={buyDatePickerRef}
               type="date"
               value={isFullYmd(buyDate) ? buyDate : ''}
               onChange={(e) => setBuyDate(e.target.value)}
-              style={{ position: 'absolute', opacity: 0, width: 1, height: 1, pointerEvents: 'none' }}
-              tabIndex={-1}
-              aria-hidden="true"
+              required
+              onKeyDown={handleKeyNav}
+              style={{ minHeight: 44, fontSize: 16 }}
             />
-          </div>
+          ) : (
+            <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
+              <input
+                type="text"
+                inputMode="numeric"
+                placeholder="YYYYMMDD（例: 20260206）"
+                value={buyDate}
+                onChange={(e) => setBuyDate(normalizeYmd(e.target.value))}
+                onBlur={() => setBuyDate((v) => normalizeYmd(v))}
+                required
+                onKeyDown={handleKeyNav}
+                style={{ flex: 1, minHeight: 42 }}
+              />
+              <button
+                type="button"
+                onClick={() => openDatePicker(buyDatePickerRef)}
+                style={{ ...baseButtonStyle, padding: '10px 12px' }}
+                title="カレンダーから選択"
+              >
+                📅
+              </button>
+              <input
+                ref={buyDatePickerRef}
+                type="date"
+                value={isFullYmd(buyDate) ? buyDate : ''}
+                onChange={(e) => setBuyDate(e.target.value)}
+                style={{ position: 'absolute', opacity: 0, width: 1, height: 1, pointerEvents: 'none' }}
+                tabIndex={-1}
+                aria-hidden="true"
+              />
+            </div>
+          )}
           <div style={{ position: 'relative' }}>
             <div
               style={{
@@ -1172,44 +1183,56 @@ export default function TradesNewPage() {
             </div>
           ) : (
             <>
-              <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
+              {isMobile ? (
                 <input
-                  type="text"
-                  inputMode="numeric"
-                  placeholder="YYYYMMDD（例: 20260206）"
-                  value={sellDate}
-                  onChange={(e) => setSellDate(normalizeYmd(e.target.value))}
-                  onBlur={() => setSellDate((v) => normalizeYmd(v))}
-                  required={!isOpen}
-                  disabled={isOpen}
-                  onKeyDown={handleKeyNav}
-                  style={{ flex: 1, minHeight: isMobile ? 42 : undefined }}
-                />
-                <button
-                  type="button"
-                  onClick={() => openDatePicker(sellDatePickerRef)}
-                  disabled={isOpen}
-                  style={{
-                    ...baseButtonStyle,
-                    padding: isMobile ? '10px 12px' : '8px 10px',
-                    cursor: isOpen ? 'not-allowed' : 'pointer',
-                    opacity: isOpen ? 0.5 : 1,
-                  }}
-                  title={isOpen ? '未売却のため選択できません' : 'カレンダーから選択'}
-                >
-                  📅
-                </button>
-                <input
-                  ref={sellDatePickerRef}
                   type="date"
                   value={isFullYmd(sellDate) ? sellDate : ''}
                   onChange={(e) => setSellDate(e.target.value)}
+                  required={!isOpen}
                   disabled={isOpen}
-                  style={{ position: 'absolute', opacity: 0, width: 1, height: 1, pointerEvents: 'none' }}
-                  tabIndex={-1}
-                  aria-hidden="true"
+                  onKeyDown={handleKeyNav}
+                  style={{ minHeight: 44, fontSize: 16 }}
                 />
-              </div>
+              ) : (
+                <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
+                  <input
+                    type="text"
+                    inputMode="numeric"
+                    placeholder="YYYYMMDD（例: 20260206）"
+                    value={sellDate}
+                    onChange={(e) => setSellDate(normalizeYmd(e.target.value))}
+                    onBlur={() => setSellDate((v) => normalizeYmd(v))}
+                    required={!isOpen}
+                    disabled={isOpen}
+                    onKeyDown={handleKeyNav}
+                    style={{ flex: 1, minHeight: 42 }}
+                  />
+                  <button
+                    type="button"
+                    onClick={() => openDatePicker(sellDatePickerRef)}
+                    disabled={isOpen}
+                    style={{
+                      ...baseButtonStyle,
+                      padding: '10px 12px',
+                      cursor: isOpen ? 'not-allowed' : 'pointer',
+                      opacity: isOpen ? 0.5 : 1,
+                    }}
+                    title={isOpen ? '未売却のため選択できません' : 'カレンダーから選択'}
+                  >
+                    📅
+                  </button>
+                  <input
+                    ref={sellDatePickerRef}
+                    type="date"
+                    value={isFullYmd(sellDate) ? sellDate : ''}
+                    onChange={(e) => setSellDate(e.target.value)}
+                    disabled={isOpen}
+                    style={{ position: 'absolute', opacity: 0, width: 1, height: 1, pointerEvents: 'none' }}
+                    tabIndex={-1}
+                    aria-hidden="true"
+                  />
+                </div>
+              )}
               <div style={{ position: 'relative' }}>
                 <div
                   style={{
