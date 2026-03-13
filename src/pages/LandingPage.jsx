@@ -3,18 +3,18 @@ import { Link } from 'react-router-dom'
 
 const differentiationProps = [
   {
-    subtitle: 'VALUE 01',
+    subtitle: 'VALUE 1',
     title: '記録で終わらない',
     body: '一覧で状況を把握し、未レビューを次の振り返りに回しやすくします。',
   },
   {
-    subtitle: 'VALUE 02',
+    subtitle: 'VALUE 2',
     title: '理由まで残せる',
     body: '売買理由・考察・自己評価まで同じ文脈で残し、後から読み返せます。',
   },
   {
-    subtitle: 'VALUE 03',
-    title: '振り返りまで1つで完結',
+    subtitle: 'VALUE 3',
+    title: '振り返りで改善につながる',
     body: '新規記録、詳細チャート確認、レビュー更新を分断せずにつなげます。',
   },
 ]
@@ -169,9 +169,11 @@ export default function LandingPage() {
             <article key={item.title} className="lp-diff-card">
               <div className="lp-diff-head">
                 <span className="lp-diff-badge">{`0${idx + 1}`}</span>
-                <span className="lp-diff-subtitle">{item.subtitle}</span>
+                <div className="lp-diff-head-text">
+                  <span className="lp-diff-subtitle">{item.subtitle}</span>
+                  <h4>{item.title}</h4>
+                </div>
               </div>
-              <h4>{item.title}</h4>
               <p>{item.body}</p>
             </article>
           ))}
@@ -179,7 +181,7 @@ export default function LandingPage() {
       </section>
 
       <section id="lp-cycle" className="lp-section lp-cycle-section lp-reveal">
-        <h3>記録から改善につながる4つの循環</h3>
+        <h3>投資成績改善への4STEPサイクル</h3>
         <p className="lp-cycle-lead">
           TradeTrace は「記録して終わり」ではなく、振り返りを次の判断へつなげることを重視しています。
         </p>
@@ -229,8 +231,8 @@ export default function LandingPage() {
 
       <section className="lp-section lp-final-cta lp-reveal">
         <span className="lp-final-kicker">Ready to Start</span>
-        <h3>まずは、記録を残すところから。</h3>
-        <p>投資の記録とレビューを続けやすくしたい方は、TradeTrace をご確認ください。</p>
+        <h3>まずは、やってみよう。</h3>
+        <p>トレード記録をきちんとつけてみたい方はぜひTradeTrace をお試しください。</p>
         <div className="lp-final-actions">
           <Link
             to="/auth?mode=signup"
