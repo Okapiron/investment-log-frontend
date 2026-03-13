@@ -3,14 +3,17 @@ import { Link } from 'react-router-dom'
 
 const differentiationProps = [
   {
+    subtitle: 'VALUE 01',
     title: '記録で終わらない',
     body: '一覧で状況を把握し、未レビューを次の振り返りに回しやすくします。',
   },
   {
+    subtitle: 'VALUE 02',
     title: '理由まで残せる',
     body: '売買理由・考察・自己評価まで同じ文脈で残し、後から読み返せます。',
   },
   {
+    subtitle: 'VALUE 03',
     title: '振り返りまで1つで完結',
     body: '新規記録、詳細チャート確認、レビュー更新を分断せずにつなげます。',
   },
@@ -107,7 +110,7 @@ export default function LandingPage() {
         <div className="lp-hero-grid">
           <div className="lp-hero-copy">
             <div className="lp-kicker">Review First Trading Journal</div>
-            <h2>投資の記録を、あとで振り返れる形に。</h2>
+            <h2>投資記録を振り返りやすく</h2>
             <p>
               TradeTrace は投資の売買記録と根拠を残し、チャートとあわせて振り返りやすくするためのサービスです。
               個人投資家が自分の判断をあとから整理し、投資の再現性を高めていくことを目指しています。
@@ -160,11 +163,14 @@ export default function LandingPage() {
       </section>
 
       <section className="lp-section lp-diff-section lp-reveal">
-        <h3>TradeTraceの違い</h3>
+        <h3>TradeTraceの生み出す価値</h3>
         <div className="lp-diff-grid">
           {differentiationProps.map((item, idx) => (
             <article key={item.title} className="lp-diff-card">
-              <span className="lp-diff-badge">{`0${idx + 1}`}</span>
+              <div className="lp-diff-head">
+                <span className="lp-diff-badge">{`0${idx + 1}`}</span>
+                <span className="lp-diff-subtitle">{item.subtitle}</span>
+              </div>
               <h4>{item.title}</h4>
               <p>{item.body}</p>
             </article>
@@ -173,7 +179,7 @@ export default function LandingPage() {
       </section>
 
       <section id="lp-cycle" className="lp-section lp-cycle-section lp-reveal">
-        <h3>記録から改善につながる、4つの循環</h3>
+        <h3>記録から改善につながる4つの循環</h3>
         <p className="lp-cycle-lead">
           TradeTrace は「記録して終わり」ではなく、振り返りを次の判断へつなげることを重視しています。
         </p>
@@ -213,9 +219,8 @@ export default function LandingPage() {
 
       <section className="lp-section lp-early-note lp-reveal">
         <h3>公開初期として改善を続けています</h3>
-        <p>
-          TradeTrace は公開初期のため、使いやすさと導線を継続的に改善しています。ご意見は X DM
-          で受け付けています。正式なお問い合わせはメールまたはフォームをご案内します。
+        <p className="lp-early-note-body">
+          TradeTrace は公開初期のため、使いやすさと導線を継続的に改善しています。ご意見は X DM で受け付けています。正式なお問い合わせはメールまたはフォームをご案内します。
         </p>
         <p className="lp-early-note-disclaimer">
           TradeTrace は投資の記録と振り返りを支援するサービスです。特定の銘柄や売買を推奨するものではありません。

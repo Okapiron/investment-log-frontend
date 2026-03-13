@@ -497,6 +497,11 @@ button.danger { background: var(--danger); }
   color: #3d5651;
 }
 
+.lp-early-note-body {
+  max-width: 780px !important;
+  line-height: 1.75 !important;
+}
+
 .lp-early-note-disclaimer {
   margin-top: 10px !important;
   padding-top: 8px;
@@ -747,6 +752,12 @@ button.danger { background: var(--danger); }
   padding: 14px;
 }
 
+.lp-diff-head {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
 .lp-diff-badge {
   display: inline-flex;
   align-items: center;
@@ -759,6 +770,13 @@ button.danger { background: var(--danger); }
   background: #ebf7f3;
   font-size: 11px;
   font-weight: 700;
+}
+
+.lp-diff-subtitle {
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  color: #52726b;
 }
 
 .lp-diff-card h4 {
