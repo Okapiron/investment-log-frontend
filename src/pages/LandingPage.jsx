@@ -157,9 +157,6 @@ export default function LandingPage() {
                 <img src="/lp/cycle-act-trade-cards.png" alt="トレード一覧カードの画面" loading="lazy" />
               </figure>
             </div>
-            <div className="lp-float-chip lp-float-chip-a">改善</div>
-            <div className="lp-float-chip lp-float-chip-b">記録</div>
-            <div className="lp-float-chip lp-float-chip-c">振り返り</div>
           </div>
         </div>
       </section>
