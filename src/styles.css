@@ -374,6 +374,8 @@ button.danger { background: var(--danger); }
 }
 
 .lp-hero-shot-main {
+  position: relative;
+  z-index: 1;
   width: 100%;
   animation: lp-float 6.4s ease-in-out infinite;
 }
@@ -398,15 +400,19 @@ button.danger { background: var(--danger); }
 }
 
 .lp-hero-shot-a {
-  left: -16px;
-  bottom: 18px;
+  left: -24px;
+  bottom: 10px;
+  width: 56%;
+  max-width: 300px;
   transform: rotate(-2deg);
+  z-index: 4;
 }
 
 .lp-hero-shot-b {
   right: -10px;
   top: 20px;
   transform: rotate(1.8deg);
+  z-index: 3;
 }
 
 .lp-float-chip {
