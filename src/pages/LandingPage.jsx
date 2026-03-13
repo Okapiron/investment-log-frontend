@@ -177,7 +177,7 @@ export default function LandingPage() {
       </section>
 
       <section id="lp-cycle" className="lp-section lp-cycle-section lp-reveal">
-        <h3>投資成績の改善へ4STEPサイクル</h3>
+        <h3>投資成績の改善へ 4STEPサイクル</h3>
         <p className="lp-cycle-lead">
           TradeTrace は「記録して終わり」ではなく、振り返りを次の判断へつなげることを重視しています。
         </p>
@@ -216,9 +216,11 @@ export default function LandingPage() {
       </section>
 
       <section className="lp-section lp-early-note lp-reveal">
-        <h3>公開初期として改善を続けています</h3>
+        <h3>貴重なレビューをお待ちしております</h3>
         <p className="lp-early-note-body">
-          TradeTrace は公開初期のため、使いやすさと導線を継続的に改善しています。ご意見は X DM で受け付けています。正式なお問い合わせはメールまたはフォームをご案内します。
+          <span>TradeTrace は公開初期のため、使いやすさと導線を継続的に改善しています。</span>
+          <span>ご意見は X DM で受け付けています。</span>
+          <span>正式なお問い合わせはメールまたはフォームをご案内します。</span>
         </p>
         <p className="lp-early-note-disclaimer">
           TradeTrace は投資の記録と振り返りを支援するサービスです。特定の銘柄や売買を推奨するものではありません。

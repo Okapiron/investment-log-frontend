@@ -500,6 +500,12 @@ button.danger { background: var(--danger); }
 .lp-early-note-body {
   max-width: 780px !important;
   line-height: 1.75 !important;
+  display: grid;
+  gap: 2px;
+}
+
+.lp-early-note-body span {
+  display: block;
 }
 
 .lp-early-note-disclaimer {
