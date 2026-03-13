@@ -384,7 +384,7 @@ button.danger { background: var(--danger); }
   width: 48%;
   min-width: 200px;
   max-width: 250px;
-  aspect-ratio: 16 / 11;
+  aspect-ratio: 16 / 12;
 }
 
 .lp-hero-shot-a img,
