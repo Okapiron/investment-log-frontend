@@ -1076,7 +1076,13 @@ export default function TradesPage() {
       {/* 一覧との区切り */}
       <div style={{ marginTop: 10, borderTop: '1px solid #eaecf0' }} />
 
-      {isLoading && <p>読み込み中…</p>}
+      {isLoading && (
+        <p style={{ lineHeight: 1.6 }}>
+          読み込み中…
+          <br />
+          表示まで少し時間がかかることがあります。
+        </p>
+      )}
       {error && <p style={{ color: 'crimson' }}>エラー: {String(error.message || error)}</p>}
 
       {!isLoading && !error && items.length === 0 && (
