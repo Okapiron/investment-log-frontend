@@ -139,6 +139,10 @@ export default function TradeDetailPage() {
   const [editPriceCheckError, setEditPriceCheckError] = useState('')
   const [editPriceCheckWarning, setEditPriceCheckWarning] = useState('')
   const [chartError, setChartError] = useState('')
+  const [isMobile, setIsMobile] = useState(() => {
+    if (typeof window === 'undefined' || typeof window.matchMedia !== 'function') return false
+    return window.matchMedia('(max-width: 767px)').matches
+  })
   const editNavRootRef = useRef(null)
   const baseButtonStyle = {
     background: '#f2f4f7',
@@ -175,6 +179,19 @@ export default function TradeDetailPage() {
     cursor: 'pointer',
     fontWeight: 600,
   }
+
+  useEffect(() => {
+    if (typeof window === 'undefined' || typeof window.matchMedia !== 'function') return undefined
+    const mq = window.matchMedia('(max-width: 767px)')
+    const onChange = (e) => setIsMobile(e.matches)
+    setIsMobile(mq.matches)
+    if (typeof mq.addEventListener === 'function') {
+      mq.addEventListener('change', onChange)
+      return () => mq.removeEventListener('change', onChange)
+    }
+    mq.addListener(onChange)
+    return () => mq.removeListener(onChange)
+  }, [])
 
   const { data, isLoading, error, refetch } = useQuery({
     queryKey: ['trade', id],
@@ -599,10 +616,10 @@ export default function TradeDetailPage() {
   }
 
   return (
-    <div ref={editNavRootRef} onKeyDownCapture={handleEditKeyNav} style={{ padding: 12, maxWidth: 1200, margin: '0 auto' }}>
+    <div ref={editNavRootRef} onKeyDownCapture={handleEditKeyNav} style={{ padding: isMobile ? 10 : 12, maxWidth: 1200, margin: '0 auto' }}>
       <div style={{ display: 'grid', gap: 8 }}>
 
-        <div style={{ display: 'grid', gridTemplateColumns: '1fr auto', alignItems: 'start', gap: 12 }}>
+        <div style={{ display: 'grid', gridTemplateColumns: isMobile ? '1fr' : '1fr auto', alignItems: 'start', gap: 12 }}>
           <div style={{ display: 'grid', gap: 6 }}>
             <h2 style={{ margin: 0, display: 'flex', alignItems: 'baseline', gap: 10, flexWrap: 'wrap' }}>
               <span
@@ -690,27 +707,27 @@ export default function TradeDetailPage() {
             ) : null}
           </div>
 
-          <div style={{ display: 'grid', justifyItems: 'end', gap: 4 }}>
-            <div style={{ display: 'flex', gap: 8, alignItems: 'center', justifyContent: 'flex-end', flexWrap: 'wrap' }}>
+          <div style={{ display: 'grid', justifyItems: isMobile ? 'stretch' : 'end', gap: 4 }}>
+            <div style={{ display: 'flex', gap: 8, alignItems: 'center', justifyContent: isMobile ? 'flex-start' : 'flex-end', flexWrap: 'wrap' }}>
             {!isEditing ? (
               <>
                 {tvExternalUrl ? (
-                  <a href={tvExternalUrl} target="_blank" rel="noreferrer" style={{ textDecoration: 'none' }}>
-                    <button type="button" style={baseButtonStyle}>TradingViewで開く</button>
+                  <a href={tvExternalUrl} target="_blank" rel="noreferrer" style={{ textDecoration: 'none', width: isMobile ? '100%' : 'auto' }}>
+                    <button type="button" style={{ ...baseButtonStyle, minHeight: isMobile ? 40 : undefined, width: isMobile ? '100%' : undefined }}>TradingViewで開く</button>
                   </a>
                 ) : (
                   <span style={{ fontSize: 12, color: '#b42318' }}>外部リンクなし</span>
                 )}
 
-                <Link to="/trades" style={{ textDecoration: 'none' }}>
-                  <button style={baseButtonStyle}>← 一覧へ</button>
+                <Link to="/trades" style={{ textDecoration: 'none', width: isMobile ? '100%' : 'auto' }}>
+                  <button style={{ ...baseButtonStyle, minHeight: isMobile ? 40 : undefined, width: isMobile ? '100%' : undefined }}>← 一覧へ</button>
                 </Link>
 
-                <button onClick={startEdit} style={baseButtonStyle}>編集</button>
+                <button onClick={startEdit} style={{ ...baseButtonStyle, minHeight: isMobile ? 40 : undefined, width: isMobile ? '100%' : undefined }}>編集</button>
 
                 <button
                   onClick={deleteTrade}
-                  style={dangerButtonStyle}
+                  style={{ ...dangerButtonStyle, minHeight: isMobile ? 40 : undefined, width: isMobile ? '100%' : undefined }}
                   title="削除"
                 >
                   削除
@@ -722,12 +739,12 @@ export default function TradeDetailPage() {
                   onClick={saveAll}
                   disabled={Boolean(saveDisabledReason)}
                   title={saveDisabledReason || ''}
-                  style={{ ...primaryButtonStyle, opacity: saveDisabledReason ? 0.55 : 1, cursor: saveDisabledReason ? 'not-allowed' : 'pointer' }}
+                  style={{ ...primaryButtonStyle, opacity: saveDisabledReason ? 0.55 : 1, cursor: saveDisabledReason ? 'not-allowed' : 'pointer', minHeight: isMobile ? 40 : undefined, width: isMobile ? '100%' : undefined }}
                 >
                   保存
                 </button>
-                <button onClick={cancelEdit} style={baseButtonStyle}>キャンセル</button>
-                <button onClick={deleteTrade} style={dangerButtonStyle}>削除</button>
+                <button onClick={cancelEdit} style={{ ...baseButtonStyle, minHeight: isMobile ? 40 : undefined, width: isMobile ? '100%' : undefined }}>キャンセル</button>
+                <button onClick={deleteTrade} style={{ ...dangerButtonStyle, minHeight: isMobile ? 40 : undefined, width: isMobile ? '100%' : undefined }}>削除</button>
               </>
             )}
             </div>
@@ -745,7 +762,7 @@ export default function TradeDetailPage() {
 
       </div>
 
-      <div style={{ marginTop: 10, display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12, alignItems: 'stretch' }}>
+      <div style={{ marginTop: 10, display: 'grid', gridTemplateColumns: isMobile ? '1fr' : '1fr 1fr', gap: 12, alignItems: 'stretch' }}>
       {/* 売買データ */}
       <div style={{ marginTop: 0, border: '1px solid #ddd', borderRadius: 12, padding: 10, height: '100%', background: '#fff', fontSize: 15, color: '#111' }}>
         
@@ -764,25 +781,47 @@ export default function TradeDetailPage() {
         <div style={{ height: 1, background: '#eee', marginBottom: 10 }} />
 
           {!isEditing ? (
-            <div style={{ display: 'grid', gap: 8, fontSize: 15, color: '#111', paddingLeft: 10 }}>
-              <div style={{ display: 'grid', gridTemplateColumns: '52px 1fr', gap: 8, alignItems: 'baseline' }}>
-                <b>BUY</b>
-                <span style={{ fontSize: 15, fontWeight: 700, color: '#000' }}>
-                  {buy?.date || '—'} / {fmtMoney(buy?.price)} × {buy?.qty ?? '—'}
-                </span>
+            <div style={{ display: 'grid', gap: 8, fontSize: 15, color: '#111', paddingLeft: isMobile ? 0 : 10 }}>
+              <div style={{ display: 'grid', gap: 6, border: '1px solid #eaecf0', borderRadius: 10, padding: isMobile ? 10 : '8px 10px', background: '#fcfdfd' }}>
+                <b style={{ fontSize: 14 }}>BUY</b>
+                <div style={{ display: 'grid', gap: 4 }}>
+                  <div style={{ display: 'grid', gridTemplateColumns: isMobile ? '64px 1fr' : '56px 1fr', gap: 8 }}>
+                    <span style={{ fontSize: 12, color: '#667085', fontWeight: 700 }}>日付</span>
+                    <span style={{ fontSize: 14, fontWeight: 600, color: '#111' }}>{buy?.date || '—'}</span>
+                  </div>
+                  <div style={{ display: 'grid', gridTemplateColumns: isMobile ? '64px 1fr' : '56px 1fr', gap: 8 }}>
+                    <span style={{ fontSize: 12, color: '#667085', fontWeight: 700 }}>価格</span>
+                    <span style={{ fontSize: 14, fontWeight: 600, color: '#111' }}>{fmtMoney(buy?.price)}</span>
+                  </div>
+                  <div style={{ display: 'grid', gridTemplateColumns: isMobile ? '64px 1fr' : '56px 1fr', gap: 8 }}>
+                    <span style={{ fontSize: 12, color: '#667085', fontWeight: 700 }}>数量</span>
+                    <span style={{ fontSize: 14, fontWeight: 600, color: '#111' }}>{buy?.qty ?? '—'}</span>
+                  </div>
+                </div>
               </div>
-              <div style={{ display: 'grid', gridTemplateColumns: '52px 1fr', gap: 8, alignItems: 'baseline' }}>
-                <b>SELL</b>
-                <span style={{ fontSize: 15, fontWeight: 700, color: '#000' }}>
-                  {isOpen ? '—' : `${sell?.date || '—'} / ${fmtMoney(sell?.price)} × ${sell?.qty ?? '—'}`}
-                </span>
+              <div style={{ display: 'grid', gap: 6, border: '1px solid #eaecf0', borderRadius: 10, padding: isMobile ? 10 : '8px 10px', background: '#fcfdfd' }}>
+                <b style={{ fontSize: 14 }}>SELL</b>
+                <div style={{ display: 'grid', gap: 4 }}>
+                  <div style={{ display: 'grid', gridTemplateColumns: isMobile ? '64px 1fr' : '56px 1fr', gap: 8 }}>
+                    <span style={{ fontSize: 12, color: '#667085', fontWeight: 700 }}>日付</span>
+                    <span style={{ fontSize: 14, fontWeight: 600, color: '#111' }}>{isOpen ? '—' : (sell?.date || '—')}</span>
+                  </div>
+                  <div style={{ display: 'grid', gridTemplateColumns: isMobile ? '64px 1fr' : '56px 1fr', gap: 8 }}>
+                    <span style={{ fontSize: 12, color: '#667085', fontWeight: 700 }}>価格</span>
+                    <span style={{ fontSize: 14, fontWeight: 600, color: '#111' }}>{isOpen ? '—' : fmtMoney(sell?.price)}</span>
+                  </div>
+                  <div style={{ display: 'grid', gridTemplateColumns: isMobile ? '64px 1fr' : '56px 1fr', gap: 8 }}>
+                    <span style={{ fontSize: 12, color: '#667085', fontWeight: 700 }}>数量</span>
+                    <span style={{ fontSize: 14, fontWeight: 600, color: '#111' }}>{isOpen ? '—' : (sell?.qty ?? '—')}</span>
+                  </div>
+                </div>
               </div>
             </div>
           ) : (
-            <div style={{ display: 'grid', gap: 12, paddingLeft: 10 }}>
+            <div style={{ display: 'grid', gap: 12, paddingLeft: isMobile ? 0 : 10 }}>
               <div style={{ display: 'grid', gap: 8 }}>
                 <b>BUY</b>
-                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: 8 }}>
+                <div style={{ display: 'grid', gridTemplateColumns: isMobile ? '1fr' : '1fr 1fr 1fr', gap: 8 }}>
                   <input
                     type="date"
                     value={form.buy_date}
@@ -830,7 +869,7 @@ export default function TradeDetailPage() {
                   />
                   保有中
                 </label>
-                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: 8 }}>
+                <div style={{ display: 'grid', gridTemplateColumns: isMobile ? '1fr' : '1fr 1fr 1fr', gap: 8 }}>
                   <input
                     type="date"
                     value={form.sell_date}
@@ -891,22 +930,22 @@ export default function TradeDetailPage() {
           </h3>
           <div style={{ height: 1, background: '#eee', marginBottom: 10 }} />
 
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, minmax(0, 1fr))', gap: 10, alignItems: 'start', paddingLeft: 10 }}>
+          <div style={{ display: 'grid', gridTemplateColumns: isMobile ? 'repeat(2, minmax(0, 1fr))' : 'repeat(4, minmax(0, 1fr))', gap: isMobile ? 12 : 10, alignItems: 'start', paddingLeft: isMobile ? 0 : 10 }}>
             <div>
               <div style={{ fontWeight: 700, fontSize: 13, opacity: 0.75 }}>損益</div>
-              <div style={{ fontSize: 16, fontWeight: 700, color: profitColor }}>{profitLabel}</div>
+              <div style={{ fontSize: isMobile ? 18 : 16, fontWeight: 700, color: profitColor, lineHeight: 1.25 }}>{profitLabel}</div>
             </div>
             <div>
               <div style={{ fontWeight: 700, fontSize: 13, opacity: 0.75 }}>損益率</div>
-              <div style={{ fontSize: 16, fontWeight: 700, color: profitRateColor }}>{profitRateLabel}</div>
+              <div style={{ fontSize: isMobile ? 18 : 16, fontWeight: 700, color: profitRateColor, lineHeight: 1.25 }}>{profitRateLabel}</div>
             </div>
             <div>
               <div style={{ fontWeight: 700, fontSize: 13, opacity: 0.75 }}>保有日数</div>
-              <div style={{ fontSize: 16, fontWeight: 700 }}>{isOpen ? '—' : `${data.holding_days ?? '—'} 日`}</div>
+              <div style={{ fontSize: isMobile ? 18 : 16, fontWeight: 700, lineHeight: 1.25 }}>{isOpen ? '—' : `${data.holding_days ?? '—'} 日`}</div>
             </div>
             <div>
               <div style={{ fontWeight: 700, fontSize: 13, opacity: 0.75 }}>評価</div>
-              <div style={{ fontSize: 14 }}>
+              <div style={{ fontSize: isMobile ? 16 : 14, lineHeight: 1.25 }}>
                 <Rating value={data.rating} />
               </div>
             </div>
@@ -990,7 +1029,7 @@ export default function TradeDetailPage() {
 
       {/* チャート */}
       <div style={{ marginTop: 10, border: '1px solid #ddd', borderRadius: 12, padding: 10, background: '#fff', fontSize: 15, color: '#111' }}>
-        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 8, flexWrap: 'wrap' }}>
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: isMobile ? 'stretch' : 'center', gap: 8, flexWrap: 'wrap', flexDirection: isMobile ? 'column' : 'row' }}>
           <h3
             style={{
               marginTop: 0,
@@ -1003,8 +1042,8 @@ export default function TradeDetailPage() {
           >
             チャート
           </h3>
-          <div style={{ display: 'flex', gap: 6, alignItems: 'center', flexWrap: 'wrap' }}>
-            <div style={{ display: 'flex', gap: 6, alignItems: 'center' }}>
+          <div style={{ display: 'flex', gap: 6, alignItems: 'center', flexWrap: 'wrap', width: isMobile ? '100%' : 'auto' }}>
+            <div style={{ display: 'flex', gap: 6, alignItems: 'center', flexWrap: 'wrap' }}>
               {CHART_INTERVAL_OPTIONS.map((opt) => {
                 const active = interval === opt.value
                 return (
@@ -1019,6 +1058,7 @@ export default function TradeDetailPage() {
                     }}
                     style={{
                       ...chartControlButtonStyle,
+                      minHeight: isMobile ? 34 : chartControlButtonStyle.height,
                       background: active ? '#344054' : chartControlButtonStyle.background,
                       color: active ? '#fff' : chartControlButtonStyle.color,
                       border: active ? '1px solid #344054' : chartControlButtonStyle.border,
@@ -1038,6 +1078,7 @@ export default function TradeDetailPage() {
               }}
               style={{
                 ...chartControlButtonStyle,
+                minHeight: isMobile ? 34 : chartControlButtonStyle.height,
                 marginLeft: 4,
               }}
             >
@@ -1053,7 +1094,7 @@ export default function TradeDetailPage() {
             <div style={{ color: '#b42318', fontSize: 15 }}>チャートを表示できませんでした</div>
           </div>
         ) : (
-          <div style={{ position: 'relative', width: '100%', height: 420, overflow: 'hidden', borderRadius: 8 }}>
+          <div style={{ position: 'relative', width: '100%', height: isMobile ? 320 : 420, overflow: 'hidden', borderRadius: 8 }}>
             <TradeChart
               bars={allBars}
               buyFill={buy}
@@ -1083,9 +1124,9 @@ export default function TradeDetailPage() {
         </h3>
         <div style={{ height: 1, background: '#eee', marginBottom: 12 }} />
 
-        <div style={{ display: 'grid', gap: 10, paddingLeft: 10 }}>
+        <div style={{ display: 'grid', gap: 10, paddingLeft: isMobile ? 0 : 10 }}>
           {/* 購入理由 */}
-          <div style={{ display: 'grid', gridTemplateColumns: '84px 1fr', gap: 10, alignItems: 'start' }}>
+          <div style={{ display: 'grid', gridTemplateColumns: isMobile ? '1fr' : '84px 1fr', gap: isMobile ? 6 : 10, alignItems: 'start' }}>
             <div style={{ fontSize: 14, fontWeight: 800, color: '#667085', paddingTop: 2 }}>購入理由</div>
             {!isEditing ? (
               <div style={{ whiteSpace: 'pre-wrap', color: '#111', lineHeight: 1.6 }}>{data.notes_buy || '—'}</div>
@@ -1103,7 +1144,7 @@ export default function TradeDetailPage() {
           <div style={{ height: 1, background: '#eee' }} />
 
           {/* 売却理由 */}
-          <div style={{ display: 'grid', gridTemplateColumns: '84px 1fr', gap: 10, alignItems: 'start', opacity: isEditing && editIsOpen ? 0.6 : 1 }}>
+          <div style={{ display: 'grid', gridTemplateColumns: isMobile ? '1fr' : '84px 1fr', gap: isMobile ? 6 : 10, alignItems: 'start', opacity: isEditing && editIsOpen ? 0.6 : 1 }}>
             <div style={{ fontSize: 14, fontWeight: 800, color: '#667085', paddingTop: 2 }}>売却理由</div>
             {!isEditing ? (
               <div style={{ whiteSpace: 'pre-wrap', color: '#111', lineHeight: 1.6 }}>{data.notes_sell || '—'}</div>
@@ -1122,7 +1163,7 @@ export default function TradeDetailPage() {
           <div style={{ height: 1, background: '#eee' }} />
 
           {/* 考察 */}
-          <div style={{ display: 'grid', gridTemplateColumns: '84px 1fr', gap: 10, alignItems: 'start', opacity: isEditing && editIsOpen ? 0.6 : 1 }}>
+          <div style={{ display: 'grid', gridTemplateColumns: isMobile ? '1fr' : '84px 1fr', gap: isMobile ? 6 : 10, alignItems: 'start', opacity: isEditing && editIsOpen ? 0.6 : 1 }}>
             <div style={{ fontSize: 14, fontWeight: 800, color: '#667085', paddingTop: 2 }}>考察</div>
             {!isEditing ? (
               <div style={{ whiteSpace: 'pre-wrap', color: '#111', lineHeight: 1.6 }}>{data.notes_review || '—'}</div>
