@@ -174,6 +174,10 @@ export default function TradeDetailPage() {
   }
   const detailDateInputStyle = {
     width: '100%',
+    maxWidth: '100%',
+    minWidth: 0,
+    boxSizing: 'border-box',
+    display: 'block',
     minHeight: 44,
     fontSize: 16,
     borderRadius: 10,
