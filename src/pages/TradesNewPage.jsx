@@ -245,16 +245,20 @@ export default function TradesNewPage() {
     borderRadius: 10,
     border: '1px solid #cfd8d3',
     background: '#fff',
-    padding: '10px 12px',
+    padding: '10px 44px 10px 12px',
   }
   const mobileDateHintStyle = {
     position: 'absolute',
     left: 12,
+    right: 44,
     top: '50%',
     transform: 'translateY(-50%)',
     fontSize: 14,
     color: '#667085',
     pointerEvents: 'none',
+    whiteSpace: 'nowrap',
+    overflow: 'hidden',
+    textOverflow: 'ellipsis',
   }
   // Load instrument cache (履歴ゼロでも入力を回すため)
   useEffect(() => {
