@@ -28,8 +28,8 @@ export default function SnapshotsPage() {
   const saveMutation = useMutation({
     mutationFn: async (payload) => {
       const nextErrors = {}
-      if (!payload.month) nextErrors.month = 'monthは必須です'
-      if (!payload.asset_id) nextErrors.asset_id = 'assetは必須です'
+      if (!payload.month) nextErrors.month = '対象月は必須です'
+      if (!payload.asset_id) nextErrors.asset_id = '資産は必須です'
       if (payload.value_jpy === '' || Number(payload.value_jpy) < 0) nextErrors.value_jpy = '0以上の整数を入力してください'
       setErrors(nextErrors)
       if (Object.keys(nextErrors).length > 0) throw new Error('入力を確認してください')
@@ -59,19 +59,19 @@ export default function SnapshotsPage() {
 
   const columns = useMemo(
     () => [
-      { key: 'month', label: 'Month' },
+      { key: 'month', label: '対象月' },
       {
         key: 'account_id',
-        label: 'Account',
+        label: '口座',
         render: (v) => accounts.find((a) => a.id === v)?.name || v,
       },
       {
         key: 'asset_id',
-        label: 'Asset',
+        label: '資産',
         render: (v) => assets.find((a) => a.id === v)?.name || v,
       },
-      { key: 'value_jpy', label: 'Value', render: (v) => formatJPY(v) },
-      { key: 'memo', label: 'Memo' },
+      { key: 'value_jpy', label: '評価額', render: (v) => formatJPY(v) },
+      { key: 'memo', label: 'メモ' },
     ],
     [accounts, assets],
   )
@@ -88,17 +88,17 @@ export default function SnapshotsPage() {
 
   return (
     <section>
-      <h2>Snapshots</h2>
+      <h2>スナップショット</h2>
 
       <div className="filters">
         <label>
-          Month
+          対象月
           <input type="month" value={filter.month} onChange={(e) => setFilter((p) => ({ ...p, month: e.target.value }))} />
         </label>
         <label>
-          Account
+          口座
           <select value={filter.account_id} onChange={(e) => setFilter((p) => ({ ...p, account_id: e.target.value }))}>
-            <option value="">All</option>
+            <option value="">すべて</option>
             {accounts.map((a) => (
               <option key={a.id} value={a.id}>
                 {a.name}
@@ -107,9 +107,9 @@ export default function SnapshotsPage() {
           </select>
         </label>
         <label>
-          Asset
+          資産
           <select value={filter.asset_id} onChange={(e) => setFilter((p) => ({ ...p, asset_id: e.target.value }))}>
-            <option value="">All</option>
+            <option value="">すべて</option>
             {assets.map((a) => (
               <option key={a.id} value={a.id}>
                 {a.name}
@@ -121,14 +121,14 @@ export default function SnapshotsPage() {
 
       <form className="form-grid" onSubmit={onSubmit}>
         <label>
-          Month *
+          対象月 *
           <input type="month" value={form.month} onChange={(e) => setForm((p) => ({ ...p, month: e.target.value }))} />
           {errors.month && <span className="field-error">{errors.month}</span>}
         </label>
         <label>
-          Asset *
+          資産 *
           <select value={form.asset_id} onChange={(e) => setForm((p) => ({ ...p, asset_id: e.target.value }))}>
-            <option value="">Select</option>
+            <option value="">選択してください</option>
             {assets.map((a) => (
               <option key={a.id} value={a.id}>
                 {a.name}
@@ -138,7 +138,7 @@ export default function SnapshotsPage() {
           {errors.asset_id && <span className="field-error">{errors.asset_id}</span>}
         </label>
         <label>
-          Value JPY *
+          評価額（JPY）*
           <input
             type="number"
             min="0"
@@ -148,11 +148,11 @@ export default function SnapshotsPage() {
           {errors.value_jpy && <span className="field-error">{errors.value_jpy}</span>}
         </label>
         <label>
-          Memo
+          メモ
           <input value={form.memo} onChange={(e) => setForm((p) => ({ ...p, memo: e.target.value }))} />
         </label>
         <div className="button-row">
-          <button type="submit">{editingId ? 'Update' : 'Create'}</button>
+          <button type="submit">{editingId ? '更新' : '作成'}</button>
           {editingId && (
             <button
               type="button"
@@ -163,7 +163,7 @@ export default function SnapshotsPage() {
                 setApiError('')
               }}
             >
-              Cancel
+              キャンセル
             </button>
           )}
         </div>

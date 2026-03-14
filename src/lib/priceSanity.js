@@ -145,7 +145,7 @@ export async function assessPriceSanityAgainstDailyBars({ market, symbol, buyDat
     warnings.push(
       ...collectDateWarningsByMarket({
         market: normalizedMarket,
-        sideLabel: 'BUY',
+        sideLabel: '買付',
         inputDate: buyDate,
         exactBar: buyRef.exactBar,
         fallbackBar: buyRef.fallbackBar,
@@ -155,7 +155,7 @@ export async function assessPriceSanityAgainstDailyBars({ market, symbol, buyDat
     if (buyBar) {
       const buyMessage = validateOneSide({
         market: normalizedMarket,
-        sideLabel: 'BUY',
+        sideLabel: '買付',
         date: buyBar.time,
         inputPrice: Number(buyPrice),
         bar: buyBar,
@@ -169,7 +169,7 @@ export async function assessPriceSanityAgainstDailyBars({ market, symbol, buyDat
       warnings.push(
         ...collectDateWarningsByMarket({
           market: normalizedMarket,
-          sideLabel: 'SELL',
+          sideLabel: '売却',
           inputDate: sellDate,
           exactBar: sellRef.exactBar,
           fallbackBar: sellRef.fallbackBar,
@@ -179,7 +179,7 @@ export async function assessPriceSanityAgainstDailyBars({ market, symbol, buyDat
       if (sellBar) {
         const sellMessage = validateOneSide({
           market: normalizedMarket,
-          sideLabel: 'SELL',
+          sideLabel: '売却',
           date: sellBar.time,
           inputPrice: Number(sellPrice),
           bar: sellBar,

@@ -5,6 +5,14 @@ import CrudTable from '../components/CrudTable'
 import { api } from '../lib/api'
 
 const types = ['cash', 'stock', 'fund', 'bond', 'crypto', 'other']
+const typeLabels = {
+  cash: '現金',
+  stock: '株式',
+  fund: '投資信託',
+  bond: '債券',
+  crypto: '暗号資産',
+  other: 'その他',
+}
 const initialForm = {
   account_id: '',
   name: '',
@@ -36,10 +44,10 @@ export default function AssetsPage() {
   const saveMutation = useMutation({
     mutationFn: async (payload) => {
       const nextErrors = {}
-      if (!payload.account_id) nextErrors.account_id = 'accountは必須です'
-      if (!payload.name.trim()) nextErrors.name = 'nameは必須です'
-      if (!payload.asset_type) nextErrors.asset_type = 'asset_typeは必須です'
-      if (!payload.currency.trim()) nextErrors.currency = 'currencyは必須です'
+      if (!payload.account_id) nextErrors.account_id = '口座は必須です'
+      if (!payload.name.trim()) nextErrors.name = '資産名は必須です'
+      if (!payload.asset_type) nextErrors.asset_type = '種別は必須です'
+      if (!payload.currency.trim()) nextErrors.currency = '通貨は必須です'
       setErrors(nextErrors)
       if (Object.keys(nextErrors).length > 0) throw new Error('入力を確認してください')
 
@@ -66,14 +74,14 @@ export default function AssetsPage() {
     () => [
       {
         key: 'account_id',
-        label: 'Account',
+        label: '口座',
         render: (v) => accounts.find((a) => a.id === v)?.name || v,
       },
-      { key: 'name', label: 'Name' },
-      { key: 'asset_type', label: 'Type' },
-      { key: 'currency', label: 'Currency' },
-      { key: 'display_order', label: 'Order' },
-      { key: 'is_active', label: 'Active', render: (v) => (v ? 'Yes' : 'No') },
+      { key: 'name', label: '資産名' },
+      { key: 'asset_type', label: '種別', render: (v) => typeLabels[v] || v },
+      { key: 'currency', label: '通貨' },
+      { key: 'display_order', label: '表示順' },
+      { key: 'is_active', label: '状態', render: (v) => (v ? '有効' : '無効') },
     ],
     [accounts],
   )
@@ -93,13 +101,13 @@ export default function AssetsPage() {
 
   return (
     <section>
-      <h2>Assets</h2>
+      <h2>資産</h2>
 
       <div className="filters">
         <label>
-          Account
+          口座
           <select value={filter.account_id} onChange={(e) => setFilter((p) => ({ ...p, account_id: e.target.value }))}>
-            <option value="">All</option>
+            <option value="">すべて</option>
             {accounts.map((a) => (
               <option key={a.id} value={a.id}>
                 {a.name}
@@ -108,12 +116,12 @@ export default function AssetsPage() {
           </select>
         </label>
         <label>
-          Type
+          種別
           <select value={filter.asset_type} onChange={(e) => setFilter((p) => ({ ...p, asset_type: e.target.value }))}>
-            <option value="">All</option>
+            <option value="">すべて</option>
             {types.map((t) => (
               <option key={t} value={t}>
-                {t}
+                {typeLabels[t] || t}
               </option>
             ))}
           </select>
@@ -122,9 +130,9 @@ export default function AssetsPage() {
 
       <form className="form-grid" onSubmit={onSubmit}>
         <label>
-          Account *
+          口座 *
           <select value={form.account_id} onChange={(e) => setForm((p) => ({ ...p, account_id: e.target.value }))}>
-            <option value="">Select</option>
+            <option value="">選択してください</option>
             {accounts.map((a) => (
               <option key={a.id} value={a.id}>
                 {a.name}
@@ -134,36 +142,36 @@ export default function AssetsPage() {
           {errors.account_id && <span className="field-error">{errors.account_id}</span>}
         </label>
         <label>
-          Name *
+          資産名 *
           <input value={form.name} onChange={(e) => setForm((p) => ({ ...p, name: e.target.value }))} />
           {errors.name && <span className="field-error">{errors.name}</span>}
         </label>
         <label>
-          Type *
+          種別 *
           <select value={form.asset_type} onChange={(e) => setForm((p) => ({ ...p, asset_type: e.target.value }))}>
             {types.map((t) => (
               <option key={t} value={t}>
-                {t}
+                {typeLabels[t] || t}
               </option>
             ))}
           </select>
           {errors.asset_type && <span className="field-error">{errors.asset_type}</span>}
         </label>
         <label>
-          Currency *
+          通貨 *
           <input value={form.currency} onChange={(e) => setForm((p) => ({ ...p, currency: e.target.value }))} />
           {errors.currency && <span className="field-error">{errors.currency}</span>}
         </label>
         <label>
-          Ticker
+          ティッカー
           <input value={form.ticker} onChange={(e) => setForm((p) => ({ ...p, ticker: e.target.value }))} />
         </label>
         <label>
-          Note
+          メモ
           <input value={form.note} onChange={(e) => setForm((p) => ({ ...p, note: e.target.value }))} />
         </label>
         <label>
-          Display Order
+          表示順
           <input
             type="number"
             value={form.display_order}
@@ -176,10 +184,10 @@ export default function AssetsPage() {
             checked={form.is_active}
             onChange={(e) => setForm((p) => ({ ...p, is_active: e.target.checked }))}
           />
-          Active
+          有効
         </label>
         <div className="button-row">
-          <button type="submit">{editingId ? 'Update' : 'Create'}</button>
+          <button type="submit">{editingId ? '更新' : '作成'}</button>
           {editingId && (
             <button
               type="button"
@@ -190,7 +198,7 @@ export default function AssetsPage() {
                 setApiError('')
               }}
             >
-              Cancel
+              キャンセル
             </button>
           )}
         </div>

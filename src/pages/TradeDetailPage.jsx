@@ -406,17 +406,17 @@ export default function TradeDetailPage() {
     const { hasAnySell, hasAllSell, sellDate } = getSellCompletion(form)
 
     if (!isYmd(buyDate)) return 'BUY日付は YYYY-MM-DD 形式で入力してください'
-    const buyPriceError = marketPriceValidationError(data?.market, form.buy_price, 'BUY価格')
+    const buyPriceError = marketPriceValidationError(data?.market, form.buy_price, '買付価格')
     if (buyPriceError) return buyPriceError
-    if (!Number.isFinite(buyQty) || buyQty <= 0) return 'BUY数量は 1 以上で入力してください'
+    if (!Number.isFinite(buyQty) || buyQty <= 0) return '買付数量は 1 以上で入力してください'
 
-    if (!editIsOpen && !hasAllSell) return '売却済トレードを保存するには SELL日付・SELL価格・SELL数量が必要です'
-    if (hasAnySell && !hasAllSell) return 'SELL日付・SELL価格・SELL数量は3つとも入力してください'
+    if (!editIsOpen && !hasAllSell) return '売却済トレードを保存するには 売却日付・売却価格・売却数量 が必要です'
+    if (hasAnySell && !hasAllSell) return '売却日付・売却価格・売却数量は3つとも入力してください'
     if (hasAllSell) {
-      if (!isYmd(sellDate)) return 'SELL日付は YYYY-MM-DD 形式で入力してください'
-      const sellPriceError = marketPriceValidationError(data?.market, form.sell_price, 'SELL価格')
+      if (!isYmd(sellDate)) return '売却日付は YYYY-MM-DD 形式で入力してください'
+      const sellPriceError = marketPriceValidationError(data?.market, form.sell_price, '売却価格')
       if (sellPriceError) return sellPriceError
-      if (!Number.isFinite(sellQty) || sellQty <= 0) return 'SELL数量は 1 以上で入力してください'
+      if (!Number.isFinite(sellQty) || sellQty <= 0) return '売却数量は 1 以上で入力してください'
     }
 
     return ''
@@ -897,7 +897,7 @@ export default function TradeDetailPage() {
           {showTradeDataContent && !isEditing ? (
             <div style={{ display: 'grid', gap: 8, fontSize: 15, color: '#111', paddingLeft: isMobile ? 0 : 10 }}>
               <div style={{ display: 'grid', gap: 6, border: '1px solid #eaecf0', borderRadius: 10, padding: isMobile ? 10 : '8px 10px', background: '#fcfdfd' }}>
-                <b style={{ fontSize: 14 }}>BUY</b>
+                <b style={{ fontSize: 14 }}>買付</b>
                 <div style={{ display: 'grid', gap: 4 }}>
                   <div style={{ display: 'grid', gridTemplateColumns: isMobile ? '64px 1fr' : '56px 1fr', gap: 8 }}>
                     <span style={{ fontSize: 12, color: '#667085', fontWeight: 700 }}>日付</span>
@@ -914,7 +914,7 @@ export default function TradeDetailPage() {
                 </div>
               </div>
               <div style={{ display: 'grid', gap: 6, border: '1px solid #eaecf0', borderRadius: 10, padding: isMobile ? 10 : '8px 10px', background: '#fcfdfd' }}>
-                <b style={{ fontSize: 14 }}>SELL</b>
+                <b style={{ fontSize: 14 }}>売却</b>
                 <div style={{ display: 'grid', gap: 4 }}>
                   <div style={{ display: 'grid', gridTemplateColumns: isMobile ? '64px 1fr' : '56px 1fr', gap: 8 }}>
                     <span style={{ fontSize: 12, color: '#667085', fontWeight: 700 }}>日付</span>
@@ -934,7 +934,7 @@ export default function TradeDetailPage() {
           ) : showTradeDataContent ? (
             <div style={{ display: 'grid', gap: 12, paddingLeft: isMobile ? 0 : 10 }}>
               <div style={{ display: 'grid', gap: 8 }}>
-                <b>BUY</b>
+                <b>買付</b>
                 <div style={{ display: 'grid', gridTemplateColumns: isMobile ? '1fr' : '1fr 1fr 1fr', gap: 8 }}>
                   {renderEditDateInput({
                     value: form.buy_date,
@@ -946,7 +946,7 @@ export default function TradeDetailPage() {
                     inputMode={marketPriceInputMode(data?.market)}
                     value={form.buy_price}
                     onChange={(e) => setForm((p) => ({ ...p, buy_price: normalizePriceInputByMarket(data?.market, e.target.value) }))}
-                    placeholder="BUY価格"
+                    placeholder="買付価格"
                   />
                   <input
                     type="number"
@@ -960,12 +960,12 @@ export default function TradeDetailPage() {
                         sell_qty: editIsOpen ? p.sell_qty : e.target.value,
                       }))
                     }
-                    placeholder="BUY数量"
+                    placeholder="買付数量"
                   />
                 </div>
               </div>
               <div style={{ display: 'grid', gap: 8 }}>
-                <b>SELL</b>
+                <b>売却</b>
                 <label style={{ display: 'inline-flex', alignItems: 'center', gap: 8, fontSize: 13, color: '#344054' }}>
                   <input
                     type="checkbox"
@@ -994,7 +994,7 @@ export default function TradeDetailPage() {
                     inputMode={marketPriceInputMode(data?.market)}
                     value={form.sell_price}
                     onChange={(e) => setForm((p) => ({ ...p, sell_price: normalizePriceInputByMarket(data?.market, e.target.value) }))}
-                    placeholder="SELL価格"
+                    placeholder="売却価格"
                     disabled={editIsOpen}
                     style={{ opacity: editIsOpen ? 0.6 : 1 }}
                   />
@@ -1010,14 +1010,14 @@ export default function TradeDetailPage() {
                         buy_qty: editIsOpen ? p.buy_qty : e.target.value,
                       }))
                     }
-                    placeholder="SELL数量"
+                    placeholder="売却数量"
                     disabled={editIsOpen}
                     style={{ opacity: editIsOpen ? 0.6 : 1 }}
                   />
                 </div>
                 {editIsOpen ? (
                   <div style={{ fontSize: 12, color: '#667085' }}>
-                    保有中で保存するため SELL は入力不可です。売却済に戻すには保有中をOFFにして SELL日付・SELL価格・SELL数量を入力してください。
+                    保有中で保存するため売却は入力不可です。売却済に戻すには保有中をOFFにして 売却日付・売却価格・売却数量 を入力してください。
                   </div>
                 ) : null}
               </div>
@@ -1206,7 +1206,7 @@ export default function TradeDetailPage() {
                 marginLeft: 4,
               }}
             >
-              Reset
+              リセット
             </button>
           </div>
         </div>

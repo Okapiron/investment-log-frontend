@@ -225,7 +225,7 @@ function formatRoiPct(t) {
 }
 
 const SORT_OPTIONS = [
-  { value: 'status', label: 'Status' },
+  { value: 'status', label: '状態' },
   { value: 'buy_date', label: '購入日' },
   { value: 'sell_date', label: '売却日' },
   { value: 'name', label: '銘柄名' },
@@ -355,7 +355,7 @@ export default function TradesPage() {
     }
   }, [isMobile])
 
-  // Market/Rating/Tag/Sort は即時 URL 更新（履歴を残す）
+  // 市場/評価/タグ/並び替え は即時 URL 更新（履歴を残す）
   useEffect(() => {
     const next = new URLSearchParams(searchParams)
 
@@ -510,17 +510,17 @@ export default function TradesPage() {
 
   const activeLabel = useMemo(() => {
     const parts = []
-    if (marketFilters.length > 0) parts.push(`Market:${marketFilters.join(',')}`)
+    if (marketFilters.length > 0) parts.push(`市場:${marketFilters.join(',')}`)
     if (ratingFilters.length > 0) parts.push(`評価:${ratingFilters.join(',')}`)
-    if (tagFilters.length > 0) parts.push(`Tag:${tagFilters.join(',')}`)
-    if (search.trim()) parts.push(`Search:"${search.trim()}"`)
+    if (tagFilters.length > 0) parts.push(`タグ:${tagFilters.join(',')}`)
+    if (search.trim()) parts.push(`検索:"${search.trim()}"`)
     if (winOnly) parts.push('利確のみ')
     if (lossOnly) parts.push('損切りのみ')
-    if (statusFilter === 'open') parts.push('Status:保有中')
-    if (statusFilter === 'pending') parts.push('Status:未レビュー')
-    if (statusFilter === 'complete') parts.push('Status:レビュー済')
-    if (winFrom || winTo) parts.push(`Period:${winFrom || '—'}〜${winTo || '—'}`)
-    parts.push(`Sort:${sortLabel}(${sortDir === 'asc' ? '昇順' : '降順'})`)
+    if (statusFilter === 'open') parts.push('状態:保有中')
+    if (statusFilter === 'pending') parts.push('状態:未レビュー')
+    if (statusFilter === 'complete') parts.push('状態:レビュー済')
+    if (winFrom || winTo) parts.push(`期間:${winFrom || '—'}〜${winTo || '—'}`)
+    parts.push(`並び替え:${sortLabel}(${sortDir === 'asc' ? '昇順' : '降順'})`)
     return parts.join(' / ')
   }, [marketFilters, ratingFilters, tagFilters, statusFilter, search, sortLabel, sortDir, winOnly, lossOnly, winFrom, winTo])
 
@@ -594,7 +594,7 @@ export default function TradesPage() {
             letterSpacing: 0.2,
           }}
         >
-          To Do
+          要対応
         </div>
         {stats.pendingReviewCount > 0 ? (
           <div style={{ fontSize: 14, color: '#b42318', lineHeight: 1.4 }}>
@@ -758,7 +758,7 @@ export default function TradesPage() {
         </div>
       ) : null}
 
-      {/* 期間 + Sort（横並び） */}
+      {/* 期間 + 並び替え（横並び） */}
       {!isMobile || mobileShowFilters ? (
         <div
           style={{
@@ -769,7 +769,7 @@ export default function TradesPage() {
             alignItems: 'start',
           }}
         >
-        {/* Period */}
+        {/* 期間 */}
         <div
           style={{
             border: '1px solid #eee',
@@ -780,7 +780,7 @@ export default function TradesPage() {
             gap: 4,
           }}
         >
-          <span style={{ fontSize: 11, opacity: 0.8 }}>Period</span>
+          <span style={{ fontSize: 11, opacity: 0.8 }}>期間</span>
           <div style={{ display: 'flex', alignItems: 'center', gap: 6, flexWrap: 'wrap' }}>
             <input
               type="date"
@@ -800,7 +800,7 @@ export default function TradesPage() {
           </div>
         </div>
 
-        {/* Sort */}
+        {/* 並び替え */}
         <div
           style={{
             border: '1px solid #eee',
@@ -811,7 +811,7 @@ export default function TradesPage() {
             gap: 4,
           }}
         >
-          <span style={{ fontSize: 11, opacity: 0.8 }}>Sort</span>
+          <span style={{ fontSize: 11, opacity: 0.8 }}>並び替え</span>
 
           <div style={{ display: 'flex', alignItems: 'center', gap: 6, flexWrap: 'wrap' }}>
             <select
@@ -855,18 +855,18 @@ export default function TradesPage() {
       {!isMobile || mobileShowFilters ? (
         <div style={{ marginTop: 10, border: '1px solid #eee', borderRadius: 12, padding: '10px 12px', background: '#fafafa', display: 'grid', gap: 10 }}>
         <label style={{ display: 'grid', gap: 4 }}>
-          <span style={{ fontSize: 12, opacity: 0.8 }}>Search（Key word）</span>
+          <span style={{ fontSize: 12, opacity: 0.8 }}>検索（キーワード）</span>
           <input
             value={search}
             onChange={(e) => setSearch(e.target.value)}
-            placeholder="symbol/name/notes"
+            placeholder="銘柄コード / 銘柄名 / メモ"
           />
         </label>
 
         <div style={{ display: 'grid', gap: 4 }}>
-          <span style={{ fontSize: 12, opacity: 0.8 }}>Status</span>
+          <span style={{ fontSize: 12, opacity: 0.8 }}>状態</span>
           <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6 }}>
-            <FilterChip active={statusFilter === 'all'} onClick={() => setStatusFilter('all')}>All</FilterChip>
+            <FilterChip active={statusFilter === 'all'} onClick={() => setStatusFilter('all')}>すべて</FilterChip>
             <FilterChip
               active={statusFilter === 'complete'}
               onClick={() => setStatusFilter((prev) => (prev === 'complete' ? 'all' : 'complete'))}
@@ -889,9 +889,9 @@ export default function TradesPage() {
         </div>
 
         <div style={{ display: 'grid', gap: 4 }}>
-          <span style={{ fontSize: 12, opacity: 0.8 }}>Market</span>
+          <span style={{ fontSize: 12, opacity: 0.8 }}>市場</span>
           <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6 }}>
-            <FilterChip active={marketFilters.length === 0} onClick={() => setMarketFilters([])}>All</FilterChip>
+            <FilterChip active={marketFilters.length === 0} onClick={() => setMarketFilters([])}>すべて</FilterChip>
             {['JP', 'US'].map((m) => (
               <FilterChip
                 key={m}
@@ -905,7 +905,7 @@ export default function TradesPage() {
         </div>
 
         <div style={{ display: 'grid', gap: 4 }}>
-          <span style={{ fontSize: 12, opacity: 0.8 }}>Result</span>
+          <span style={{ fontSize: 12, opacity: 0.8 }}>結果</span>
           <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6 }}>
             <FilterChip
               active={!winOnly && !lossOnly}
@@ -915,7 +915,7 @@ export default function TradesPage() {
                 setLossOnly(false)
               }}
             >
-              All
+              すべて
             </FilterChip>
             <FilterChip
               active={winOnly}
@@ -949,9 +949,9 @@ export default function TradesPage() {
         </div>
 
         <div style={{ display: 'grid', gap: 4 }}>
-          <span style={{ fontSize: 12, opacity: 0.8 }}>Rating</span>
+          <span style={{ fontSize: 12, opacity: 0.8 }}>評価</span>
           <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6 }}>
-            <FilterChip active={ratingFilters.length === 0} onClick={() => setRatingFilters([])}>All</FilterChip>
+            <FilterChip active={ratingFilters.length === 0} onClick={() => setRatingFilters([])}>すべて</FilterChip>
             {['1', '2', '3', '4', '5'].map((r) => (
               <FilterChip
                 key={r}
@@ -966,9 +966,9 @@ export default function TradesPage() {
 
         {allTags.length > 0 && (
           <div style={{ display: 'grid', gap: 4 }}>
-            <span style={{ fontSize: 12, opacity: 0.8 }}>Tag</span>
+            <span style={{ fontSize: 12, opacity: 0.8 }}>タグ</span>
             <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6 }}>
-              <FilterChip active={tagFilters.length === 0} onClick={() => setTagFilters([])}>All</FilterChip>
+              <FilterChip active={tagFilters.length === 0} onClick={() => setTagFilters([])}>すべて</FilterChip>
               {allTags.map((tag) => (
                 <FilterChip
                   key={tag}
@@ -1016,7 +1016,7 @@ export default function TradesPage() {
               cursor: hasAnyFilter ? 'pointer' : 'not-allowed',
             }}
           >
-            全てクリア
+            すべてクリア
           </button>
         </div>
       ) : hasAnyFilter ? (

@@ -8,6 +8,15 @@ function currentMonth() {
   return `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}`
 }
 
+const ASSET_TYPE_LABELS = {
+  cash: '現金',
+  stock: '株式',
+  fund: '投資信託',
+  bond: '債券',
+  crypto: '暗号資産',
+  other: 'その他',
+}
+
 export default function MonthlyPage() {
   const queryClient = useQueryClient()
   const [selectedMonth, setSelectedMonth] = useState(currentMonth())
@@ -35,7 +44,9 @@ export default function MonthlyPage() {
   const copyMutation = useMutation({
     mutationFn: () => api.post('/snapshots/copy-latest', { to_month: selectedMonth }),
     onSuccess: (res) => {
-      setCopyResult(`from ${res.from_month} -> ${res.to_month} / created: ${res.created}, skipped: ${res.skipped}`)
+      setCopyResult(
+        `${res.from_month} から ${res.to_month} を作成（作成: ${res.created}件 / スキップ: ${res.skipped}件）`,
+      )
       queryClient.invalidateQueries({ queryKey: ['monthly', selectedMonth] })
       queryClient.invalidateQueries({ queryKey: ['dashboard'] })
       queryClient.invalidateQueries({ queryKey: ['snapshots'] })
@@ -89,10 +100,10 @@ export default function MonthlyPage() {
   return (
     <section>
       <div className="monthly-header">
-        <h2>Monthly</h2>
+        <h2>月次入力</h2>
         <div className="monthly-controls">
           <label>
-            Month
+            対象月
             <input
               type="month"
               value={selectedMonth}
@@ -121,11 +132,11 @@ export default function MonthlyPage() {
           <table className="table">
             <thead>
               <tr>
-                <th>Asset</th>
-                <th>Type</th>
-                <th>Currency</th>
-                <th>Value (JPY)</th>
-                <th>Status</th>
+                <th>資産</th>
+                <th>種別</th>
+                <th>通貨</th>
+                <th>評価額（JPY）</th>
+                <th>状態</th>
               </tr>
             </thead>
             <tbody>
@@ -134,7 +145,7 @@ export default function MonthlyPage() {
                 return (
                   <tr key={asset.asset_id}>
                     <td>{asset.asset_name}</td>
-                    <td>{asset.asset_type}</td>
+                    <td>{ASSET_TYPE_LABELS[asset.asset_type] ?? asset.asset_type}</td>
                     <td>{asset.currency}</td>
                     <td>
                       <input
@@ -159,7 +170,7 @@ export default function MonthlyPage() {
                       )}
                     </td>
                     <td>
-                      {status.saving && <span className="meta">Saving...</span>}
+                      {status.saving && <span className="meta">保存中...</span>}
                       {status.error && <span className="field-error">{status.error}</span>}
                     </td>
                   </tr>

@@ -6,7 +6,7 @@ export default function CrudTable({ columns, rows, onEdit, onDelete }) {
           {columns.map((c) => (
             <th key={c.key}>{c.label}</th>
           ))}
-          <th>Actions</th>
+          <th>操作</th>
         </tr>
       </thead>
       <tbody>
@@ -16,9 +16,9 @@ export default function CrudTable({ columns, rows, onEdit, onDelete }) {
               <td key={c.key}>{c.render ? c.render(row[c.key], row) : row[c.key]}</td>
             ))}
             <td className="action-cell">
-              <button onClick={() => onEdit(row)}>Edit</button>
+              <button onClick={() => onEdit(row)}>編集</button>
               <button className="danger" onClick={() => onDelete(row)}>
-                Delete
+                削除
               </button>
             </td>
           </tr>

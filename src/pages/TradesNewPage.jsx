@@ -1085,7 +1085,7 @@ export default function TradesNewPage() {
             gap: 10,
           }}
         >
-          <div style={{ fontWeight: 700 }}>BUY</div>
+          <div style={{ fontWeight: 700 }}>買付</div>
           {isMobile ? (
             <div style={mobileDateInputWrapStyle}>
               <div style={mobileDateDisplayStyle}>
@@ -1105,7 +1105,7 @@ export default function TradesNewPage() {
                 required
                 onKeyDown={handleKeyNav}
                 style={mobileDateInputOverlayStyle}
-                aria-label="BUY日付"
+                aria-label="買付日"
               />
             </div>
           ) : (
@@ -1169,7 +1169,7 @@ export default function TradesNewPage() {
           <input
             type="text"
             inputMode="numeric"
-            placeholder="数量（SELLにも自動コピー）"
+            placeholder="数量（売却にも自動コピー）"
             value={qty}
             onChange={(e) => setQty(normalizeIntInput(e.target.value))}
             required
@@ -1181,7 +1181,7 @@ export default function TradesNewPage() {
 
         <div style={{ border: '1px solid #ddd', borderRadius: 12, padding: 12, display: 'grid', gap: 10 }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-            <div style={{ fontWeight: 700 }}>SELL</div>
+            <div style={{ fontWeight: 700 }}>売却</div>
             <div style={{ opacity: 0.45, fontWeight: 700 }}>/</div>
             <div style={{ display: 'flex', alignItems: 'center', gap: 6, whiteSpace: 'nowrap' }}>
               <input
@@ -1208,7 +1208,7 @@ export default function TradesNewPage() {
                 border: '1px dashed #d0d5dd',
               }}
             >
-              未売却のため SELL 入力は表示していません。保有中をOFFにすると入力できます。
+              未売却のため売却入力は表示していません。保有中をOFFにすると入力できます。
             </div>
           ) : (
             <>
@@ -1232,7 +1232,7 @@ export default function TradesNewPage() {
                     disabled={isOpen}
                     onKeyDown={handleKeyNav}
                     style={mobileDateInputOverlayStyle}
-                    aria-label="SELL日付"
+                    aria-label="売却日"
                   />
                 </div>
               ) : (
@@ -1303,7 +1303,7 @@ export default function TradesNewPage() {
                 />
               </div>
               <div style={{ fontSize: 12, opacity: 0.75 }}>
-                <>数量: <b>{qty || '—'}</b>（BUYと同じ数量で保存します）</>
+                <>数量: <b>{qty || '—'}</b>（買付と同じ数量で保存します）</>
               </div>
             </>
           )}

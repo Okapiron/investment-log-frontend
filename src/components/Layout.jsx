@@ -2,10 +2,10 @@ import { Link, NavLink, useLocation } from 'react-router-dom'
 import { isAuthEnabled, isAuthenticated } from '../lib/auth'
 
 const tradeNavItems = [
-  { to: '/trades', label: 'Trades' },
-  { to: '/trades/new', label: 'New' },
-  { to: '/help', label: 'Help' },
-  { to: '/settings', label: 'Settings' },
+  { to: '/trades', label: '投資記録' },
+  { to: '/trades/new', label: '新規記録' },
+  { to: '/help', label: 'ヘルプ' },
+  { to: '/settings', label: '設定' },
 ]
 
 export default function Layout({ children }) {

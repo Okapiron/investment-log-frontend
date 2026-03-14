@@ -21,18 +21,18 @@ export default function HelpPage() {
 
   return (
     <div style={{ display: 'grid', gap: 10, maxWidth: 900 }}>
-      <h2 style={{ margin: 0 }}>Help</h2>
+      <h2 style={{ margin: 0 }}>ヘルプ</h2>
 
       <div style={{ border: '1px solid #e4e7ec', borderRadius: 12, padding: 12, background: '#fff', lineHeight: 1.7, fontSize: 14 }}>
         <h3 style={{ marginTop: 0 }}>はじめかた</h3>
         <ol style={{ margin: 0, paddingLeft: 18 }}>
           <li>
-            「New」から新しいトレードを登録します。
+            「新規記録」から新しいトレードを登録します。
             <br />
             まずは銘柄・買付日・買値・数量などの基本情報を入力します。
           </li>
           <li>
-            「Trades」で登録したトレードの一覧を確認します。
+            「投資記録」で登録したトレードの一覧を確認します。
             <br />
             保有中・未レビュー・レビュー済みなどの状態も確認できます。
           </li>
@@ -52,11 +52,11 @@ export default function HelpPage() {
       <div style={{ border: '1px solid #e4e7ec', borderRadius: 12, padding: 12, background: '#fff', lineHeight: 1.7, fontSize: 14 }}>
         <h3 style={{ marginTop: 0 }}>基本操作</h3>
         <ul style={{ margin: 0, paddingLeft: 18 }}>
-          <li>トレード作成: 「New」→ 必須項目を入力 → 保存</li>
-          <li>トレード編集: 「Trades」→ 対象トレードを開く → 「編集」→ 保存</li>
+          <li>トレード作成: 「新規記録」→ 必須項目を入力 → 保存</li>
+          <li>トレード編集: 「投資記録」→ 対象トレードを開く → 「編集」→ 保存</li>
           <li>レビュー更新: トレード詳細画面で、売却理由・考察・自己評価を入力して更新</li>
-          <li>エクスポート: 「Settings」→ 「Data」→ JSON / CSV を選んでダウンロード</li>
-          <li>ログアウト: 「Settings」→ 「Account」→ 「Logout」</li>
+          <li>エクスポート: 「設定」→ 「データ」→ JSON / CSV を選んでダウンロード</li>
+          <li>ログアウト: 「設定」→ 「アカウント」→ 「ログアウト」</li>
         </ul>
       </div>
 

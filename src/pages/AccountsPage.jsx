@@ -16,7 +16,7 @@ export default function AccountsPage() {
 
   const saveMutation = useMutation({
     mutationFn: async (payload) => {
-      if (!payload.name.trim()) throw new Error('nameは必須です')
+      if (!payload.name.trim()) throw new Error('口座名は必須です')
       if (editingId) return api.patch(`/accounts/${editingId}`, payload)
       return api.post('/accounts', payload)
     },
@@ -37,11 +37,11 @@ export default function AccountsPage() {
 
   const columns = useMemo(
     () => [
-      { key: 'name', label: 'Name' },
-      { key: 'institution', label: 'Institution' },
-      { key: 'display_order', label: 'Order' },
-      { key: 'is_active', label: 'Active', render: (v) => (v ? 'Yes' : 'No') },
-      { key: 'note', label: 'Note' },
+      { key: 'name', label: '口座名' },
+      { key: 'institution', label: '金融機関' },
+      { key: 'display_order', label: '表示順' },
+      { key: 'is_active', label: '状態', render: (v) => (v ? '有効' : '無効') },
+      { key: 'note', label: 'メモ' },
     ],
     [],
   )
@@ -53,21 +53,21 @@ export default function AccountsPage() {
 
   return (
     <section>
-      <h2>Accounts</h2>
+      <h2>口座</h2>
       <form className="form-grid" onSubmit={onSubmit}>
         <label>
-          Name *
+          口座名 *
           <input value={form.name} onChange={(e) => setForm((p) => ({ ...p, name: e.target.value }))} />
         </label>
         <label>
-          Institution
+          金融機関
           <input
             value={form.institution}
             onChange={(e) => setForm((p) => ({ ...p, institution: e.target.value }))}
           />
         </label>
         <label>
-          Display Order
+          表示順
           <input
             type="number"
             value={form.display_order}
@@ -75,7 +75,7 @@ export default function AccountsPage() {
           />
         </label>
         <label>
-          Note
+          メモ
           <input value={form.note} onChange={(e) => setForm((p) => ({ ...p, note: e.target.value }))} />
         </label>
         <label className="check-row">
@@ -84,10 +84,10 @@ export default function AccountsPage() {
             checked={form.is_active}
             onChange={(e) => setForm((p) => ({ ...p, is_active: e.target.checked }))}
           />
-          Active
+          有効
         </label>
         <div className="button-row">
-          <button type="submit">{editingId ? 'Update' : 'Create'}</button>
+          <button type="submit">{editingId ? '更新' : '作成'}</button>
           {editingId && (
             <button
               type="button"
@@ -97,7 +97,7 @@ export default function AccountsPage() {
                 setError('')
               }}
             >
-              Cancel
+              キャンセル
             </button>
           )}
         </div>

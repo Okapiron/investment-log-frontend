@@ -98,10 +98,10 @@ export default function SettingsPage() {
 
   return (
     <div style={{ display: 'grid', gap: 10, maxWidth: 760 }}>
-      <h2 style={{ margin: 0 }}>Settings</h2>
+      <h2 style={{ margin: 0 }}>設定</h2>
 
       <div style={{ border: '1px solid #e4e7ec', borderRadius: 12, padding: 12, background: '#fff', display: 'grid', gap: 8 }}>
-        <div style={{ fontSize: 13, color: '#667085', fontWeight: 700 }}>Account</div>
+        <div style={{ fontSize: 13, color: '#667085', fontWeight: 700 }}>アカウント</div>
         {isLoading ? <div style={{ fontSize: 13, color: '#475467' }}>読み込み中…</div> : null}
         {meError ? <div style={{ fontSize: 13, color: '#b42318' }}>取得失敗: {String(meError?.message || meError)}</div> : null}
         {!isLoading && !meError ? (
@@ -124,7 +124,7 @@ export default function SettingsPage() {
               opacity: isAuthEnabled() ? 1 : 0.6,
             }}
           >
-            Logout
+            ログアウト
           </button>
         </div>
       </div>
@@ -132,7 +132,7 @@ export default function SettingsPage() {
       {showRuntime ? (
         <div style={{ border: '1px solid #e4e7ec', borderRadius: 12, padding: 12, background: '#fff', display: 'grid', gap: 8 }}>
           <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 8 }}>
-            <div style={{ fontSize: 13, color: '#667085', fontWeight: 700 }}>Runtime</div>
+            <div style={{ fontSize: 13, color: '#667085', fontWeight: 700 }}>稼働状況</div>
             <button
               type="button"
               onClick={() => refetchReadiness()}
@@ -172,7 +172,7 @@ export default function SettingsPage() {
                           : '#667085',
                 }}
               >
-                Release Status:{' '}
+                リリース状態:{' '}
                 <b>
                   {readiness?.release_status === 'error'
                     ? 'ERROR'
@@ -188,23 +188,23 @@ export default function SettingsPage() {
                 <b>{readiness?.db === 'ok' ? 'OK' : readiness?.status === 'unknown' ? '未対応' : '確認中'}</b>
               </div>
               <div style={{ fontSize: 12, color: '#667085' }}>
-                Backend Version: <b>{readiness?.app_version || '—'}</b>
+                バックエンド版: <b>{readiness?.app_version || '—'}</b>
               </div>
               <div style={{ fontSize: 12, color: '#667085' }}>
-                Server Time (UTC): <b>{readiness?.server_time_utc || '—'}</b>
+                サーバー時刻 (UTC): <b>{readiness?.server_time_utc || '—'}</b>
               </div>
               <div style={{ fontSize: 12, color: '#667085' }}>
-                Frontend Version: <b>{frontendVersion}</b>
+                フロントエンド版: <b>{frontendVersion}</b>
               </div>
               {(readiness?.config_errors?.length || readiness?.config_warnings?.length) ? (
                 <div style={{ fontSize: 12, color: '#b54708', display: 'grid', gap: 2 }}>
                   {readiness?.config_errors?.length ? (
-                    <div style={{ color: '#b42318' }}>Release Error: {readiness.config_errors.join(' / ')}</div>
+                    <div style={{ color: '#b42318' }}>リリースエラー: {readiness.config_errors.join(' / ')}</div>
                   ) : null}
-                  {readiness?.config_warnings?.length ? <div>Release Warning: {readiness.config_warnings.join(' / ')}</div> : null}
+                  {readiness?.config_warnings?.length ? <div>リリース警告: {readiness.config_warnings.join(' / ')}</div> : null}
                 </div>
               ) : (
-                <div style={{ fontSize: 12, color: '#667085' }}>Release Check: 問題なし</div>
+                <div style={{ fontSize: 12, color: '#667085' }}>リリース確認: 問題なし</div>
               )}
               {readiness?.status === 'unknown' ? (
                 <div style={{ fontSize: 12, color: '#b54708' }}>
@@ -220,7 +220,7 @@ export default function SettingsPage() {
       ) : null}
 
       <div style={{ border: '1px solid #e4e7ec', borderRadius: 12, padding: 12, background: '#fff', display: 'grid', gap: 10 }}>
-        <div style={{ fontSize: 13, color: '#667085', fontWeight: 700 }}>Data</div>
+        <div style={{ fontSize: 13, color: '#667085', fontWeight: 700 }}>データ</div>
         <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
           <button
             type="button"
@@ -279,9 +279,9 @@ export default function SettingsPage() {
       </div>
 
       <div style={{ border: '1px solid #e4e7ec', borderRadius: 12, padding: 12, background: '#fff', display: 'grid', gap: 8 }}>
-        <div style={{ fontSize: 13, color: '#667085', fontWeight: 700 }}>Legal</div>
+        <div style={{ fontSize: 13, color: '#667085', fontWeight: 700 }}>法務</div>
         <div style={{ display: 'flex', gap: 12, flexWrap: 'wrap', fontSize: 13 }}>
-          <Link to="/help">Help</Link>
+          <Link to="/help">ヘルプ</Link>
           <Link to="/terms">利用規約</Link>
           <Link to="/privacy">プライバシーポリシー</Link>
           {CONTACT_FORM_URL ? (
