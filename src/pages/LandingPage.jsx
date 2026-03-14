@@ -1,5 +1,6 @@
 import { useEffect } from 'react'
 import { Link } from 'react-router-dom'
+import { CONTACT_FORM_URL, SUPPORT_EMAIL } from '../lib/siteConfig'
 
 const differentiationProps = [
   {
@@ -81,6 +82,8 @@ function trackCtaClick(name) {
 }
 
 export default function LandingPage() {
+  const contactHref = CONTACT_FORM_URL || `mailto:${SUPPORT_EMAIL}`
+
   useEffect(() => {
     const prefersReducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches
     const targets = Array.from(document.querySelectorAll('.lp-reveal'))
@@ -257,6 +260,15 @@ export default function LandingPage() {
           </Link>
         </div>
       </section>
+
+      <footer className="lp-footer lp-reveal">
+        <nav className="lp-footer-links" aria-label="法務とお問い合わせ">
+          <Link to="/terms">利用規約</Link>
+          <Link to="/privacy">プライバシーポリシー</Link>
+          <a href={contactHref}>お問い合わせ</a>
+        </nav>
+        <small>© 2026 TradeTrace</small>
+      </footer>
     </div>
   )
 }

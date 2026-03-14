@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react'
-import { Navigate, useLocation } from 'react-router-dom'
+import { Link, Navigate, useLocation } from 'react-router-dom'
 
 import {
   isAuthConfigured,
@@ -193,6 +193,16 @@ export default function AuthPage() {
           >
             {submitting ? '処理中…' : mode === 'signin' ? 'ログイン' : mode === 'signup' ? '新規登録' : '再設定メールを送信'}
           </button>
+
+          {mode === 'signup' ? (
+            <p style={{ margin: 0, fontSize: 12, lineHeight: 1.55, color: '#667085' }}>
+              登録することで、
+              <Link to="/terms">利用規約</Link>
+              と
+              <Link to="/privacy">プライバシーポリシー</Link>
+              に同意したものとみなします。
+            </p>
+          ) : null}
         </form>
       )}
 
