@@ -139,6 +139,8 @@ export default function TradeDetailPage() {
   const [editPriceCheckError, setEditPriceCheckError] = useState('')
   const [editPriceCheckWarning, setEditPriceCheckWarning] = useState('')
   const [chartError, setChartError] = useState('')
+  const [isTradeDataOpenMobile, setIsTradeDataOpenMobile] = useState(false)
+  const [isSummaryOpenMobile, setIsSummaryOpenMobile] = useState(false)
   const [isMobile, setIsMobile] = useState(() => {
     if (typeof window === 'undefined' || typeof window.matchMedia !== 'function') return false
     return window.matchMedia('(max-width: 767px)').matches
@@ -192,6 +194,13 @@ export default function TradeDetailPage() {
     mq.addListener(onChange)
     return () => mq.removeListener(onChange)
   }, [])
+
+  useEffect(() => {
+    if (!isMobile) {
+      setIsTradeDataOpenMobile(true)
+      setIsSummaryOpenMobile(true)
+    }
+  }, [isMobile])
 
   const { data, isLoading, error, refetch } = useQuery({
     queryKey: ['trade', id],
@@ -406,6 +415,9 @@ export default function TradeDetailPage() {
     if (editPriceCheckStatus !== 'ok') return '価格チェック待ちです'
     return ''
   }, [isEditing, clientSaveValidationError, editIsOpen, editPriceCheckParams, editPriceCheckStatus, editPriceCheckError])
+  const chartContainerHeight = isMobile ? 360 : 420
+  const showTradeDataContent = !isMobile || isEditing || isTradeDataOpenMobile
+  const showSummaryContent = isEditing || !isMobile || isSummaryOpenMobile
 
   useEffect(() => {
     if (isOpen && chartMode === 'exit') {
@@ -765,22 +777,32 @@ export default function TradeDetailPage() {
       <div style={{ marginTop: 10, display: 'grid', gridTemplateColumns: isMobile ? '1fr' : '1fr 1fr', gap: 12, alignItems: 'stretch' }}>
       {/* 売買データ */}
       <div style={{ marginTop: 0, border: '1px solid #ddd', borderRadius: 12, padding: 10, height: '100%', background: '#fff', fontSize: 15, color: '#111' }}>
-        
-        <h3
-          style={{
-            marginTop: 0,
-            marginBottom: 8,
-            fontSize: 16,
-            fontWeight: 800,
-            borderLeft: '4px solid #ddd',
-            paddingLeft: 10,
-          }}
-        >
-          売買データ
-        </h3>
-        <div style={{ height: 1, background: '#eee', marginBottom: 10 }} />
+        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 8 }}>
+          <h3
+            style={{
+              marginTop: 0,
+              marginBottom: 8,
+              fontSize: 16,
+              fontWeight: 800,
+              borderLeft: '4px solid #ddd',
+              paddingLeft: 10,
+            }}
+          >
+            売買データ
+          </h3>
+          {isMobile && !isEditing ? (
+            <button
+              type="button"
+              onClick={() => setIsTradeDataOpenMobile((v) => !v)}
+              style={{ ...baseButtonStyle, minHeight: 34, padding: '6px 10px', fontSize: 12 }}
+            >
+              {isTradeDataOpenMobile ? '閉じる' : '開く'}
+            </button>
+          ) : null}
+        </div>
+        {showTradeDataContent ? <div style={{ height: 1, background: '#eee', marginBottom: 10 }} /> : null}
 
-          {!isEditing ? (
+          {showTradeDataContent && !isEditing ? (
             <div style={{ display: 'grid', gap: 8, fontSize: 15, color: '#111', paddingLeft: isMobile ? 0 : 10 }}>
               <div style={{ display: 'grid', gap: 6, border: '1px solid #eaecf0', borderRadius: 10, padding: isMobile ? 10 : '8px 10px', background: '#fcfdfd' }}>
                 <b style={{ fontSize: 14 }}>BUY</b>
@@ -817,7 +839,7 @@ export default function TradeDetailPage() {
                 </div>
               </div>
             </div>
-          ) : (
+          ) : showTradeDataContent ? (
             <div style={{ display: 'grid', gap: 12, paddingLeft: isMobile ? 0 : 10 }}>
               <div style={{ display: 'grid', gap: 8 }}>
                 <b>BUY</b>
@@ -911,45 +933,58 @@ export default function TradeDetailPage() {
                 ) : null}
               </div>
             </div>
-          )}
+          ) : null}
       </div>
       {/* サマリー */}
       {!isEditing ? (
         <div style={{ marginTop: 0, border: '1px solid #ddd', borderRadius: 12, padding: 10, height: '100%', display: 'flex', flexDirection: 'column', background: '#fff', fontSize: 15, color: '#111' }}>
-          <h3
-            style={{
-              marginTop: 0,
-              marginBottom: 8,
-              fontSize: 16,
-              fontWeight: 800,
-              borderLeft: '4px solid #ddd',
-              paddingLeft: 10,
-            }}
-          >
-            サマリー
-          </h3>
-          <div style={{ height: 1, background: '#eee', marginBottom: 10 }} />
+          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 8 }}>
+            <h3
+              style={{
+                marginTop: 0,
+                marginBottom: 8,
+                fontSize: 16,
+                fontWeight: 800,
+                borderLeft: '4px solid #ddd',
+                paddingLeft: 10,
+              }}
+            >
+              サマリー
+            </h3>
+            {isMobile ? (
+              <button
+                type="button"
+                onClick={() => setIsSummaryOpenMobile((v) => !v)}
+                style={{ ...baseButtonStyle, minHeight: 34, padding: '6px 10px', fontSize: 12 }}
+              >
+                {isSummaryOpenMobile ? '閉じる' : '開く'}
+              </button>
+            ) : null}
+          </div>
+          {showSummaryContent ? <div style={{ height: 1, background: '#eee', marginBottom: 10 }} /> : null}
 
-          <div style={{ display: 'grid', gridTemplateColumns: isMobile ? 'repeat(2, minmax(0, 1fr))' : 'repeat(4, minmax(0, 1fr))', gap: isMobile ? 12 : 10, alignItems: 'start', paddingLeft: isMobile ? 0 : 10 }}>
-            <div>
-              <div style={{ fontWeight: 700, fontSize: 13, opacity: 0.75 }}>損益</div>
-              <div style={{ fontSize: isMobile ? 18 : 16, fontWeight: 700, color: profitColor, lineHeight: 1.25 }}>{profitLabel}</div>
-            </div>
-            <div>
-              <div style={{ fontWeight: 700, fontSize: 13, opacity: 0.75 }}>損益率</div>
-              <div style={{ fontSize: isMobile ? 18 : 16, fontWeight: 700, color: profitRateColor, lineHeight: 1.25 }}>{profitRateLabel}</div>
-            </div>
-            <div>
-              <div style={{ fontWeight: 700, fontSize: 13, opacity: 0.75 }}>保有日数</div>
-              <div style={{ fontSize: isMobile ? 18 : 16, fontWeight: 700, lineHeight: 1.25 }}>{isOpen ? '—' : `${data.holding_days ?? '—'} 日`}</div>
-            </div>
-            <div>
-              <div style={{ fontWeight: 700, fontSize: 13, opacity: 0.75 }}>評価</div>
-              <div style={{ fontSize: isMobile ? 16 : 14, lineHeight: 1.25 }}>
-                <Rating value={data.rating} />
+          {showSummaryContent ? (
+            <div style={{ display: 'grid', gridTemplateColumns: isMobile ? 'repeat(2, minmax(0, 1fr))' : 'repeat(4, minmax(0, 1fr))', gap: isMobile ? 12 : 10, alignItems: 'start', paddingLeft: isMobile ? 0 : 10 }}>
+              <div>
+                <div style={{ fontWeight: 700, fontSize: 13, opacity: 0.75 }}>損益</div>
+                <div style={{ fontSize: isMobile ? 18 : 16, fontWeight: 700, color: profitColor, lineHeight: 1.25 }}>{profitLabel}</div>
+              </div>
+              <div>
+                <div style={{ fontWeight: 700, fontSize: 13, opacity: 0.75 }}>損益率</div>
+                <div style={{ fontSize: isMobile ? 18 : 16, fontWeight: 700, color: profitRateColor, lineHeight: 1.25 }}>{profitRateLabel}</div>
+              </div>
+              <div>
+                <div style={{ fontWeight: 700, fontSize: 13, opacity: 0.75 }}>保有日数</div>
+                <div style={{ fontSize: isMobile ? 18 : 16, fontWeight: 700, lineHeight: 1.25 }}>{isOpen ? '—' : `${data.holding_days ?? '—'} 日`}</div>
+              </div>
+              <div>
+                <div style={{ fontWeight: 700, fontSize: 13, opacity: 0.75 }}>評価</div>
+                <div style={{ fontSize: isMobile ? 16 : 14, lineHeight: 1.25 }}>
+                  <Rating value={data.rating} />
+                </div>
               </div>
             </div>
-          </div>
+          ) : null}
 
           {/* (Review badge and buttons moved to header and thought log sections) */}
         </div>
@@ -1094,12 +1129,13 @@ export default function TradeDetailPage() {
             <div style={{ color: '#b42318', fontSize: 15 }}>チャートを表示できませんでした</div>
           </div>
         ) : (
-          <div style={{ position: 'relative', width: '100%', height: isMobile ? 320 : 420, overflow: 'hidden', borderRadius: 8 }}>
+          <div style={{ position: 'relative', width: '100%', height: chartContainerHeight, overflow: 'hidden', borderRadius: 8 }}>
             <TradeChart
               bars={allBars}
               buyFill={buy}
               sellFill={isOpen ? null : sell}
               focusSpec={focusSpec}
+              height={chartContainerHeight}
               resetKey={chartViewKey}
               onError={(msg) => setChartError(msg || 'チャートを表示できませんでした')}
             />
