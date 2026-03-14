@@ -172,6 +172,16 @@ export default function TradeDetailPage() {
     fontSize: 12,
     fontWeight: 600,
   }
+  const detailDateInputStyle = {
+    width: '100%',
+    minHeight: 44,
+    fontSize: 16,
+    borderRadius: 10,
+    border: '1px solid #cfd8d3',
+    background: '#fff',
+    padding: '10px 12px',
+    lineHeight: 1.2,
+  }
   const dangerButtonStyle = {
     background: '#fef3f2',
     color: '#b42318',
@@ -848,6 +858,7 @@ export default function TradeDetailPage() {
                     type="date"
                     value={form.buy_date}
                     onChange={(e) => setForm((p) => ({ ...p, buy_date: e.target.value }))}
+                    style={detailDateInputStyle}
                   />
                   <input
                     type="text"
@@ -897,7 +908,7 @@ export default function TradeDetailPage() {
                     value={form.sell_date}
                     onChange={(e) => setForm((p) => ({ ...p, sell_date: e.target.value }))}
                     disabled={editIsOpen}
-                    style={{ opacity: editIsOpen ? 0.6 : 1 }}
+                    style={{ ...detailDateInputStyle, opacity: editIsOpen ? 0.6 : 1 }}
                   />
                   <input
                     type="text"
