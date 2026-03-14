@@ -594,7 +594,7 @@ export default function TradesPage() {
             letterSpacing: 0.2,
           }}
         >
-          要対応
+          やること
         </div>
         {stats.pendingReviewCount > 0 ? (
           <div style={{ fontSize: 14, color: '#b42318', lineHeight: 1.4 }}>
