@@ -3,7 +3,7 @@ import { isAuthEnabled, isAuthenticated } from '../lib/auth'
 
 const tradeNavItems = [
   { to: '/trades', label: '投資記録' },
-  { to: '/trades/new', label: '新規記録' },
+  { to: '/trades/new', label: '新規追加' },
   { to: '/help', label: 'ヘルプ' },
   { to: '/settings', label: '設定' },
 ]

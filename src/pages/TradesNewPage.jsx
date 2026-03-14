@@ -990,7 +990,7 @@ export default function TradesNewPage() {
 
       <form onSubmit={handleSubmit} style={{ display: 'grid', gap: 12, marginTop: 12 }}>
         <div ref={instrumentWrapRef} style={{ display: 'grid', gap: 8, position: 'relative', marginBottom: 12 }}>
-          <label style={{ fontWeight: 700 }}>銘柄</label>
+          <label style={{ fontWeight: 700, fontSize: 16 }}>銘柄</label>
           <div style={{ display: 'flex', flexDirection: isMobile ? 'column' : 'row', gap: 8, alignItems: isMobile ? 'stretch' : 'center' }}>
             <input
               ref={instrumentInputRef}
