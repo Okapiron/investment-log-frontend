@@ -588,7 +588,7 @@ export default function TradesPage() {
       >
         <div
           style={{
-            fontSize: 12,
+            fontSize: 15,
             fontWeight: 800,
             color: stats.pendingReviewCount > 0 ? '#b42318' : '#175cd3',
             letterSpacing: 0.2,
