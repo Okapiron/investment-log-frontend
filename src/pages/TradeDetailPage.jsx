@@ -186,6 +186,51 @@ export default function TradeDetailPage() {
     padding: '10px 12px',
     lineHeight: 1.2,
   }
+  const mobileDateInputWrapStyle = {
+    position: 'relative',
+    width: '100%',
+    minWidth: 0,
+    maxWidth: '100%',
+  }
+  const mobileDateDisplayStyle = {
+    width: '100%',
+    minHeight: 44,
+    fontSize: 16,
+    borderRadius: 10,
+    border: '1px solid #cfd8d3',
+    background: '#fff',
+    padding: '10px 12px',
+    display: 'flex',
+    alignItems: 'center',
+    lineHeight: 1.2,
+    overflow: 'hidden',
+    minWidth: 0,
+    boxSizing: 'border-box',
+  }
+  const mobileDateTextStyle = {
+    display: 'block',
+    width: '100%',
+    whiteSpace: 'nowrap',
+    overflow: 'hidden',
+    textOverflow: 'ellipsis',
+    minWidth: 0,
+  }
+  const mobileHiddenDateInputStyle = {
+    position: 'absolute',
+    inset: 0,
+    width: '100%',
+    height: '100%',
+    minWidth: 0,
+    maxWidth: '100%',
+    opacity: 0,
+    cursor: 'pointer',
+    border: 'none',
+    margin: 0,
+    padding: 0,
+    background: 'transparent',
+    WebkitAppearance: 'none',
+    appearance: 'none',
+  }
   const dangerButtonStyle = {
     background: '#fef3f2',
     color: '#b42318',
@@ -432,6 +477,39 @@ export default function TradeDetailPage() {
   const chartContainerHeight = isMobile ? 360 : 420
   const showTradeDataContent = !isMobile || isEditing || isTradeDataOpenMobile
   const showSummaryContent = isEditing || !isMobile || isSummaryOpenMobile
+  const isFullYmd = (v) => /^\d{4}-\d{2}-\d{2}$/.test(String(v || ''))
+
+  const renderEditDateInput = ({ value, onChange, disabled = false }) => {
+    if (!isMobile) {
+      return (
+        <input
+          type="date"
+          value={value}
+          onChange={onChange}
+          disabled={disabled}
+          style={{ ...detailDateInputStyle, opacity: disabled ? 0.6 : 1 }}
+        />
+      )
+    }
+
+    return (
+      <div style={{ ...mobileDateInputWrapStyle, opacity: disabled ? 0.6 : 1 }}>
+        <div style={mobileDateDisplayStyle}>
+          <span style={{ ...mobileDateTextStyle, color: isFullYmd(value) ? '#111' : '#667085' }}>
+            {isFullYmd(value) ? value : 'タップして日付を選択する'}
+          </span>
+        </div>
+        <input
+          type="date"
+          value={value}
+          onChange={onChange}
+          disabled={disabled}
+          style={mobileHiddenDateInputStyle}
+          aria-label="日付"
+        />
+      </div>
+    )
+  }
 
   useEffect(() => {
     if (isOpen && chartMode === 'exit') {
@@ -858,12 +936,10 @@ export default function TradeDetailPage() {
               <div style={{ display: 'grid', gap: 8 }}>
                 <b>BUY</b>
                 <div style={{ display: 'grid', gridTemplateColumns: isMobile ? '1fr' : '1fr 1fr 1fr', gap: 8 }}>
-                  <input
-                    type="date"
-                    value={form.buy_date}
-                    onChange={(e) => setForm((p) => ({ ...p, buy_date: e.target.value }))}
-                    style={detailDateInputStyle}
-                  />
+                  {renderEditDateInput({
+                    value: form.buy_date,
+                    onChange: (e) => setForm((p) => ({ ...p, buy_date: e.target.value })),
+                  })}
                   <input
                     type="text"
                     min="1"
@@ -907,13 +983,11 @@ export default function TradeDetailPage() {
                   保有中
                 </label>
                 <div style={{ display: 'grid', gridTemplateColumns: isMobile ? '1fr' : '1fr 1fr 1fr', gap: 8 }}>
-                  <input
-                    type="date"
-                    value={form.sell_date}
-                    onChange={(e) => setForm((p) => ({ ...p, sell_date: e.target.value }))}
-                    disabled={editIsOpen}
-                    style={{ ...detailDateInputStyle, opacity: editIsOpen ? 0.6 : 1 }}
-                  />
+                  {renderEditDateInput({
+                    value: form.sell_date,
+                    onChange: (e) => setForm((p) => ({ ...p, sell_date: e.target.value })),
+                    disabled: editIsOpen,
+                  })}
                   <input
                     type="text"
                     min="1"
