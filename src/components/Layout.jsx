@@ -21,7 +21,9 @@ export default function Layout({ children }) {
       <header className="header">
         <div className="header-main">
           <div className="brand">
-            <div className="brand-mark" aria-hidden>TT</div>
+            <div className="brand-mark" aria-hidden>
+              <img src="/brand/logo-mark-512.png" alt="" className="brand-mark-image" />
+            </div>
             <div className="brand-copy">
               <h1>TradeTrace</h1>
               <div className="brand-sub">トレードを振り返るための投資ノート</div>

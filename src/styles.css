@@ -55,17 +55,21 @@ body {
   gap: 10px;
 }
 .brand-mark {
-  width: 34px;
-  height: 34px;
+  width: 38px;
+  height: 38px;
   border-radius: 9px;
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  background: #f1fff8;
-  color: #17443d;
-  font-weight: 800;
-  font-size: 14px;
-  letter-spacing: 0.04em;
+  background: rgba(241, 255, 248, 0.95);
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.16);
+  overflow: hidden;
+}
+.brand-mark-image {
+  width: 30px;
+  height: 30px;
+  object-fit: contain;
+  display: block;
 }
 .brand-copy {
   display: grid;
