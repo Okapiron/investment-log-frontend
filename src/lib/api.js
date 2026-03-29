@@ -1,4 +1,5 @@
 import { getAccessToken } from './auth'
+import { buildPrivateAccessHeaders } from './privateAccess'
 
 const API_BASE = import.meta.env.VITE_API_BASE || 'http://localhost:8000/api/v1'
 const REQUEST_TIMEOUT_MS = Number(import.meta.env.VITE_API_TIMEOUT_MS || 15000)
@@ -24,6 +25,18 @@ export function resolveApiUrl(path) {
   return url
 }
 
+export function buildApiHeaders({ includeContentType = true, headers = {} } = {}) {
+  const accessToken = getAccessToken()
+  const authHeader = accessToken ? { Authorization: `Bearer ${accessToken}` } : {}
+  const privateHeaders = buildPrivateAccessHeaders()
+  return {
+    ...(includeContentType ? { 'Content-Type': 'application/json' } : {}),
+    ...privateHeaders,
+    ...authHeader,
+    ...headers,
+  }
+}
+
 async function request(path, options = {}) {
   const url = resolveApiUrl(path)
 
@@ -33,10 +46,8 @@ async function request(path, options = {}) {
 
   let res
   try {
-    const accessToken = getAccessToken()
-    const authHeader = accessToken ? { Authorization: `Bearer ${accessToken}` } : {}
     res = await fetch(url, {
-      headers: { 'Content-Type': 'application/json', ...authHeader, ...(options.headers || {}) },
+      headers: buildApiHeaders({ headers: options.headers || {} }),
       signal: controller ? controller.signal : options.signal,
       ...options,
     })

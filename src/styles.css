@@ -108,9 +108,70 @@ nav { display: flex; gap: 10px; flex-wrap: wrap; }
   background: #ffffff;
   color: #133530;
 }
+.nav-link-private {
+  border: 1px solid rgba(255, 255, 255, 0.28);
+  color: #f4fff9;
+}
 
 .container { max-width: 1200px; margin: 0 auto; padding: 20px; }
 h2 { margin-top: 0; }
+
+.private-mode-page {
+  min-height: calc(100vh - 140px);
+  display: grid;
+  place-items: center;
+  padding: 32px 0;
+}
+
+.private-mode-panel {
+  width: min(640px, 100%);
+  background: rgba(255, 255, 255, 0.96);
+  border: 1px solid rgba(38, 70, 83, 0.14);
+  border-radius: 24px;
+  padding: 28px;
+  box-shadow: 0 20px 60px rgba(38, 70, 83, 0.12);
+  display: grid;
+  gap: 16px;
+}
+
+.private-mode-eyebrow {
+  display: inline-flex;
+  width: fit-content;
+  padding: 6px 10px;
+  border-radius: 999px;
+  background: #e6f5f1;
+  color: #1d5e56;
+  font-size: 12px;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+}
+
+.private-mode-copy,
+.private-mode-note {
+  font-size: 14px;
+  line-height: 1.7;
+  color: #51606b;
+}
+
+.private-mode-form {
+  display: grid;
+  gap: 10px;
+}
+
+.private-mode-form input {
+  min-height: 44px;
+}
+
+.private-mode-form button {
+  min-height: 44px;
+  color: #fff;
+  font-weight: 700;
+}
+
+.private-mode-error {
+  color: #b42318;
+  font-size: 14px;
+}
 
 .cards { display: grid; gap: 12px; margin-bottom: 16px; }
 .card {

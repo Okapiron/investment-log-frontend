@@ -1,4 +1,4 @@
-import { api, resolveApiUrl } from './api'
+import { api, buildApiHeaders, resolveApiUrl } from './api'
 import { getAccessToken } from './auth'
 
 export function getMyProfile() {
@@ -28,8 +28,10 @@ async function _buildHttpError(res) {
 
 async function requestReadinessWithFallback() {
   const token = getAccessToken()
-  const headers = {}
-  if (token) headers.Authorization = `Bearer ${token}`
+  const headers = buildApiHeaders({
+    includeContentType: false,
+    headers: token ? { Authorization: `Bearer ${token}` } : {},
+  })
 
   const candidates = ['/api/v1/settings/runtime', '/health/ready', '/api/v1/health/ready', '/health', '/api/v1/health']
   let lastError = null
@@ -127,9 +129,10 @@ export async function downloadMyExport(format = 'json') {
   const fallback = f === 'csv' ? 'tradetrace_export.csv' : 'tradetrace_export.json'
   const url = resolveApiUrl(`/api/v1/settings/export?format=${encodeURIComponent(f)}`)
   const token = getAccessToken()
-
-  const headers = {}
-  if (token) headers.Authorization = `Bearer ${token}`
+  const headers = buildApiHeaders({
+    includeContentType: false,
+    headers: token ? { Authorization: `Bearer ${token}` } : {},
+  })
 
   const res = await fetch(url, { method: 'GET', headers })
   if (!res.ok) {

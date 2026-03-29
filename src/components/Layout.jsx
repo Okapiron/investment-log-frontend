@@ -1,21 +1,24 @@
 import { Link, NavLink, useLocation } from 'react-router-dom'
 import { isAuthEnabled, isAuthenticated } from '../lib/auth'
+import { hasPrivateAccess, isPrivateModeEnabled } from '../lib/privateAccess'
 
 const tradeNavItems = [
   { to: '/trades', label: '投資記録' },
   { to: '/analysis', label: '分析' },
   { to: '/trades/new', label: '新規追加' },
-  { to: '/help', label: 'ヘルプ' },
   { to: '/settings', label: '設定' },
 ]
 
 export default function Layout({ children }) {
   const location = useLocation()
+  const privateModeEnabled = isPrivateModeEnabled()
+  const privateAccessGranted = hasPrivateAccess()
   const isAuthRoute = location.pathname.startsWith('/auth')
   const authEnabled = isAuthEnabled()
   const authed = isAuthenticated()
+  const isPrivateLanding = privateModeEnabled && !privateAccessGranted
   const isPublicLanding = location.pathname === '/' && authEnabled && !authed
-  const navItems = isAuthRoute || isPublicLanding ? [] : tradeNavItems
+  const navItems = isAuthRoute || isPublicLanding || isPrivateLanding ? [] : tradeNavItems
 
   return (
     <div className="app-shell">
@@ -42,6 +45,7 @@ export default function Layout({ children }) {
                   </Link>
                 </>
               ) : null}
+              {isPrivateLanding ? <span className="nav-link nav-link-private">個人用モード</span> : null}
               {navItems.map((item) => (
                 <NavLink
                   key={item.to}

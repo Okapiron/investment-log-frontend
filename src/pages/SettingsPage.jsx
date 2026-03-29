@@ -3,6 +3,7 @@ import { useQuery } from '@tanstack/react-query'
 import { Link, useNavigate } from 'react-router-dom'
 
 import { clearAuthSession, isAuthEnabled } from '../lib/auth'
+import { clearPrivateAccessSession, isPrivateModeEnabled } from '../lib/privateAccess'
 import { CONTACT_FORM_URL, SHOW_RUNTIME_PANEL, SUPPORT_EMAIL } from '../lib/siteConfig'
 import { deleteMyData, downloadMyExport, getMyProfile, getReadiness } from '../lib/settingsApi'
 
@@ -11,6 +12,7 @@ export default function SettingsPage() {
   const frontendVersion = String(import.meta.env.VITE_APP_VERSION || '').trim() || 'dev-local'
   const supportEmail = SUPPORT_EMAIL
   const showRuntime = SHOW_RUNTIME_PANEL
+  const privateModeEnabled = isPrivateModeEnabled()
   const [working, setWorking] = useState('')
   const [msg, setMsg] = useState('')
   const [error, setError] = useState('')
@@ -90,6 +92,11 @@ export default function SettingsPage() {
   }
 
   function handleLogout() {
+    if (privateModeEnabled) {
+      clearPrivateAccessSession()
+      navigate('/', { replace: true })
+      return
+    }
     clearAuthSession()
     navigate('/auth', { replace: true })
   }
@@ -106,14 +113,16 @@ export default function SettingsPage() {
         {meError ? <div style={{ fontSize: 13, color: '#b42318' }}>取得失敗: {String(meError?.message || meError)}</div> : null}
         {!isLoading && !meError ? (
           <>
-            <div style={{ fontSize: 13, color: '#344054' }}>Email: <b>{data?.email || '—'}</b></div>
+            <div style={{ fontSize: 13, color: '#344054' }}>
+              Email: <b>{privateModeEnabled ? '個人用モード' : (data?.email || '—')}</b>
+            </div>
           </>
         ) : null}
         <div>
           <button
             type="button"
             onClick={handleLogout}
-            disabled={!isAuthEnabled()}
+            disabled={!privateModeEnabled && !isAuthEnabled()}
             style={{
               background: '#2a8871',
               color: '#fff',
@@ -121,10 +130,10 @@ export default function SettingsPage() {
               borderRadius: 8,
               padding: '8px 12px',
               fontWeight: 700,
-              opacity: isAuthEnabled() ? 1 : 0.6,
+              opacity: privateModeEnabled || isAuthEnabled() ? 1 : 0.6,
             }}
           >
-            ログアウト
+            {privateModeEnabled ? 'アクセス解除' : 'ログアウト'}
           </button>
         </div>
       </div>
