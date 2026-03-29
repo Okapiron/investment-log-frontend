@@ -5,6 +5,7 @@ import Layout from './components/Layout'
 import AuthCallbackPage from './pages/AuthCallbackPage'
 import AuthPage from './pages/AuthPage'
 import AuthResetPage from './pages/AuthResetPage'
+import AnalysisPage from './pages/AnalysisPage'
 import HelpPage from './pages/HelpPage'
 import LandingPage from './pages/LandingPage'
 import PrivacyPage from './pages/PrivacyPage'
@@ -54,6 +55,14 @@ export default function App() {
         <Route path="/terms" element={<TermsPage />} />
         <Route path="/privacy" element={<PrivacyPage />} />
 
+        <Route
+          path="/analysis"
+          element={(
+            <RequireAuth>
+              <AnalysisPage />
+            </RequireAuth>
+          )}
+        />
         <Route
           path="/trades"
           element={(
