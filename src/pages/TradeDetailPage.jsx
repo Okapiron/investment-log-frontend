@@ -276,11 +276,6 @@ export default function TradeDetailPage() {
     return !sell
   }, [data, sell])
   const isPendingReview = useMemo(() => !Boolean(data?.review_done), [data?.review_done])
-  useEffect(() => {
-    if (data && data.market !== 'JP') {
-      navigate('/trades', { replace: true })
-    }
-  }, [data, navigate])
   const reviewMissingItems = useMemo(() => getReviewMissingItems(data, isOpen), [data, isOpen])
   const reviewDisabledReason = useMemo(() => {
     if (!isPendingReview) return ''
@@ -362,8 +357,9 @@ export default function TradeDetailPage() {
   }, [profitRateNumber])
 
   const fmtMoney = useMemo(() => {
-    return formatJPY
-  }, [])
+    if (!data) return formatJPY
+    return data.market === 'US' ? formatUSD : formatJPY
+  }, [data])
 
   const { data: pricesData, isLoading: isPricesLoading, error: pricesError } = useQuery({
     queryKey: ['prices', data?.market, data?.symbol, interval],
@@ -375,9 +371,11 @@ export default function TradeDetailPage() {
   })
 
   const tvExternalUrl = useMemo(() => {
-    if (!data?.symbol) return ''
-    return `https://www.tradingview.com/symbols/TSE-${data.symbol}/`
-  }, [data?.symbol])
+    if (!data?.market || !data?.symbol) return ''
+    if (data.market === 'JP') return `https://www.tradingview.com/symbols/TSE-${data.symbol}/`
+    if (data.market === 'US') return `https://www.tradingview.com/symbols/NASDAQ-${data.symbol}/`
+    return ''
+  }, [data?.market, data?.symbol])
 
   const allBars = Array.isArray(pricesData?.bars) ? pricesData.bars : []
   const buyIndex = useMemo(() => findBarIndexByDateOrPrev(allBars, buy?.date), [allBars, buy?.date])
@@ -520,11 +518,11 @@ export default function TradeDetailPage() {
 
   useEffect(() => {
     if (pricesError) {
-      setChartError('価格データを取得できませんでした')
+      setChartError('チャートを表示できませんでした')
       return
     }
     if (!isPricesLoading && allBars.length === 0) {
-      setChartError('価格データを取得できませんでした')
+      setChartError('チャートを表示できませんでした')
       return
     }
     setChartError('')
@@ -553,7 +551,6 @@ export default function TradeDetailPage() {
   if (isLoading) return <p style={{ padding: 16 }}>読み込み中…</p>
   if (error) return <p style={{ padding: 16, color: 'crimson' }}>エラー: {String(error.message || error)}</p>
   if (!data) return <p style={{ padding: 16 }}>データがありません</p>
-  if (data.market !== 'JP') return null
 
   function startEdit() {
     setSaveMsg('')

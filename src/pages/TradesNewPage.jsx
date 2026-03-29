@@ -455,11 +455,23 @@ export default function TradesNewPage() {
   useEffect(() => {
     if (marketInitializedRef.current) return
     marketInitializedRef.current = true
+    try {
+      const saved = localStorage.getItem(MARKET_STORAGE_KEY)
+      if (saved === 'JP' || saved === 'US') {
+        setMarket(saved)
+      }
+    } catch {
+      // ignore
+    }
   }, [])
 
   // Persist market selection
   useEffect(() => {
-    if (market !== 'JP') setMarket('JP')
+    try {
+      localStorage.setItem(MARKET_STORAGE_KEY, market)
+    } catch {
+      // ignore
+    }
   }, [market])
 
   // 最近使った銘柄のサジェスト（入力のスピード改善）
@@ -478,7 +490,6 @@ export default function TradesNewPage() {
         for (const t of items) {
           const m = t?.market
           const s = String(t?.symbol || '').trim().toUpperCase()
-          if (m !== 'JP') continue
           if (!m || !s) continue
           const key = `${m}:${s}`
           const nm = String(t?.name || '').trim()
@@ -517,7 +528,6 @@ export default function TradesNewPage() {
   const instrumentCandidates = useMemo(() => {
     const merged = new Map()
     const addCandidate = (c, isRecent = false) => {
-      if (String(c?.market || '').trim().toUpperCase() !== 'JP') return
       const symbolNorm = normalizeSymbol(c.market, c.symbol)
       if (!symbolNorm) return
       const key = `${c.market}:${symbolNorm}`
@@ -546,6 +556,8 @@ export default function TradesNewPage() {
         })
       }
     }
+    US_STOCK_CANDIDATES.forEach((c) => addCandidate(c, false))
+    usInstruments.forEach((c) => addCandidate(c, false))
     recentInstruments.forEach((c) => addCandidate(c, true))
     cachedInstruments.forEach((c) => addCandidate(c, true))
     jpInstruments.forEach((c) => addCandidate(c, false))
@@ -986,6 +998,7 @@ export default function TradesNewPage() {
               readOnly={instrumentConfirmed}
               onFocus={() => {
                 loadJpInstrumentsIfNeeded()
+                loadUsInstrumentsIfNeeded()
                 if (!instrumentConfirmed) setInstrumentOpen(true)
               }}
               onChange={(e) => {
