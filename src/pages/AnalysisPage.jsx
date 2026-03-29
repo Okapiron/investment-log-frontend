@@ -1,4 +1,5 @@
 import { useQuery } from '@tanstack/react-query'
+import { useLocation } from 'react-router-dom'
 
 import { getAnalysisSummary } from '../lib/analysisApi'
 
@@ -47,6 +48,7 @@ function formatDays(value) {
 }
 
 export default function AnalysisPage() {
+  const location = useLocation()
   const { data, isLoading, error } = useQuery({
     queryKey: ['analysis', 'summary'],
     queryFn: getAnalysisSummary,
@@ -63,10 +65,21 @@ export default function AnalysisPage() {
 
   const stats = data?.stats
   const sufficiency = data?.data_sufficiency
-  const llmMessageTone = sufficiency?.llm_status === 'generated' ? '#175cd3' : '#667085'
+  const importSummary = location.state?.importSummary || null
+  const llmMessageTone = ['generated', 'rule_based'].includes(String(sufficiency?.llm_status || '')) ? '#175cd3' : '#667085'
 
   return (
     <div style={{ display: 'grid', gap: 14, maxWidth: 1080, margin: '0 auto' }}>
+      {importSummary ? (
+        <section style={{ border: '1px solid #b2ddff', borderRadius: 14, padding: 14, background: '#eff8ff', display: 'grid', gap: 6 }}>
+          <div style={{ fontSize: 12, color: '#175cd3', fontWeight: 700 }}>直近取込の要確認ポイント</div>
+          <div style={{ fontSize: 14, color: '#1849a9', lineHeight: 1.6 }}>
+            {importSummary.filename || 'rakuten.csv'} の取込で、作成 {importSummary.createdCount} 件 / スキップ {importSummary.skippedCount} 件 / エラー {importSummary.errorCount} 件でした。
+            まずは勝ち負けの傾向と、レビュー未入力の項目を確認してください。
+          </div>
+        </section>
+      ) : null}
+
       <section style={{ border: '1px solid #d8e6e1', borderRadius: 16, padding: 16, background: 'linear-gradient(135deg, #f7fbfa 0%, #eef7f3 100%)', display: 'grid', gap: 8 }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap' }}>
           <h2 style={{ margin: 0 }}>振り返り分析</h2>

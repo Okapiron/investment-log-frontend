@@ -3,9 +3,25 @@ import { useQuery } from '@tanstack/react-query'
 import { Link, useNavigate } from 'react-router-dom'
 
 import { clearAuthSession, isAuthEnabled } from '../lib/auth'
+import { commitRakutenCsv, previewRakutenCsv } from '../lib/importsApi'
 import { clearPrivateAccessSession, isPrivateModeEnabled } from '../lib/privateAccess'
 import { CONTACT_FORM_URL, SHOW_RUNTIME_PANEL, SUPPORT_EMAIL } from '../lib/siteConfig'
 import { deleteMyData, downloadMyExport, getMyProfile, getReadiness } from '../lib/settingsApi'
+
+async function readCsvFileText(file) {
+  const buffer = await file.arrayBuffer()
+  const uint8 = new Uint8Array(buffer)
+
+  try {
+    return new TextDecoder('utf-8', { fatal: true }).decode(uint8)
+  } catch {
+    try {
+      return new TextDecoder('shift-jis', { fatal: true }).decode(uint8)
+    } catch {
+      return new TextDecoder('utf-8').decode(uint8)
+    }
+  }
+}
 
 export default function SettingsPage() {
   const navigate = useNavigate()
@@ -17,6 +33,8 @@ export default function SettingsPage() {
   const [msg, setMsg] = useState('')
   const [error, setError] = useState('')
   const [confirmText, setConfirmText] = useState('')
+  const [importFile, setImportFile] = useState(null)
+  const [importPreview, setImportPreview] = useState(null)
   const { data, isLoading, error: meError, refetch } = useQuery({
     queryKey: ['settings', 'me'],
     queryFn: getMyProfile,
@@ -86,6 +104,56 @@ export default function SettingsPage() {
       await refetch()
     } catch (e) {
       setError(String(e?.message || e || '削除に失敗しました。'))
+    } finally {
+      setWorking('')
+    }
+  }
+
+  async function handleImportPreview() {
+    if (!importFile) {
+      setError('楽天証券の国内株CSVを選択してください。')
+      return
+    }
+    try {
+      setWorking('import_preview')
+      setError('')
+      setMsg('')
+      const content = await readCsvFileText(importFile)
+      const result = await previewRakutenCsv(importFile.name, content)
+      setImportPreview(result)
+      setMsg(`CSVを解析しました。作成予定 ${result.candidate_count} 件、スキップ ${result.skipped_count} 件、エラー ${result.error_count} 件です。`)
+    } catch (e) {
+      setImportPreview(null)
+      setError(String(e?.message || e || 'CSVの解析に失敗しました。'))
+    } finally {
+      setWorking('')
+    }
+  }
+
+  async function handleImportCommit() {
+    if (!importPreview?.candidates?.length) {
+      setError('先にプレビューを実行してください。')
+      return
+    }
+    try {
+      setWorking('import_commit')
+      setError('')
+      setMsg('')
+      const result = await commitRakutenCsv(importPreview.filename || importFile?.name || 'rakuten.csv', importPreview.candidates)
+      setMsg(`取込が完了しました。作成 ${result.created_count} 件、スキップ ${result.skipped_count} 件、エラー ${result.error_count} 件です。`)
+      navigate('/analysis', {
+        replace: false,
+        state: {
+          importSummary: {
+            filename: importPreview.filename || importFile?.name || 'rakuten.csv',
+            createdCount: result.created_count,
+            skippedCount: result.skipped_count,
+            errorCount: result.error_count,
+          },
+        },
+      })
+    } catch (e) {
+      setError(String(e?.message || e || 'CSV取込に失敗しました。'))
     } finally {
       setWorking('')
     }
@@ -227,6 +295,85 @@ export default function SettingsPage() {
           ) : null}
         </div>
       ) : null}
+
+      <div style={{ border: '1px solid #e4e7ec', borderRadius: 12, padding: 12, background: '#fff', display: 'grid', gap: 10 }}>
+        <div style={{ fontSize: 13, color: '#667085', fontWeight: 700 }}>楽天証券 CSV取込</div>
+        <div style={{ fontSize: 12, color: '#667085', lineHeight: 1.6 }}>
+          国内株の現物売買CSVを読み込み、TradeTrace の round-trip trade に変換します。未決済ポジションはスキップし、
+          部分利確など複雑なケースはエラーとして表示します。
+        </div>
+        <label style={{ display: 'grid', gap: 4 }}>
+          <span style={{ fontSize: 12, color: '#667085' }}>楽天証券のCSVファイル</span>
+          <input
+            type="file"
+            accept=".csv,text/csv"
+            onChange={(e) => {
+              setImportFile(e.target.files?.[0] || null)
+              setImportPreview(null)
+            }}
+          />
+        </label>
+        <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
+          <button
+            type="button"
+            onClick={handleImportPreview}
+            disabled={working === 'import_preview' || !importFile}
+            style={{ background: '#f2f4f7', color: '#111', border: '1px solid #d0d5dd', borderRadius: 8, padding: '8px 12px', opacity: working === 'import_preview' || !importFile ? 0.6 : 1 }}
+          >
+            {working === 'import_preview' ? '解析中…' : 'プレビュー'}
+          </button>
+          <button
+            type="button"
+            onClick={handleImportCommit}
+            disabled={working === 'import_commit' || !importPreview?.candidates?.length}
+            style={{ background: '#2a8871', color: '#fff', border: '1px solid #2a8871', borderRadius: 8, padding: '8px 12px', opacity: working === 'import_commit' || !importPreview?.candidates?.length ? 0.6 : 1 }}
+          >
+            {working === 'import_commit' ? '取込中…' : 'この内容で取り込む'}
+          </button>
+        </div>
+
+        {importPreview ? (
+          <div style={{ display: 'grid', gap: 8, border: '1px solid #eaecf0', borderRadius: 10, padding: 10, background: '#fcfcfd' }}>
+            <div style={{ fontSize: 13, color: '#344054' }}>
+              作成予定 <b>{importPreview.candidate_count}</b> 件 / スキップ <b>{importPreview.skipped_count}</b> 件 / エラー <b>{importPreview.error_count}</b> 件
+            </div>
+            {importPreview.candidates?.length ? (
+              <div style={{ display: 'grid', gap: 8 }}>
+                {importPreview.candidates.map((item) => (
+                  <div key={item.source_signature} style={{ border: '1px solid #eaecf0', borderRadius: 8, padding: 8, background: '#fff', display: 'grid', gap: 4 }}>
+                    <div style={{ fontWeight: 700 }}>{item.symbol} {item.name || ''}</div>
+                    <div style={{ fontSize: 12, color: '#475467' }}>
+                      BUY {item.buy.date} / {item.buy.qty}株 / {item.buy.price}円 / fee {item.buy.fee}円
+                    </div>
+                    <div style={{ fontSize: 12, color: '#475467' }}>
+                      SELL {item.sell.date} / {item.sell.qty}株 / {item.sell.price}円 / fee {item.sell.fee}円
+                    </div>
+                    {item.already_imported ? (
+                      <div style={{ fontSize: 12, color: '#b54708' }}>既に取込済みです。commit 時はスキップされます。</div>
+                    ) : null}
+                  </div>
+                ))}
+              </div>
+            ) : null}
+            {importPreview.skipped?.length ? (
+              <div style={{ fontSize: 12, color: '#667085', display: 'grid', gap: 4 }}>
+                <div style={{ fontWeight: 700 }}>スキップ</div>
+                {importPreview.skipped.map((item, idx) => (
+                  <div key={`skip-${idx}`}>行 {item.line ?? '—'}: {item.message}</div>
+                ))}
+              </div>
+            ) : null}
+            {importPreview.errors?.length ? (
+              <div style={{ fontSize: 12, color: '#b42318', display: 'grid', gap: 4 }}>
+                <div style={{ fontWeight: 700 }}>エラー</div>
+                {importPreview.errors.map((item, idx) => (
+                  <div key={`err-${idx}`}>行 {item.line ?? '—'}: {item.message}</div>
+                ))}
+              </div>
+            ) : null}
+          </div>
+        ) : null}
+      </div>
 
       <div style={{ border: '1px solid #e4e7ec', borderRadius: 12, padding: 12, background: '#fff', display: 'grid', gap: 10 }}>
         <div style={{ fontSize: 13, color: '#667085', fontWeight: 700 }}>データ</div>
