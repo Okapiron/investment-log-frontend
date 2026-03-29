@@ -3,7 +3,8 @@ import { useEffect, useMemo, useRef, useState } from 'react'
 let lwcPromise = null
 function loadLWC() {
   if (lwcPromise) return lwcPromise
-  lwcPromise = import(/* @vite-ignore */ 'https://esm.sh/lightweight-charts@4.2.2')
+  // Prefer the locally installed package so chart rendering does not depend on a third-party CDN at runtime.
+  lwcPromise = import('lightweight-charts')
   return lwcPromise
 }
 

@@ -2,7 +2,7 @@ import { useQuery } from '@tanstack/react-query'
 import { useEffect, useMemo, useRef, useState } from 'react'
 import { Link, useSearchParams } from 'react-router-dom'
 
-import { api, formatJPY, formatUSD } from '../lib/api'
+import { formatJPY } from '../lib/api'
 import { TAG_OPTIONS } from '../lib/tags'
 import { listTrades } from '../lib/tradesApi'
 
@@ -182,9 +182,6 @@ function statusBadgeMeta(status) {
 
 function getProfitValue(t) {
   if (!t) return null
-  if (t.profit_currency === 'USD') {
-    return t.profit_usd == null ? null : Number(t.profit_usd)
-  }
   return t.profit_jpy == null ? null : Number(t.profit_jpy)
 }
 
@@ -192,7 +189,7 @@ function formatProfitByTrade(t) {
   const p = getProfitValue(t)
   if (p == null) return '—'
 
-  const formatted = t?.profit_currency === 'USD' ? formatUSD(p) : formatJPY(p)
+  const formatted = formatJPY(p)
   return p > 0 ? `+${formatted}` : formatted
 }
 
@@ -281,11 +278,6 @@ export default function TradesPage() {
   // URL -> state 初期値（直アクセス/リロードで復元）
   const initial = useMemo(() => {
     const q = searchParams.get('q') || ''
-    const marketRaw = parseMultiParam(searchParams.get('market'))
-    const market = marketRaw
-      .map((m) => clampMarket(m))
-      .filter((m) => m !== 'all')
-      .filter((v, i, a) => a.indexOf(v) === i)
     const ratingRaw = parseMultiParam(searchParams.get('rating'))
     const rating = ratingRaw
       .map((r) => clampRating(r))
@@ -304,7 +296,7 @@ export default function TradesPage() {
     const status = statusRaw
       ? clampStatus(statusRaw)
       : deriveStatusFromLegacy(searchParams.get('pos'), searchParams.get('review'))
-    return { q, market, rating, tag, status, sort, sortDir, page, limit, winFrom, winTo, winOnly, lossOnly }
+    return { q, market: [], rating, tag, status, sort, sortDir, page, limit, winFrom, winTo, winOnly, lossOnly }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [])
 
@@ -359,8 +351,7 @@ export default function TradesPage() {
   useEffect(() => {
     const next = new URLSearchParams(searchParams)
 
-    if (marketFilters.length > 0) next.set('market', marketFilters.join(','))
-    else next.delete('market')
+    next.delete('market')
 
     if (ratingFilters.length > 0) next.set('rating', ratingFilters.join(','))
     else next.delete('rating')
@@ -445,7 +436,7 @@ export default function TradesPage() {
         limit,
         offset: (page - 1) * limit,
         q: search.trim() || undefined,
-        market: marketFilters.length > 0 ? marketFilters.join(',') : undefined,
+        market: undefined,
         rating: ratingFilters.length > 0 ? ratingFilters.join(',') : undefined,
         tag: tagFilters.length > 0 ? tagFilters.join(',') : undefined,
         status: statusFilter !== 'all' ? statusFilter : undefined,
@@ -483,7 +474,6 @@ export default function TradesPage() {
   const stats = useMemo(
     () => ({
       totalProfitJPY: Number(data?.stats?.total_profit_jpy || 0),
-      totalProfitUSD: Number(data?.stats?.total_profit_usd || 0),
       winRate: data?.stats?.win_rate ?? null,
       avgHolding: data?.stats?.avg_holding_days ?? null,
       avgRoiPct: data?.stats?.avg_roi_pct ?? null,
@@ -495,7 +485,6 @@ export default function TradesPage() {
 
   const hasAnyFilter =
     search.trim() ||
-    marketFilters.length > 0 ||
     ratingFilters.length > 0 ||
     tagFilters.length > 0 ||
     sortKey !== 'buy_date' ||
@@ -510,7 +499,6 @@ export default function TradesPage() {
 
   const activeLabel = useMemo(() => {
     const parts = []
-    if (marketFilters.length > 0) parts.push(`市場:${marketFilters.join(',')}`)
     if (ratingFilters.length > 0) parts.push(`評価:${ratingFilters.join(',')}`)
     if (tagFilters.length > 0) parts.push(`タグ:${tagFilters.join(',')}`)
     if (search.trim()) parts.push(`検索:"${search.trim()}"`)
@@ -674,20 +662,6 @@ export default function TradesPage() {
             }}
           >
             {stats.totalProfitJPY > 0 ? `+${formatJPY(stats.totalProfitJPY)}` : formatJPY(stats.totalProfitJPY)}
-          </div>
-        </div>
-
-        <div style={{ display: 'grid', gap: 2 }}>
-          <div style={{ fontSize: 12, color: '#667085' }}>合計損益（USD）</div>
-          <div
-            style={{
-              fontSize: 16,
-              fontWeight: 800,
-              color:
-                stats.totalProfitUSD > 0 ? '#067647' : stats.totalProfitUSD < 0 ? '#b42318' : '#344054',
-            }}
-          >
-            {stats.totalProfitUSD > 0 ? `+${formatUSD(stats.totalProfitUSD)}` : formatUSD(stats.totalProfitUSD)}
           </div>
         </div>
 
@@ -889,22 +863,6 @@ export default function TradesPage() {
         </div>
 
         <div style={{ display: 'grid', gap: 4 }}>
-          <span style={{ fontSize: 12, opacity: 0.8 }}>市場</span>
-          <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6 }}>
-            <FilterChip active={marketFilters.length === 0} onClick={() => setMarketFilters([])}>すべて</FilterChip>
-            {['JP', 'US'].map((m) => (
-              <FilterChip
-                key={m}
-                active={marketFilters.includes(m)}
-                onClick={() => toggleArrayFilter(m, marketFilters, setMarketFilters)}
-              >
-                {m}
-              </FilterChip>
-            ))}
-          </div>
-        </div>
-
-        <div style={{ display: 'grid', gap: 4 }}>
           <span style={{ fontSize: 12, opacity: 0.8 }}>結果</span>
           <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6 }}>
             <FilterChip
@@ -1096,16 +1054,11 @@ export default function TradesPage() {
               <div style={{ display: 'flex', flexDirection: isMobile ? 'column' : 'row', justifyContent: 'space-between', gap: isMobile ? 8 : 12, alignItems: isMobile ? 'stretch' : 'baseline' }}>
                 <div>
                   <div style={{ display: 'flex', alignItems: 'baseline', gap: 8, flexWrap: 'wrap' }}>
-                    <span style={{ fontSize: 12, color: '#667085', width: 24, display: 'inline-block' }}>{t.market}</span>
                     <span style={{ fontSize: 16, fontWeight: 800, color: '#101828', minWidth: 56, display: 'inline-block' }}>{t.symbol}</span>
                     {t.name ? (
                       <>
                         <span style={{ width: 1, height: '1em', background: '#d0d5dd', flex: '0 0 auto', alignSelf: 'center' }} />
-                        {t.market === 'JP' ? (
-                          <span style={{ fontSize: 14, fontWeight: 400, color: '#344054', marginLeft: -2 }}>{t.name}</span>
-                        ) : (
-                          <span style={{ fontSize: 13, color: '#475467', marginLeft: -2 }}>({t.name})</span>
-                        )}
+                        <span style={{ fontSize: 14, fontWeight: 400, color: '#344054', marginLeft: -2 }}>{t.name}</span>
                       </>
                     ) : null}
                   </div>
