@@ -43,6 +43,18 @@ function DiagnosisCard({ item }) {
   )
 }
 
+function SummaryHighlightCard({ title, body, accent = '#175cd3', background = '#eff8ff', border = '#b2ddff', children = null }) {
+  return (
+    <section style={{ border: `1px solid ${border}`, borderRadius: 16, padding: 16, background, display: 'grid', gap: 10 }}>
+      <div style={{ display: 'grid', gap: 6 }}>
+        <div style={{ fontSize: 12, color: accent, fontWeight: 700 }}>{title}</div>
+        <div style={{ fontSize: 22, fontWeight: 800, color: '#101828', lineHeight: 1.5 }}>{body}</div>
+      </div>
+      {children}
+    </section>
+  )
+}
+
 function StatRow({ label, value, emphasize = false }) {
   return (
     <div style={{ display: 'flex', justifyContent: 'space-between', gap: 12, fontSize: 13, color: '#344054' }}>
@@ -121,6 +133,34 @@ export default function AnalysisPage() {
           {sufficiency?.message || '統計を表示しています。'}
         </div>
       </section>
+
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(320px, 1fr))', gap: 12 }}>
+        <SummaryHighlightCard
+          title="今のスタイル要約"
+          body={data?.headline_summary || '今の売買スタイルを要約できませんでした。'}
+          accent="#067647"
+          background="#ecfdf3"
+          border="#abefc6"
+        />
+
+        <SummaryHighlightCard
+          title={data?.top_improvement?.title || '次の改善点'}
+          body={data?.top_improvement?.message || '次に直すべき点を特定できませんでした。'}
+          accent="#b54708"
+          background="#fffaeb"
+          border="#f9dbaf"
+        >
+          {!!data?.top_improvement?.rationale?.length && (
+            <div style={{ display: 'grid', gap: 6 }}>
+              {data.top_improvement.rationale.map((item) => (
+                <div key={item} style={{ fontSize: 12, color: '#475467', lineHeight: 1.6 }}>
+                  {item}
+                </div>
+              ))}
+            </div>
+          )}
+        </SummaryHighlightCard>
+      </div>
 
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))', gap: 12 }}>
         {(data?.diagnoses || []).map((item) => (
