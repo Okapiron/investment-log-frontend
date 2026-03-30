@@ -140,13 +140,16 @@ export default function SettingsPage() {
       setError('')
       setMsg('')
       const result = await commitRakutenCsv(importPreview.filename || importFile?.name || 'rakuten.csv', importPreview.candidates)
-      setMsg(`取込が完了しました。作成 ${result.created_count} 件、スキップ ${result.skipped_count} 件、エラー ${result.error_count} 件です。`)
+      setMsg(
+        `取込が完了しました。作成 ${result.created_count} 件、更新 ${result.updated_count || 0} 件、スキップ ${result.skipped_count} 件、エラー ${result.error_count} 件です。`
+      )
       navigate('/analysis', {
         replace: false,
         state: {
           importSummary: {
             filename: importPreview.filename || importFile?.name || 'rakuten.csv',
             createdCount: result.created_count,
+            updatedCount: result.updated_count || 0,
             skippedCount: result.skipped_count,
             errorCount: result.error_count,
           },
@@ -299,8 +302,8 @@ export default function SettingsPage() {
       <div style={{ border: '1px solid #e4e7ec', borderRadius: 12, padding: 12, background: '#fff', display: 'grid', gap: 10 }}>
         <div style={{ fontSize: 13, color: '#667085', fontWeight: 700 }}>楽天証券 CSV取込</div>
         <div style={{ fontSize: 12, color: '#667085', lineHeight: 1.6 }}>
-          国内株の現物売買と信用買いを読み込み、TradeTrace の round-trip trade に変換します。未決済ポジションはスキップし、
-          部分利確や信用売りなど複雑なケースはエラーまたはスキップとして表示します。
+          国内株の現物売買と信用買いを読み込み、TradeTrace の trade に変換します。分割決済は複数 trade に分け、
+          残建玉は保有中として残します。信用売りなど対象外のケースはスキップまたはエラーとして表示します。
         </div>
         <label style={{ display: 'grid', gap: 4 }}>
           <span style={{ fontSize: 12, color: '#667085' }}>楽天証券のCSVファイル</span>
@@ -345,9 +348,22 @@ export default function SettingsPage() {
                     <div style={{ fontSize: 12, color: '#475467' }}>
                       BUY {item.buy.date} / {item.buy.qty}株 / {item.buy.price}円 / fee {item.buy.fee}円
                     </div>
-                    <div style={{ fontSize: 12, color: '#475467' }}>
-                      SELL {item.sell.date} / {item.sell.qty}株 / {item.sell.price}円 / fee {item.sell.fee}円
-                    </div>
+                    {item.sell ? (
+                      <div style={{ fontSize: 12, color: '#475467' }}>
+                        SELL {item.sell.date} / {item.sell.qty}株 / {item.sell.price}円 / fee {item.sell.fee}円
+                      </div>
+                    ) : (
+                      <div style={{ fontSize: 12, color: '#475467' }}>
+                        OPEN / {item.buy.qty}株を保有中 / fee {item.buy.fee}円
+                      </div>
+                    )}
+                    {item.is_partial_exit ? (
+                      <div style={{ fontSize: 12, color: '#b54708' }}>
+                        {item.sell
+                          ? `この候補は分割決済の一部です。残り ${item.remaining_qty_after_sell} 株は保有中として扱います。`
+                          : 'この候補は分割決済の残建玉です。'}
+                      </div>
+                    ) : null}
                     {item.already_imported ? (
                       <div style={{ fontSize: 12, color: '#b54708' }}>既に取込済みです。commit 時はスキップされます。</div>
                     ) : null}

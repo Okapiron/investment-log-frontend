@@ -113,7 +113,7 @@ export default function AnalysisPage() {
         <section style={{ border: '1px solid #b2ddff', borderRadius: 14, padding: 14, background: '#eff8ff', display: 'grid', gap: 6 }}>
           <div style={{ fontSize: 12, color: '#175cd3', fontWeight: 700 }}>直近取込の要確認ポイント</div>
           <div style={{ fontSize: 14, color: '#1849a9', lineHeight: 1.6 }}>
-            {importSummary.filename || 'rakuten.csv'} の取込で、作成 {importSummary.createdCount} 件 / スキップ {importSummary.skippedCount} 件 / エラー {importSummary.errorCount} 件でした。
+            {importSummary.filename || 'rakuten.csv'} の取込で、作成 {importSummary.createdCount} 件 / 更新 {importSummary.updatedCount || 0} 件 / スキップ {importSummary.skippedCount} 件 / エラー {importSummary.errorCount} 件でした。
             まずは下の診断カードで、収支構造と保有の癖、最近の変化を見てください。
           </div>
         </section>

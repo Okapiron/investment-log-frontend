@@ -1194,25 +1194,46 @@ export default function TradesPage() {
                     const status = getTradeStatus(t)
                     const badge = statusBadgeMeta(status)
                     return (
-                      <span
-                        style={{
-                          display: 'inline-flex',
-                          alignItems: 'center',
-                          justifyContent: 'center',
-                          width: 88,
-                          boxSizing: 'border-box',
-                          whiteSpace: 'nowrap',
-                          fontSize: 11,
-                          color: badge.color,
-                          background: badge.background,
-                          border: badge.border,
-                          borderRadius: 999,
-                          padding: '3px 8px',
-                          lineHeight: 1.2,
-                        }}
-                      >
-                        {badge.label}
-                      </span>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: 6, flexWrap: 'wrap' }}>
+                        <span
+                          style={{
+                            display: 'inline-flex',
+                            alignItems: 'center',
+                            justifyContent: 'center',
+                            width: 88,
+                            boxSizing: 'border-box',
+                            whiteSpace: 'nowrap',
+                            fontSize: 11,
+                            color: badge.color,
+                            background: badge.background,
+                            border: badge.border,
+                            borderRadius: 999,
+                            padding: '3px 8px',
+                            lineHeight: 1.2,
+                          }}
+                        >
+                          {badge.label}
+                        </span>
+                        {t.is_partial_exit ? (
+                          <span
+                            style={{
+                              display: 'inline-flex',
+                              alignItems: 'center',
+                              justifyContent: 'center',
+                              whiteSpace: 'nowrap',
+                              fontSize: 11,
+                              color: '#b54708',
+                              background: '#fffaeb',
+                              border: '1px solid #fedf89',
+                              borderRadius: 999,
+                              padding: '3px 8px',
+                              lineHeight: 1.2,
+                            }}
+                          >
+                            分割決済由来
+                          </span>
+                        ) : null}
+                      </div>
                     )
                   })()}
                   <span style={{ width: 1, height: 18, background: '#d0d5dd', flex: '0 0 auto' }} />

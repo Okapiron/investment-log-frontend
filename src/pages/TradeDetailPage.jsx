@@ -742,6 +742,21 @@ export default function TradeDetailPage() {
               <span style={{ fontSize: 20, fontWeight: 800, color: '#111' }}>{data.symbol}</span>
 
               {data.name ? <span style={{ fontSize: 14, color: '#475467' }}>{data.name}</span> : null}
+              {data.is_partial_exit ? (
+                <span
+                  style={{
+                    fontSize: 12,
+                    color: '#b54708',
+                    background: '#fffaeb',
+                    border: '1px solid #fedf89',
+                    borderRadius: 999,
+                    padding: '4px 10px',
+                    lineHeight: 1.2,
+                  }}
+                >
+                  分割決済由来
+                </span>
+              ) : null}
               {isOpen ? (
                 <span
                   style={{
