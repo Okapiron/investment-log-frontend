@@ -66,6 +66,29 @@ function parseTagsCSV(tags) {
     .filter(Boolean)
 }
 
+function getOpeningSide(positionSide) {
+  return positionSide === 'short' ? 'sell' : 'buy'
+}
+
+function getClosingSide(positionSide) {
+  return positionSide === 'short' ? 'buy' : 'sell'
+}
+
+function getOpeningLabel(positionSide) {
+  return positionSide === 'short' ? '新規売' : '買付'
+}
+
+function getClosingLabel(positionSide) {
+  return positionSide === 'short' ? '返済買' : '売却'
+}
+
+function hasBreakdownValue(fill) {
+  if (!fill) return false
+  return [fill.fee_commission_jpy, fill.fee_tax_jpy, fill.fee_other_jpy, fill.fee_total_jpy].some(
+    (value) => value !== null && value !== undefined
+  )
+}
+
 function findBarIndexByDateOrPrev(bars, dateStr) {
   if (!Array.isArray(bars) || bars.length === 0 || !dateStr) return -1
   const exact = bars.findIndex((b) => b.time === dateStr)
@@ -266,15 +289,23 @@ export default function TradeDetailPage() {
     queryFn: () => api.get(`/api/v1/trades/${id}`),
   })
 
+  const positionSide = data?.position_side || 'long'
+  const openingSide = positionSide === 'short' ? 'sell' : 'buy'
+  const closingSide = positionSide === 'short' ? 'buy' : 'sell'
+  const openingLabel = getOpeningLabel(positionSide)
+  const closingLabel = getClosingLabel(positionSide)
+
   // buy/sell は表示のみ
   const buy = useMemo(() => data?.fills?.find((f) => f.side === 'buy'), [data])
   const sell = useMemo(() => data?.fills?.find((f) => f.side === 'sell'), [data])
+  const openingFill = useMemo(() => data?.fills?.find((f) => f.side === openingSide), [data, openingSide])
+  const closingFill = useMemo(() => data?.fills?.find((f) => f.side === closingSide), [data, closingSide])
   const isOpen = useMemo(() => {
     if (!data) return false
     if (data.is_open === true) return true
     if (!data.closed_at) return true
-    return !sell
-  }, [data, sell])
+    return !closingFill
+  }, [data, closingFill])
   const isPendingReview = useMemo(() => !Boolean(data?.review_done), [data?.review_done])
   const reviewMissingItems = useMemo(() => getReviewMissingItems(data, isOpen), [data, isOpen])
   const reviewDisabledReason = useMemo(() => {
@@ -360,6 +391,18 @@ export default function TradeDetailPage() {
     if (!data) return formatJPY
     return data.market === 'US' ? formatUSD : formatJPY
   }, [data])
+  const breakdownAvailable = useMemo(() => hasBreakdownValue(openingFill) || hasBreakdownValue(closingFill), [openingFill, closingFill])
+  const shortEditDisabled = positionSide === 'short'
+  const summaryBreakdownRows = useMemo(
+    () => [
+      { label: '粗利 / 粗損', value: data?.gross_profit_jpy, color: Number(data?.gross_profit_jpy) > 0 ? '#067647' : Number(data?.gross_profit_jpy) < 0 ? '#b42318' : '#111' },
+      { label: '手数料', value: data?.total_commission_jpy },
+      { label: '税金', value: data?.total_tax_jpy },
+      { label: '諸費用', value: data?.total_other_cost_jpy },
+      { label: '最終損益', value: data?.net_profit_jpy ?? data?.profit_jpy, color: profitColor },
+    ],
+    [data, profitColor]
+  )
 
   const { data: pricesData, isLoading: isPricesLoading, error: pricesError } = useQuery({
     queryKey: ['prices', data?.market, data?.symbol, interval],
@@ -742,6 +785,21 @@ export default function TradeDetailPage() {
               <span style={{ fontSize: 20, fontWeight: 800, color: '#111' }}>{data.symbol}</span>
 
               {data.name ? <span style={{ fontSize: 14, color: '#475467' }}>{data.name}</span> : null}
+              {positionSide === 'short' ? (
+                <span
+                  style={{
+                    fontSize: 12,
+                    color: '#344054',
+                    background: '#f2f4f7',
+                    border: '1px solid #d0d5dd',
+                    borderRadius: 999,
+                    padding: '4px 10px',
+                    lineHeight: 1.2,
+                  }}
+                >
+                  信用売り
+                </span>
+              ) : null}
               {data.is_partial_exit ? (
                 <span
                   style={{
@@ -841,7 +899,14 @@ export default function TradeDetailPage() {
                   <button style={{ ...baseButtonStyle, minHeight: isMobile ? 40 : undefined, width: isMobile ? '100%' : undefined }}>← 一覧へ</button>
                 </Link>
 
-                <button onClick={startEdit} style={{ ...baseButtonStyle, minHeight: isMobile ? 40 : undefined, width: isMobile ? '100%' : undefined }}>編集</button>
+                <button
+                  onClick={shortEditDisabled ? undefined : startEdit}
+                  disabled={shortEditDisabled}
+                  title={shortEditDisabled ? '信用売りの取込データは現在表示専用です。' : ''}
+                  style={{ ...baseButtonStyle, minHeight: isMobile ? 40 : undefined, width: isMobile ? '100%' : undefined, opacity: shortEditDisabled ? 0.6 : 1, cursor: shortEditDisabled ? 'not-allowed' : 'pointer' }}
+                >
+                  編集
+                </button>
 
                 <button
                   onClick={deleteTrade}
@@ -868,6 +933,9 @@ export default function TradeDetailPage() {
             </div>
             {isEditing && saveDisabledReason ? (
               <div style={{ marginTop: 2, fontSize: 12, color: '#b42318' }}>{saveDisabledReason}</div>
+            ) : null}
+            {!isEditing && shortEditDisabled ? (
+              <div style={{ marginTop: 2, fontSize: 12, color: '#667085' }}>信用売りの取込データは現在表示専用です。</div>
             ) : null}
             {isEditing && !saveDisabledReason && editPriceCheckWarning ? (
               <div style={{ marginTop: 2, fontSize: 12, color: '#667085' }}>注意: {editPriceCheckWarning}</div>
@@ -911,36 +979,68 @@ export default function TradeDetailPage() {
           {showTradeDataContent && !isEditing ? (
             <div style={{ display: 'grid', gap: 8, fontSize: 15, color: '#111', paddingLeft: isMobile ? 0 : 10 }}>
               <div style={{ display: 'grid', gap: 6, border: '1px solid #eaecf0', borderRadius: 10, padding: isMobile ? 10 : '8px 10px', background: '#fcfdfd' }}>
-                <b style={{ fontSize: 14 }}>買付</b>
+                <b style={{ fontSize: 14 }}>{openingLabel}</b>
                 <div style={{ display: 'grid', gap: 4 }}>
                   <div style={{ display: 'grid', gridTemplateColumns: isMobile ? '64px 1fr' : '56px 1fr', gap: 8 }}>
                     <span style={{ fontSize: 12, color: '#667085', fontWeight: 700 }}>日付</span>
-                    <span style={{ fontSize: 14, fontWeight: 600, color: '#111' }}>{buy?.date || '—'}</span>
+                    <span style={{ fontSize: 14, fontWeight: 600, color: '#111' }}>{openingFill?.date || '—'}</span>
                   </div>
                   <div style={{ display: 'grid', gridTemplateColumns: isMobile ? '64px 1fr' : '56px 1fr', gap: 8 }}>
                     <span style={{ fontSize: 12, color: '#667085', fontWeight: 700 }}>価格</span>
-                    <span style={{ fontSize: 14, fontWeight: 600, color: '#111' }}>{fmtMoney(buy?.price)}</span>
+                    <span style={{ fontSize: 14, fontWeight: 600, color: '#111' }}>{fmtMoney(openingFill?.price)}</span>
                   </div>
                   <div style={{ display: 'grid', gridTemplateColumns: isMobile ? '64px 1fr' : '56px 1fr', gap: 8 }}>
                     <span style={{ fontSize: 12, color: '#667085', fontWeight: 700 }}>数量</span>
-                    <span style={{ fontSize: 14, fontWeight: 600, color: '#111' }}>{buy?.qty ?? '—'}</span>
+                    <span style={{ fontSize: 14, fontWeight: 600, color: '#111' }}>{openingFill?.qty ?? '—'}</span>
+                  </div>
+                  <div style={{ display: 'grid', gridTemplateColumns: isMobile ? '64px 1fr' : '56px 1fr', gap: 8 }}>
+                    <span style={{ fontSize: 12, color: '#667085', fontWeight: 700 }}>手数料</span>
+                    <span style={{ fontSize: 14, fontWeight: 600, color: '#111' }}>{hasBreakdownValue(openingFill) ? formatJPY(openingFill?.fee_commission_jpy || 0) : '—'}</span>
+                  </div>
+                  <div style={{ display: 'grid', gridTemplateColumns: isMobile ? '64px 1fr' : '56px 1fr', gap: 8 }}>
+                    <span style={{ fontSize: 12, color: '#667085', fontWeight: 700 }}>税金</span>
+                    <span style={{ fontSize: 14, fontWeight: 600, color: '#111' }}>{hasBreakdownValue(openingFill) ? formatJPY(openingFill?.fee_tax_jpy || 0) : '—'}</span>
+                  </div>
+                  <div style={{ display: 'grid', gridTemplateColumns: isMobile ? '64px 1fr' : '56px 1fr', gap: 8 }}>
+                    <span style={{ fontSize: 12, color: '#667085', fontWeight: 700 }}>諸費用</span>
+                    <span style={{ fontSize: 14, fontWeight: 600, color: '#111' }}>{hasBreakdownValue(openingFill) ? formatJPY(openingFill?.fee_other_jpy || 0) : '—'}</span>
+                  </div>
+                  <div style={{ display: 'grid', gridTemplateColumns: isMobile ? '64px 1fr' : '56px 1fr', gap: 8 }}>
+                    <span style={{ fontSize: 12, color: '#667085', fontWeight: 700 }}>合計</span>
+                    <span style={{ fontSize: 14, fontWeight: 600, color: '#111' }}>{hasBreakdownValue(openingFill) ? formatJPY(openingFill?.fee_total_jpy ?? openingFill?.fee ?? 0) : '—'}</span>
                   </div>
                 </div>
               </div>
               <div style={{ display: 'grid', gap: 6, border: '1px solid #eaecf0', borderRadius: 10, padding: isMobile ? 10 : '8px 10px', background: '#fcfdfd' }}>
-                <b style={{ fontSize: 14 }}>売却</b>
+                <b style={{ fontSize: 14 }}>{closingLabel}</b>
                 <div style={{ display: 'grid', gap: 4 }}>
                   <div style={{ display: 'grid', gridTemplateColumns: isMobile ? '64px 1fr' : '56px 1fr', gap: 8 }}>
                     <span style={{ fontSize: 12, color: '#667085', fontWeight: 700 }}>日付</span>
-                    <span style={{ fontSize: 14, fontWeight: 600, color: '#111' }}>{isOpen ? '—' : (sell?.date || '—')}</span>
+                    <span style={{ fontSize: 14, fontWeight: 600, color: '#111' }}>{isOpen ? '—' : (closingFill?.date || '—')}</span>
                   </div>
                   <div style={{ display: 'grid', gridTemplateColumns: isMobile ? '64px 1fr' : '56px 1fr', gap: 8 }}>
                     <span style={{ fontSize: 12, color: '#667085', fontWeight: 700 }}>価格</span>
-                    <span style={{ fontSize: 14, fontWeight: 600, color: '#111' }}>{isOpen ? '—' : fmtMoney(sell?.price)}</span>
+                    <span style={{ fontSize: 14, fontWeight: 600, color: '#111' }}>{isOpen ? '—' : fmtMoney(closingFill?.price)}</span>
                   </div>
                   <div style={{ display: 'grid', gridTemplateColumns: isMobile ? '64px 1fr' : '56px 1fr', gap: 8 }}>
                     <span style={{ fontSize: 12, color: '#667085', fontWeight: 700 }}>数量</span>
-                    <span style={{ fontSize: 14, fontWeight: 600, color: '#111' }}>{isOpen ? '—' : (sell?.qty ?? '—')}</span>
+                    <span style={{ fontSize: 14, fontWeight: 600, color: '#111' }}>{isOpen ? '—' : (closingFill?.qty ?? '—')}</span>
+                  </div>
+                  <div style={{ display: 'grid', gridTemplateColumns: isMobile ? '64px 1fr' : '56px 1fr', gap: 8 }}>
+                    <span style={{ fontSize: 12, color: '#667085', fontWeight: 700 }}>手数料</span>
+                    <span style={{ fontSize: 14, fontWeight: 600, color: '#111' }}>{!isOpen && hasBreakdownValue(closingFill) ? formatJPY(closingFill?.fee_commission_jpy || 0) : '—'}</span>
+                  </div>
+                  <div style={{ display: 'grid', gridTemplateColumns: isMobile ? '64px 1fr' : '56px 1fr', gap: 8 }}>
+                    <span style={{ fontSize: 12, color: '#667085', fontWeight: 700 }}>税金</span>
+                    <span style={{ fontSize: 14, fontWeight: 600, color: '#111' }}>{!isOpen && hasBreakdownValue(closingFill) ? formatJPY(closingFill?.fee_tax_jpy || 0) : '—'}</span>
+                  </div>
+                  <div style={{ display: 'grid', gridTemplateColumns: isMobile ? '64px 1fr' : '56px 1fr', gap: 8 }}>
+                    <span style={{ fontSize: 12, color: '#667085', fontWeight: 700 }}>諸費用</span>
+                    <span style={{ fontSize: 14, fontWeight: 600, color: '#111' }}>{!isOpen && hasBreakdownValue(closingFill) ? formatJPY(closingFill?.fee_other_jpy || 0) : '—'}</span>
+                  </div>
+                  <div style={{ display: 'grid', gridTemplateColumns: isMobile ? '64px 1fr' : '56px 1fr', gap: 8 }}>
+                    <span style={{ fontSize: 12, color: '#667085', fontWeight: 700 }}>合計</span>
+                    <span style={{ fontSize: 14, fontWeight: 600, color: '#111' }}>{!isOpen && hasBreakdownValue(closingFill) ? formatJPY(closingFill?.fee_total_jpy ?? closingFill?.fee ?? 0) : '—'}</span>
                   </div>
                 </div>
               </div>
@@ -1067,24 +1167,42 @@ export default function TradeDetailPage() {
           {showSummaryContent ? <div style={{ height: 1, background: '#eee', marginBottom: 10 }} /> : null}
 
           {showSummaryContent ? (
-            <div style={{ display: 'grid', gridTemplateColumns: isMobile ? 'repeat(2, minmax(0, 1fr))' : 'repeat(4, minmax(0, 1fr))', gap: isMobile ? 12 : 10, alignItems: 'start', paddingLeft: isMobile ? 0 : 10 }}>
-              <div>
-                <div style={{ fontWeight: 700, fontSize: 13, opacity: 0.75 }}>損益</div>
-                <div style={{ fontSize: isMobile ? 18 : 16, fontWeight: 700, color: profitColor, lineHeight: 1.25 }}>{profitLabel}</div>
-              </div>
-              <div>
-                <div style={{ fontWeight: 700, fontSize: 13, opacity: 0.75 }}>損益率</div>
-                <div style={{ fontSize: isMobile ? 18 : 16, fontWeight: 700, color: profitRateColor, lineHeight: 1.25 }}>{profitRateLabel}</div>
-              </div>
-              <div>
-                <div style={{ fontWeight: 700, fontSize: 13, opacity: 0.75 }}>保有日数</div>
-                <div style={{ fontSize: isMobile ? 18 : 16, fontWeight: 700, lineHeight: 1.25 }}>{isOpen ? '—' : `${data.holding_days ?? '—'} 日`}</div>
-              </div>
-              <div>
-                <div style={{ fontWeight: 700, fontSize: 13, opacity: 0.75 }}>評価</div>
-                <div style={{ fontSize: isMobile ? 16 : 14, lineHeight: 1.25 }}>
-                  <Rating value={data.rating} />
+            <div style={{ display: 'grid', gap: 14, paddingLeft: isMobile ? 0 : 10 }}>
+              <div style={{ display: 'grid', gridTemplateColumns: isMobile ? 'repeat(2, minmax(0, 1fr))' : 'repeat(4, minmax(0, 1fr))', gap: isMobile ? 12 : 10, alignItems: 'start' }}>
+                <div>
+                  <div style={{ fontWeight: 700, fontSize: 13, opacity: 0.75 }}>損益</div>
+                  <div style={{ fontSize: isMobile ? 18 : 16, fontWeight: 700, color: profitColor, lineHeight: 1.25 }}>{profitLabel}</div>
                 </div>
+                <div>
+                  <div style={{ fontWeight: 700, fontSize: 13, opacity: 0.75 }}>損益率</div>
+                  <div style={{ fontSize: isMobile ? 18 : 16, fontWeight: 700, color: profitRateColor, lineHeight: 1.25 }}>{profitRateLabel}</div>
+                </div>
+                <div>
+                  <div style={{ fontWeight: 700, fontSize: 13, opacity: 0.75 }}>保有日数</div>
+                  <div style={{ fontSize: isMobile ? 18 : 16, fontWeight: 700, lineHeight: 1.25 }}>{isOpen ? '—' : `${data.holding_days ?? '—'} 日`}</div>
+                </div>
+                <div>
+                  <div style={{ fontWeight: 700, fontSize: 13, opacity: 0.75 }}>評価</div>
+                  <div style={{ fontSize: isMobile ? 16 : 14, lineHeight: 1.25 }}>
+                    <Rating value={data.rating} />
+                  </div>
+                </div>
+              </div>
+              <div style={{ border: '1px solid #eaecf0', borderRadius: 10, padding: 10, background: '#fcfcfd', display: 'grid', gap: 8 }}>
+                <div style={{ fontSize: 13, fontWeight: 700, color: '#344054' }}>損益内訳</div>
+                <div style={{ display: 'grid', gridTemplateColumns: isMobile ? 'repeat(2, minmax(0, 1fr))' : 'repeat(5, minmax(0, 1fr))', gap: 10 }}>
+                  {summaryBreakdownRows.map((row) => (
+                    <div key={row.label}>
+                      <div style={{ fontWeight: 700, fontSize: 12, opacity: 0.75 }}>{row.label}</div>
+                      <div style={{ fontSize: isMobile ? 16 : 15, fontWeight: 700, color: row.color || '#111', lineHeight: 1.25 }}>
+                        {breakdownAvailable && row.value !== null && row.value !== undefined ? formatJPY(row.value) : '—'}
+                      </div>
+                    </div>
+                  ))}
+                </div>
+                {!breakdownAvailable ? (
+                  <div style={{ fontSize: 12, color: '#667085' }}>手動トレードまたは旧データのため、税金・コスト内訳は未保持です。</div>
+                ) : null}
               </div>
             </div>
           ) : null}

@@ -23,6 +23,39 @@ async function readCsvFileText(file) {
   }
 }
 
+function getCandidateOpenFill(item) {
+  return item?.position_side === 'short' ? item?.sell : item?.buy
+}
+
+function getCandidateCloseFill(item) {
+  return item?.position_side === 'short' ? item?.buy : item?.sell
+}
+
+function getCandidateOpenLabel(item) {
+  return item?.position_side === 'short' ? 'SELL' : 'BUY'
+}
+
+function getCandidateCloseLabel(item) {
+  return item?.position_side === 'short' ? 'BUY' : 'SELL'
+}
+
+function formatReasonCode(reasonCode) {
+  switch (reasonCode) {
+    case 'unsupported_short_previously':
+      return '過去未対応だった信用売り'
+    case 'buy_price_basis_mismatch':
+      return '建値基準のずれ'
+    case 'missing_build_info':
+      return '建玉情報不足'
+    case 'cost_breakdown_mismatch':
+      return 'コスト内訳不一致'
+    case 'missing_in_tradehistory':
+      return 'tradehistory側欠落'
+    default:
+      return ''
+  }
+}
+
 export default function SettingsPage() {
   const navigate = useNavigate()
   const frontendVersion = String(import.meta.env.VITE_APP_VERSION || '').trim() || 'dev-local'
@@ -328,8 +361,8 @@ export default function SettingsPage() {
       <div style={{ border: '1px solid #e4e7ec', borderRadius: 12, padding: 12, background: '#fff', display: 'grid', gap: 10 }}>
         <div style={{ fontSize: 13, color: '#667085', fontWeight: 700 }}>楽天証券 CSV取込</div>
         <div style={{ fontSize: 12, color: '#667085', lineHeight: 1.6 }}>
-          国内株の現物売買と信用買いを読み込み、TradeTrace の trade に変換します。分割決済は複数 trade に分け、
-          残建玉は保有中として残します。信用売りなど対象外のケースはスキップまたはエラーとして表示します。
+          国内株の現物売買、信用買い、信用売りを読み込み、TradeTrace の trade に変換します。分割決済は複数 trade に分け、
+          残建玉は保有中として残します。取り込めないケースはスキップまたはエラーとして表示します。
         </div>
         <label style={{ display: 'grid', gap: 4 }}>
           <span style={{ fontSize: 12, color: '#667085' }}>tradehistory(JP) CSV</span>
@@ -390,22 +423,26 @@ export default function SettingsPage() {
               <div style={{ display: 'grid', gap: 8 }}>
                 {importPreview.candidates.map((item) => (
                   <div key={item.source_signature} style={{ border: '1px solid #eaecf0', borderRadius: 8, padding: 8, background: '#fff', display: 'grid', gap: 4 }}>
-                    <div style={{ fontWeight: 700 }}>{item.symbol} {item.name || ''}</div>
-                    <div style={{ fontSize: 12, color: '#475467' }}>
-                      BUY {item.buy.date} / {item.buy.qty}株 / {item.buy.price}円 / fee {item.buy.fee}円
+                    <div style={{ fontWeight: 700 }}>
+                      {item.symbol} {item.name || ''} {item.position_side === 'short' ? ' / SHORT' : ''}
                     </div>
-                    {item.sell ? (
+                    {getCandidateOpenFill(item) ? (
                       <div style={{ fontSize: 12, color: '#475467' }}>
-                        SELL {item.sell.date} / {item.sell.qty}株 / {item.sell.price}円 / fee {item.sell.fee}円
+                        {getCandidateOpenLabel(item)} {getCandidateOpenFill(item).date} / {getCandidateOpenFill(item).qty}株 / {getCandidateOpenFill(item).price}円 / fee {getCandidateOpenFill(item).fee_total_jpy ?? getCandidateOpenFill(item).fee}円
                       </div>
-                    ) : (
+                    ) : null}
+                    {getCandidateCloseFill(item) ? (
                       <div style={{ fontSize: 12, color: '#475467' }}>
-                        OPEN / {item.buy.qty}株を保有中 / fee {item.buy.fee}円
+                        {getCandidateCloseLabel(item)} {getCandidateCloseFill(item).date} / {getCandidateCloseFill(item).qty}株 / {getCandidateCloseFill(item).price}円 / fee {getCandidateCloseFill(item).fee_total_jpy ?? getCandidateCloseFill(item).fee}円
                       </div>
-                    )}
+                    ) : getCandidateOpenFill(item) ? (
+                      <div style={{ fontSize: 12, color: '#475467' }}>
+                        OPEN / {getCandidateOpenFill(item).qty}株を保有中 / fee {getCandidateOpenFill(item).fee_total_jpy ?? getCandidateOpenFill(item).fee}円
+                      </div>
+                    ) : null}
                     {item.is_partial_exit ? (
                       <div style={{ fontSize: 12, color: '#b54708' }}>
-                        {item.sell
+                        {getCandidateCloseFill(item)
                           ? `この候補は分割決済の一部です。残り ${item.remaining_qty_after_sell} 株は保有中として扱います。`
                           : 'この候補は分割決済の残建玉です。'}
                       </div>
@@ -460,6 +497,23 @@ export default function SettingsPage() {
               </div>
             </div>
             <div style={{ fontSize: 12, color: '#667085' }}>{auditResult.reimport_hint}</div>
+            {auditResult.top_symbol_diffs?.length ? (
+              <div style={{ display: 'grid', gap: 6 }}>
+                <div style={{ fontSize: 12, fontWeight: 700, color: '#344054' }}>差分寄与上位銘柄</div>
+                <div style={{ display: 'grid', gap: 6 }}>
+                  {auditResult.top_symbol_diffs.map((item, idx) => (
+                    <div key={`top-diff-${idx}`} style={{ border: '1px solid #eaecf0', borderRadius: 8, padding: 8, background: '#fcfcfd', fontSize: 12, color: '#475467' }}>
+                      <div style={{ fontWeight: 700, color: '#101828' }}>
+                        {item.symbol} {item.name || ''}
+                      </div>
+                      <div>
+                        TT {Math.round(item.tt_profit_jpy).toLocaleString('ja-JP')}円 / 楽天 {Math.round(item.rakuten_profit_jpy).toLocaleString('ja-JP')}円 / 差額 {item.gap_jpy > 0 ? '+' : ''}{Math.round(item.gap_jpy).toLocaleString('ja-JP')}円
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            ) : null}
             {[
               ['楽天にあるがTTにない決済', auditResult.missing_in_tt],
               ['損益が一致しない決済', auditResult.pnl_mismatch],
@@ -477,6 +531,9 @@ export default function SettingsPage() {
                         <div>
                           売値 {item.sell_price}円 / 買値・平均取得 {item.buy_price_or_avg_cost}円 / TT {item.tt_profit_jpy ?? '—'}円 / 楽天 {item.rakuten_profit_jpy ?? '—'}円
                         </div>
+                        {item.reason_code ? (
+                          <div style={{ color: '#175cd3' }}>理由: {formatReasonCode(item.reason_code)}</div>
+                        ) : null}
                         {item.message ? <div style={{ color: '#b54708' }}>{item.message}</div> : null}
                       </div>
                     ))}
