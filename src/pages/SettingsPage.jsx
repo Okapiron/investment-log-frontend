@@ -478,6 +478,18 @@ export default function SettingsPage() {
             <div style={{ fontSize: 13, color: '#344054', fontWeight: 700 }}>楽天整合性チェック</div>
             <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(160px, 1fr))', gap: 8 }}>
               <div style={{ border: '1px solid #eaecf0', borderRadius: 8, padding: 8, background: '#fcfcfd' }}>
+                <div style={{ fontSize: 12, color: '#667085' }}>preview件数</div>
+                <div style={{ fontSize: 20, fontWeight: 800 }}>{Number(auditResult.preview_candidate_count || 0).toLocaleString('ja-JP')}件</div>
+              </div>
+              <div style={{ border: '1px solid #eaecf0', borderRadius: 8, padding: 8, background: '#fcfcfd' }}>
+                <div style={{ fontSize: 12, color: '#667085' }}>TT再構成件数</div>
+                <div style={{ fontSize: 20, fontWeight: 800 }}>{Number(auditResult.tt_reconstructed_count || 0).toLocaleString('ja-JP')}件</div>
+              </div>
+              <div style={{ border: '1px solid #eaecf0', borderRadius: 8, padding: 8, background: '#fcfcfd' }}>
+                <div style={{ fontSize: 12, color: '#667085' }}>楽天決済件数</div>
+                <div style={{ fontSize: 20, fontWeight: 800 }}>{Number(auditResult.rakuten_row_count || 0).toLocaleString('ja-JP')}件</div>
+              </div>
+              <div style={{ border: '1px solid #eaecf0', borderRadius: 8, padding: 8, background: '#fcfcfd' }}>
                 <div style={{ fontSize: 12, color: '#667085' }}>TT合計</div>
                 <div style={{ fontSize: 20, fontWeight: 800 }}>{Math.round(auditResult.tt_total_jpy).toLocaleString('ja-JP')}円</div>
               </div>
