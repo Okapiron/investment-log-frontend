@@ -299,8 +299,8 @@ export default function SettingsPage() {
       <div style={{ border: '1px solid #e4e7ec', borderRadius: 12, padding: 12, background: '#fff', display: 'grid', gap: 10 }}>
         <div style={{ fontSize: 13, color: '#667085', fontWeight: 700 }}>楽天証券 CSV取込</div>
         <div style={{ fontSize: 12, color: '#667085', lineHeight: 1.6 }}>
-          国内株の現物売買CSVを読み込み、TradeTrace の round-trip trade に変換します。未決済ポジションはスキップし、
-          部分利確など複雑なケースはエラーとして表示します。
+          国内株の現物売買と信用買いを読み込み、TradeTrace の round-trip trade に変換します。未決済ポジションはスキップし、
+          部分利確や信用売りなど複雑なケースはエラーまたはスキップとして表示します。
         </div>
         <label style={{ display: 'grid', gap: 4 }}>
           <span style={{ fontSize: 12, color: '#667085' }}>楽天証券のCSVファイル</span>
