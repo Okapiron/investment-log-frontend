@@ -3,7 +3,7 @@ import { useQuery } from '@tanstack/react-query'
 import { Link, useNavigate } from 'react-router-dom'
 
 import { clearAuthSession, isAuthEnabled } from '../lib/auth'
-import { commitRakutenCsv, previewRakutenCsv } from '../lib/importsApi'
+import { auditRakutenCsv, commitRakutenCsv, previewRakutenCsv } from '../lib/importsApi'
 import { clearPrivateAccessSession, isPrivateModeEnabled } from '../lib/privateAccess'
 import { CONTACT_FORM_URL, SHOW_RUNTIME_PANEL, SUPPORT_EMAIL } from '../lib/siteConfig'
 import { deleteMyData, downloadMyExport, getMyProfile, getReadiness } from '../lib/settingsApi'
@@ -34,7 +34,9 @@ export default function SettingsPage() {
   const [error, setError] = useState('')
   const [confirmText, setConfirmText] = useState('')
   const [importFile, setImportFile] = useState(null)
+  const [auditRealizedFile, setAuditRealizedFile] = useState(null)
   const [importPreview, setImportPreview] = useState(null)
+  const [auditResult, setAuditResult] = useState(null)
   const { data, isLoading, error: meError, refetch } = useQuery({
     queryKey: ['settings', 'me'],
     queryFn: getMyProfile,
@@ -157,6 +159,30 @@ export default function SettingsPage() {
       })
     } catch (e) {
       setError(String(e?.message || e || 'CSV取込に失敗しました。'))
+    } finally {
+      setWorking('')
+    }
+  }
+
+  async function handleRakutenAudit() {
+    if (!importFile || !auditRealizedFile) {
+      setError('tradehistory(JP) と realized_pl(JP) の両方を選択してください。')
+      return
+    }
+    try {
+      setWorking('import_audit')
+      setError('')
+      setMsg('')
+      const [tradehistoryContent, realizedContent] = await Promise.all([
+        readCsvFileText(importFile),
+        readCsvFileText(auditRealizedFile),
+      ])
+      const result = await auditRakutenCsv(importFile.name, tradehistoryContent, auditRealizedFile.name, realizedContent)
+      setAuditResult(result)
+      setMsg(`整合性チェックが完了しました。差額は ${result.gap_jpy >= 0 ? '+' : ''}${Math.round(result.gap_jpy).toLocaleString('ja-JP')} 円です。`)
+    } catch (e) {
+      setAuditResult(null)
+      setError(String(e?.message || e || '整合性チェックに失敗しました。'))
     } finally {
       setWorking('')
     }
@@ -306,13 +332,25 @@ export default function SettingsPage() {
           残建玉は保有中として残します。信用売りなど対象外のケースはスキップまたはエラーとして表示します。
         </div>
         <label style={{ display: 'grid', gap: 4 }}>
-          <span style={{ fontSize: 12, color: '#667085' }}>楽天証券のCSVファイル</span>
+          <span style={{ fontSize: 12, color: '#667085' }}>tradehistory(JP) CSV</span>
           <input
             type="file"
             accept=".csv,text/csv"
             onChange={(e) => {
               setImportFile(e.target.files?.[0] || null)
               setImportPreview(null)
+              setAuditResult(null)
+            }}
+          />
+        </label>
+        <label style={{ display: 'grid', gap: 4 }}>
+          <span style={{ fontSize: 12, color: '#667085' }}>realized_pl(JP) CSV</span>
+          <input
+            type="file"
+            accept=".csv,text/csv"
+            onChange={(e) => {
+              setAuditRealizedFile(e.target.files?.[0] || null)
+              setAuditResult(null)
             }}
           />
         </label>
@@ -324,6 +362,14 @@ export default function SettingsPage() {
             style={{ background: '#f2f4f7', color: '#111', border: '1px solid #d0d5dd', borderRadius: 8, padding: '8px 12px', opacity: working === 'import_preview' || !importFile ? 0.6 : 1 }}
           >
             {working === 'import_preview' ? '解析中…' : 'プレビュー'}
+          </button>
+          <button
+            type="button"
+            onClick={handleRakutenAudit}
+            disabled={working === 'import_audit' || !importFile || !auditRealizedFile}
+            style={{ background: '#f2f4f7', color: '#111', border: '1px solid #d0d5dd', borderRadius: 8, padding: '8px 12px', opacity: working === 'import_audit' || !importFile || !auditRealizedFile ? 0.6 : 1 }}
+          >
+            {working === 'import_audit' ? '照合中…' : '整合性チェック'}
           </button>
           <button
             type="button"
@@ -387,6 +433,57 @@ export default function SettingsPage() {
                 ))}
               </div>
             ) : null}
+          </div>
+        ) : null}
+
+        {auditResult ? (
+          <div style={{ display: 'grid', gap: 8, border: '1px solid #eaecf0', borderRadius: 10, padding: 10, background: '#fff' }}>
+            <div style={{ fontSize: 13, color: '#344054', fontWeight: 700 }}>楽天整合性チェック</div>
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(160px, 1fr))', gap: 8 }}>
+              <div style={{ border: '1px solid #eaecf0', borderRadius: 8, padding: 8, background: '#fcfcfd' }}>
+                <div style={{ fontSize: 12, color: '#667085' }}>TT合計</div>
+                <div style={{ fontSize: 20, fontWeight: 800 }}>{Math.round(auditResult.tt_total_jpy).toLocaleString('ja-JP')}円</div>
+              </div>
+              <div style={{ border: '1px solid #eaecf0', borderRadius: 8, padding: 8, background: '#fcfcfd' }}>
+                <div style={{ fontSize: 12, color: '#667085' }}>楽天合計</div>
+                <div style={{ fontSize: 20, fontWeight: 800 }}>{Math.round(auditResult.rakuten_total_jpy).toLocaleString('ja-JP')}円</div>
+              </div>
+              <div style={{ border: '1px solid #eaecf0', borderRadius: 8, padding: 8, background: '#fcfcfd' }}>
+                <div style={{ fontSize: 12, color: '#667085' }}>差額</div>
+                <div style={{ fontSize: 20, fontWeight: 800, color: auditResult.gap_jpy === 0 ? '#101828' : '#b42318' }}>
+                  {auditResult.gap_jpy > 0 ? '+' : ''}{Math.round(auditResult.gap_jpy).toLocaleString('ja-JP')}円
+                </div>
+              </div>
+              <div style={{ border: '1px solid #eaecf0', borderRadius: 8, padding: 8, background: '#fcfcfd' }}>
+                <div style={{ fontSize: 12, color: '#667085' }}>一致件数</div>
+                <div style={{ fontSize: 20, fontWeight: 800 }}>{auditResult.matched_count}件</div>
+              </div>
+            </div>
+            <div style={{ fontSize: 12, color: '#667085' }}>{auditResult.reimport_hint}</div>
+            {[
+              ['楽天にあるがTTにない決済', auditResult.missing_in_tt],
+              ['損益が一致しない決済', auditResult.pnl_mismatch],
+              ['TTにあるが楽天と結びつかない決済', auditResult.unmatched_tt],
+            ].map(([title, items]) =>
+              items?.length ? (
+                <div key={title} style={{ display: 'grid', gap: 4 }}>
+                  <div style={{ fontSize: 12, fontWeight: 700, color: '#344054' }}>{title}</div>
+                  <div style={{ display: 'grid', gap: 6 }}>
+                    {items.map((item, idx) => (
+                      <div key={`${title}-${idx}`} style={{ border: '1px solid #eaecf0', borderRadius: 8, padding: 8, background: '#fcfcfd', fontSize: 12, color: '#475467' }}>
+                        <div style={{ fontWeight: 700, color: '#101828' }}>
+                          {item.symbol} {item.name || ''} / {item.sell_date} / {item.qty}株
+                        </div>
+                        <div>
+                          売値 {item.sell_price}円 / 買値・平均取得 {item.buy_price_or_avg_cost}円 / TT {item.tt_profit_jpy ?? '—'}円 / 楽天 {item.rakuten_profit_jpy ?? '—'}円
+                        </div>
+                        {item.message ? <div style={{ color: '#b54708' }}>{item.message}</div> : null}
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              ) : null
+            )}
           </div>
         ) : null}
       </div>
