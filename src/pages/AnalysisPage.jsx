@@ -104,6 +104,8 @@ export default function AnalysisPage() {
   const stats = data?.stats || {}
   const sufficiency = data?.data_sufficiency
   const importSummary = location.state?.importSummary || null
+  const latestImport = data?.latest_import || null
+  const importFocus = data?.import_review_focus || []
   const llmMessageTone = ['generated', 'rule_based'].includes(String(sufficiency?.llm_status || '')) ? '#175cd3' : '#667085'
   const amountCurrency = stats?.primary_profit_currency || 'JPY'
 
@@ -116,6 +118,22 @@ export default function AnalysisPage() {
             {importSummary.filename || 'rakuten.csv'} の取込で、作成 {importSummary.createdCount} 件 / 更新 {importSummary.updatedCount || 0} 件 / スキップ {importSummary.skippedCount} 件 / エラー {importSummary.errorCount} 件でした。
             まずは下の診断カードで、収支構造と保有の癖、最近の変化を見てください。
           </div>
+        </section>
+      ) : latestImport ? (
+        <section style={{ border: '1px solid #b2ddff', borderRadius: 14, padding: 14, background: '#eff8ff', display: 'grid', gap: 8 }}>
+          <div style={{ fontSize: 12, color: '#175cd3', fontWeight: 700 }}>直近取込後に見るべきこと</div>
+          <div style={{ fontSize: 14, color: '#1849a9', lineHeight: 1.6 }}>
+            {latestImport.source_name || 'CSV'} の前回取込は、作成 {latestImport.created_count} 件 / 更新 {latestImport.updated_count} 件 / スキップ {latestImport.skipped_count} 件でした。
+          </div>
+          {importFocus.length ? (
+            <div style={{ display: 'grid', gap: 4 }}>
+              {importFocus.map((item) => (
+                <div key={item} style={{ fontSize: 12, color: '#475467', lineHeight: 1.6 }}>
+                  {item}
+                </div>
+              ))}
+            </div>
+          ) : null}
         </section>
       ) : null}
 

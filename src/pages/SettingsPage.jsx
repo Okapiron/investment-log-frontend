@@ -3,7 +3,7 @@ import { useQuery } from '@tanstack/react-query'
 import { Link, useNavigate } from 'react-router-dom'
 
 import { clearAuthSession, isAuthEnabled } from '../lib/auth'
-import { auditRakutenCsv, commitRakutenCsv, previewRakutenCsv } from '../lib/importsApi'
+import { auditBrokerCsv, commitBrokerCsv, getLatestImportSessions, previewBrokerCsv } from '../lib/importsApi'
 import { clearPrivateAccessSession, isPrivateModeEnabled } from '../lib/privateAccess'
 import { CONTACT_FORM_URL, SHOW_RUNTIME_PANEL, SUPPORT_EMAIL } from '../lib/siteConfig'
 import { deleteMyData, downloadMyExport, getMyProfile, getReadiness } from '../lib/settingsApi'
@@ -56,6 +56,24 @@ function formatReasonCode(reasonCode) {
   }
 }
 
+const BROKER_LABELS = {
+  rakuten: '楽天証券',
+  sbi: 'SBI証券',
+}
+
+const BROKER_GUIDES = {
+  rakuten: {
+    trade: 'tradehistory(JP) CSV',
+    realized: 'realized_pl(JP) CSV',
+    note: '口座管理 → 取引履歴（商品別売買履歴）→ 取引履歴（国内株式）からCSVを保存してください。',
+  },
+  sbi: {
+    trade: '約定履歴CSV',
+    realized: '実現損益CSV',
+    note: '口座管理 → 取引履歴 → 約定履歴CSVと、My資産の国内株式 実現損益CSVを用意してください。',
+  },
+}
+
 export default function SettingsPage() {
   const navigate = useNavigate()
   const frontendVersion = String(import.meta.env.VITE_APP_VERSION || '').trim() || 'dev-local'
@@ -66,6 +84,7 @@ export default function SettingsPage() {
   const [msg, setMsg] = useState('')
   const [error, setError] = useState('')
   const [confirmText, setConfirmText] = useState('')
+  const [selectedBroker, setSelectedBroker] = useState('rakuten')
   const [importFile, setImportFile] = useState(null)
   const [auditRealizedFile, setAuditRealizedFile] = useState(null)
   const [importPreview, setImportPreview] = useState(null)
@@ -87,6 +106,10 @@ export default function SettingsPage() {
     retry: 1,
     refetchInterval: 60_000,
     enabled: showRuntime,
+  })
+  const { data: latestImports, refetch: refetchLatestImports } = useQuery({
+    queryKey: ['imports', 'sessions', 'latest'],
+    queryFn: getLatestImportSessions,
   })
 
   async function handleExport(format) {
@@ -146,7 +169,7 @@ export default function SettingsPage() {
 
   async function handleImportPreview() {
     if (!importFile) {
-      setError('楽天証券の国内株CSVを選択してください。')
+      setError(`${BROKER_LABELS[selectedBroker]}の取引/約定履歴CSVを選択してください。`)
       return
     }
     try {
@@ -154,7 +177,7 @@ export default function SettingsPage() {
       setError('')
       setMsg('')
       const content = await readCsvFileText(importFile)
-      const result = await previewRakutenCsv(importFile.name, content)
+      const result = await previewBrokerCsv(selectedBroker, importFile.name, content)
       setImportPreview(result)
       setMsg(`CSVを解析しました。作成予定 ${result.candidate_count} 件、スキップ ${result.skipped_count} 件、エラー ${result.error_count} 件です。`)
     } catch (e) {
@@ -174,15 +197,25 @@ export default function SettingsPage() {
       setWorking('import_commit')
       setError('')
       setMsg('')
-      const result = await commitRakutenCsv(importPreview.filename || importFile?.name || 'rakuten.csv', importPreview.candidates)
+      const result = await commitBrokerCsv(
+        selectedBroker,
+        importPreview.filename || importFile?.name || `${selectedBroker}.csv`,
+        importPreview.candidates,
+        {
+          realizedFilename: auditRealizedFile?.name,
+          auditGapJpy: auditResult?.gap_jpy,
+        },
+      )
       setMsg(
         `取込が完了しました。作成 ${result.created_count} 件、更新 ${result.updated_count || 0} 件、スキップ ${result.skipped_count} 件、エラー ${result.error_count} 件です。`
       )
+      await refetchLatestImports()
       navigate('/analysis', {
         replace: false,
         state: {
           importSummary: {
-            filename: importPreview.filename || importFile?.name || 'rakuten.csv',
+            filename: importPreview.filename || importFile?.name || `${selectedBroker}.csv`,
+            broker: selectedBroker,
             createdCount: result.created_count,
             updatedCount: result.updated_count || 0,
             skippedCount: result.skipped_count,
@@ -199,7 +232,7 @@ export default function SettingsPage() {
 
   async function handleRakutenAudit() {
     if (!importFile || !auditRealizedFile) {
-      setError('tradehistory(JP) と realized_pl(JP) の両方を選択してください。')
+      setError(`${BROKER_LABELS[selectedBroker]}の取引/約定履歴CSVと実現損益CSVの両方を選択してください。`)
       return
     }
     try {
@@ -210,7 +243,7 @@ export default function SettingsPage() {
         readCsvFileText(importFile),
         readCsvFileText(auditRealizedFile),
       ])
-      const result = await auditRakutenCsv(importFile.name, tradehistoryContent, auditRealizedFile.name, realizedContent)
+      const result = await auditBrokerCsv(selectedBroker, importFile.name, tradehistoryContent, auditRealizedFile.name, realizedContent)
       setAuditResult(result)
       setMsg(`整合性チェックが完了しました。差額は ${result.gap_jpy >= 0 ? '+' : ''}${Math.round(result.gap_jpy).toLocaleString('ja-JP')} 円です。`)
     } catch (e) {
@@ -359,13 +392,43 @@ export default function SettingsPage() {
       ) : null}
 
       <div style={{ border: '1px solid #e4e7ec', borderRadius: 12, padding: 12, background: '#fff', display: 'grid', gap: 10 }}>
-        <div style={{ fontSize: 13, color: '#667085', fontWeight: 700 }}>楽天証券 CSV取込</div>
+        <div style={{ fontSize: 13, color: '#667085', fontWeight: 700 }}>証券会社 CSV取込</div>
         <div style={{ fontSize: 12, color: '#667085', lineHeight: 1.6 }}>
-          国内株の現物売買、信用買い、信用売りを読み込み、TradeTrace の trade に変換します。分割決済は複数 trade に分け、
-          残建玉は保有中として残します。取り込めないケースはスキップまたはエラーとして表示します。
+          楽天証券・SBI証券の国内株CSVを読み込み、TradeTrace の trade に変換します。完全自動ログイン連携は使わず、CSVの再取込で日々の更新を楽にします。
         </div>
         <label style={{ display: 'grid', gap: 4 }}>
-          <span style={{ fontSize: 12, color: '#667085' }}>tradehistory(JP) CSV</span>
+          <span style={{ fontSize: 12, color: '#667085' }}>証券会社</span>
+          <select
+            value={selectedBroker}
+            onChange={(e) => {
+              setSelectedBroker(e.target.value)
+              setImportFile(null)
+              setAuditRealizedFile(null)
+              setImportPreview(null)
+              setAuditResult(null)
+            }}
+            style={{ border: '1px solid #d0d5dd', borderRadius: 8, padding: '8px 10px', maxWidth: 240 }}
+          >
+            <option value="rakuten">楽天証券</option>
+            <option value="sbi">SBI証券</option>
+          </select>
+        </label>
+        {latestImports?.length ? (
+          <div style={{ display: 'grid', gap: 6, border: '1px solid #d8e6e1', borderRadius: 10, padding: 10, background: '#f7fbfa' }}>
+            <div style={{ fontSize: 12, color: '#067647', fontWeight: 700 }}>前回取込</div>
+            {latestImports.map((session) => (
+              <div key={session.id} style={{ fontSize: 12, color: '#344054', lineHeight: 1.6 }}>
+                <b>{BROKER_LABELS[session.broker] || session.broker}</b>: {session.source_name || '—'} / 作成 {session.created_count} 件 / 更新 {session.updated_count} 件 / スキップ {session.skipped_count} 件
+                {session.audit_gap_jpy != null ? ` / 監査差額 ${Math.round(session.audit_gap_jpy).toLocaleString('ja-JP')}円` : ''}
+              </div>
+            ))}
+          </div>
+        ) : null}
+        <div style={{ fontSize: 12, color: '#667085', lineHeight: 1.6 }}>
+          {BROKER_GUIDES[selectedBroker]?.note}
+        </div>
+        <label style={{ display: 'grid', gap: 4 }}>
+          <span style={{ fontSize: 12, color: '#667085' }}>{BROKER_GUIDES[selectedBroker]?.trade || '取引/約定履歴CSV'}</span>
           <input
             type="file"
             accept=".csv,text/csv"
@@ -377,7 +440,7 @@ export default function SettingsPage() {
           />
         </label>
         <label style={{ display: 'grid', gap: 4 }}>
-          <span style={{ fontSize: 12, color: '#667085' }}>realized_pl(JP) CSV</span>
+          <span style={{ fontSize: 12, color: '#667085' }}>{BROKER_GUIDES[selectedBroker]?.realized || '実現損益CSV'}</span>
           <input
             type="file"
             accept=".csv,text/csv"
@@ -448,7 +511,7 @@ export default function SettingsPage() {
                       </div>
                     ) : null}
                     {item.already_imported ? (
-                      <div style={{ fontSize: 12, color: '#b54708' }}>既に取込済みです。commit 時はスキップされます。</div>
+                      <div style={{ fontSize: 12, color: '#b54708' }}>既に取込済みです。commit 時は最新CSVの内容で更新されます。</div>
                     ) : null}
                   </div>
                 ))}
@@ -475,7 +538,7 @@ export default function SettingsPage() {
 
         {auditResult ? (
           <div style={{ display: 'grid', gap: 8, border: '1px solid #eaecf0', borderRadius: 10, padding: 10, background: '#fff' }}>
-            <div style={{ fontSize: 13, color: '#344054', fontWeight: 700 }}>楽天整合性チェック</div>
+            <div style={{ fontSize: 13, color: '#344054', fontWeight: 700 }}>{BROKER_LABELS[selectedBroker]} 整合性チェック</div>
             <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(160px, 1fr))', gap: 8 }}>
               <div style={{ border: '1px solid #eaecf0', borderRadius: 8, padding: 8, background: '#fcfcfd' }}>
                 <div style={{ fontSize: 12, color: '#667085' }}>preview件数</div>
@@ -527,9 +590,9 @@ export default function SettingsPage() {
               </div>
             ) : null}
             {[
-              ['楽天にあるがTTにない決済', auditResult.missing_in_tt],
+              [`${BROKER_LABELS[selectedBroker]}にあるがTTにない決済`, auditResult.missing_in_tt],
               ['損益が一致しない決済', auditResult.pnl_mismatch],
-              ['TTにあるが楽天と結びつかない決済', auditResult.unmatched_tt],
+              [`TTにあるが${BROKER_LABELS[selectedBroker]}と結びつかない決済`, auditResult.unmatched_tt],
             ].map(([title, items]) =>
               items?.length ? (
                 <div key={title} style={{ display: 'grid', gap: 4 }}>
