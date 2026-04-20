@@ -150,6 +150,11 @@ export default function AnalysisPage() {
         <div style={{ fontSize: 12, color: llmMessageTone }}>
           {sufficiency?.message || '統計を表示しています。'}
         </div>
+        {Number(stats?.realized_only_trade_count || 0) > 0 ? (
+          <div style={{ fontSize: 12, color: '#92400e', background: '#fffcf5', border: '1px solid #fedf89', borderRadius: 10, padding: '8px 10px', lineHeight: 1.6 }}>
+            SBI実現損益から補完したトレードが {Number(stats.realized_only_trade_count).toLocaleString('ja-JP')} 件あります。損益・勝率には含めますが、保有日数分析は詳細データ {Number(stats?.holding_analysis_trade_count || 0).toLocaleString('ja-JP')} 件のみを対象にしています。
+          </div>
+        ) : null}
       </section>
 
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(320px, 1fr))', gap: 12 }}>

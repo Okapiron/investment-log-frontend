@@ -3,7 +3,14 @@ import { useQuery } from '@tanstack/react-query'
 import { Link, useNavigate } from 'react-router-dom'
 
 import { clearAuthSession, isAuthEnabled } from '../lib/auth'
-import { auditBrokerCsv, commitBrokerCsv, getLatestImportSessions, previewBrokerCsv } from '../lib/importsApi'
+import {
+  auditBrokerCsv,
+  commitBrokerCsv,
+  commitSbiRealizedCsv,
+  getLatestImportSessions,
+  previewBrokerCsv,
+  previewSbiRealizedCsv,
+} from '../lib/importsApi'
 import { clearPrivateAccessSession, isPrivateModeEnabled } from '../lib/privateAccess'
 import { CONTACT_FORM_URL, SHOW_RUNTIME_PANEL, SUPPORT_EMAIL } from '../lib/siteConfig'
 import { deleteMyData, downloadMyExport, getMyProfile, getReadiness } from '../lib/settingsApi'
@@ -88,6 +95,7 @@ export default function SettingsPage() {
   const [importFile, setImportFile] = useState(null)
   const [auditRealizedFile, setAuditRealizedFile] = useState(null)
   const [importPreview, setImportPreview] = useState(null)
+  const [realizedPreview, setRealizedPreview] = useState(null)
   const [auditResult, setAuditResult] = useState(null)
   const { data, isLoading, error: meError, refetch } = useQuery({
     queryKey: ['settings', 'me'],
@@ -225,6 +233,70 @@ export default function SettingsPage() {
       })
     } catch (e) {
       setError(String(e?.message || e || 'CSV取込に失敗しました。'))
+    } finally {
+      setWorking('')
+    }
+  }
+
+  async function handleRealizedPreview() {
+    if (selectedBroker !== 'sbi') {
+      setError('実現損益だけの補完取込は現在SBI証券のみ対応です。')
+      return
+    }
+    if (!auditRealizedFile) {
+      setError('SBI証券の実現損益CSVを選択してください。')
+      return
+    }
+    try {
+      setWorking('realized_preview')
+      setError('')
+      setMsg('')
+      const content = await readCsvFileText(auditRealizedFile)
+      const result = await previewSbiRealizedCsv(auditRealizedFile.name, content)
+      setRealizedPreview(result)
+      setMsg(
+        `SBI過去分を解析しました。補完作成 ${result.create_count} 件、更新 ${result.update_count} 件、詳細データ重複スキップ ${result.detailed_skip_count} 件です。`
+      )
+    } catch (e) {
+      setRealizedPreview(null)
+      setError(String(e?.message || e || 'SBI実現損益CSVの解析に失敗しました。'))
+    } finally {
+      setWorking('')
+    }
+  }
+
+  async function handleRealizedCommit() {
+    if (!realizedPreview?.candidates?.length) {
+      setError('先にSBI過去分補完のプレビューを実行してください。')
+      return
+    }
+    try {
+      setWorking('realized_commit')
+      setError('')
+      setMsg('')
+      const result = await commitSbiRealizedCsv(
+        realizedPreview.filename || auditRealizedFile?.name || 'sbi_realized.csv',
+        realizedPreview.candidates,
+      )
+      setMsg(
+        `SBI過去分補完が完了しました。作成 ${result.created_count} 件、更新 ${result.updated_count || 0} 件、スキップ ${result.skipped_count} 件、エラー ${result.error_count} 件です。`
+      )
+      await refetchLatestImports()
+      navigate('/analysis', {
+        replace: false,
+        state: {
+          importSummary: {
+            filename: realizedPreview.filename || auditRealizedFile?.name || 'sbi_realized.csv',
+            broker: 'sbi',
+            createdCount: result.created_count,
+            updatedCount: result.updated_count || 0,
+            skippedCount: result.skipped_count,
+            errorCount: result.error_count,
+          },
+        },
+      })
+    } catch (e) {
+      setError(String(e?.message || e || 'SBI過去分補完の取込に失敗しました。'))
     } finally {
       setWorking('')
     }
@@ -405,6 +477,7 @@ export default function SettingsPage() {
               setImportFile(null)
               setAuditRealizedFile(null)
               setImportPreview(null)
+              setRealizedPreview(null)
               setAuditResult(null)
             }}
             style={{ border: '1px solid #d0d5dd', borderRadius: 8, padding: '8px 10px', maxWidth: 240 }}
@@ -435,6 +508,7 @@ export default function SettingsPage() {
             onChange={(e) => {
               setImportFile(e.target.files?.[0] || null)
               setImportPreview(null)
+              setRealizedPreview(null)
               setAuditResult(null)
             }}
           />
@@ -447,6 +521,7 @@ export default function SettingsPage() {
             onChange={(e) => {
               setAuditRealizedFile(e.target.files?.[0] || null)
               setAuditResult(null)
+              setRealizedPreview(null)
             }}
           />
         </label>
@@ -476,6 +551,66 @@ export default function SettingsPage() {
             {working === 'import_commit' ? '取込中…' : 'この内容で取り込む'}
           </button>
         </div>
+
+        {selectedBroker === 'sbi' ? (
+          <div style={{ display: 'grid', gap: 8, border: '1px solid #fedf89', borderRadius: 10, padding: 10, background: '#fffcf5' }}>
+            <div style={{ fontSize: 13, color: '#92400e', fontWeight: 800 }}>SBI過去分補完</div>
+            <div style={{ fontSize: 12, color: '#667085', lineHeight: 1.6 }}>
+              約定履歴CSVに買付データが残っていない過去分は、実現損益CSVだけで補完Tradeとして取り込みます。損益・勝率には使いますが、買付日が不明なため保有日数分析からは除外します。
+            </div>
+            <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
+              <button
+                type="button"
+                onClick={handleRealizedPreview}
+                disabled={working === 'realized_preview' || !auditRealizedFile}
+                style={{ background: '#fff7ed', color: '#92400e', border: '1px solid #fed7aa', borderRadius: 8, padding: '8px 12px', opacity: working === 'realized_preview' || !auditRealizedFile ? 0.6 : 1 }}
+              >
+                {working === 'realized_preview' ? '解析中…' : '実現損益だけでプレビュー'}
+              </button>
+              <button
+                type="button"
+                onClick={handleRealizedCommit}
+                disabled={working === 'realized_commit' || !realizedPreview?.candidates?.length}
+                style={{ background: '#c2410c', color: '#fff', border: '1px solid #c2410c', borderRadius: 8, padding: '8px 12px', opacity: working === 'realized_commit' || !realizedPreview?.candidates?.length ? 0.6 : 1 }}
+              >
+                {working === 'realized_commit' ? '補完取込中…' : '過去分を補完取込'}
+              </button>
+            </div>
+            {realizedPreview ? (
+              <div style={{ display: 'grid', gap: 8, border: '1px solid #fed7aa', borderRadius: 8, padding: 8, background: '#fff' }}>
+                <div style={{ fontSize: 13, color: '#344054' }}>
+                  読取 <b>{realizedPreview.candidate_count}</b> 件 / 補完作成 <b>{realizedPreview.create_count}</b> 件 / 更新 <b>{realizedPreview.update_count}</b> 件 / 詳細重複スキップ <b>{realizedPreview.detailed_skip_count}</b> 件 / エラー <b>{realizedPreview.error_count}</b> 件
+                </div>
+                {realizedPreview.candidates?.slice(0, 8).map((item) => (
+                  <div key={item.source_signature} style={{ border: '1px solid #eaecf0', borderRadius: 8, padding: 8, background: '#fcfcfd', fontSize: 12, color: '#475467' }}>
+                    <b style={{ color: '#101828' }}>{item.symbol} {item.name || ''}</b> / {item.close_date} / {item.qty}株 / 損益 {Math.round(item.realized_profit_jpy).toLocaleString('ja-JP')}円
+                    {item.detailed_trade_exists ? <div style={{ color: '#175cd3' }}>詳細Tradeが既にあるため補完はスキップされます。</div> : null}
+                    {item.already_imported ? <div style={{ color: '#b54708' }}>既に補完取込済みです。commit時は更新されます。</div> : null}
+                  </div>
+                ))}
+                {realizedPreview.candidates?.length > 8 ? (
+                  <div style={{ fontSize: 12, color: '#667085' }}>ほか {realizedPreview.candidates.length - 8} 件</div>
+                ) : null}
+                {realizedPreview.skipped?.length ? (
+                  <div style={{ fontSize: 12, color: '#667085', display: 'grid', gap: 4 }}>
+                    <div style={{ fontWeight: 700 }}>スキップ</div>
+                    {realizedPreview.skipped.slice(0, 8).map((item, idx) => (
+                      <div key={`realized-skip-${idx}`}>行 {item.line ?? '—'}: {item.message}</div>
+                    ))}
+                  </div>
+                ) : null}
+                {realizedPreview.errors?.length ? (
+                  <div style={{ fontSize: 12, color: '#b42318', display: 'grid', gap: 4 }}>
+                    <div style={{ fontWeight: 700 }}>エラー</div>
+                    {realizedPreview.errors.map((item, idx) => (
+                      <div key={`realized-err-${idx}`}>行 {item.line ?? '—'}: {item.message}</div>
+                    ))}
+                  </div>
+                ) : null}
+              </div>
+            ) : null}
+          </div>
+        ) : null}
 
         {importPreview ? (
           <div style={{ display: 'grid', gap: 8, border: '1px solid #eaecf0', borderRadius: 10, padding: 10, background: '#fcfcfd' }}>
@@ -549,7 +684,7 @@ export default function SettingsPage() {
                 <div style={{ fontSize: 20, fontWeight: 800 }}>{Number(auditResult.tt_reconstructed_count || 0).toLocaleString('ja-JP')}件</div>
               </div>
               <div style={{ border: '1px solid #eaecf0', borderRadius: 8, padding: 8, background: '#fcfcfd' }}>
-                <div style={{ fontSize: 12, color: '#667085' }}>楽天決済件数</div>
+                <div style={{ fontSize: 12, color: '#667085' }}>{BROKER_LABELS[selectedBroker]}決済件数</div>
                 <div style={{ fontSize: 20, fontWeight: 800 }}>{Number(auditResult.rakuten_row_count || 0).toLocaleString('ja-JP')}件</div>
               </div>
               <div style={{ border: '1px solid #eaecf0', borderRadius: 8, padding: 8, background: '#fcfcfd' }}>
@@ -557,7 +692,7 @@ export default function SettingsPage() {
                 <div style={{ fontSize: 20, fontWeight: 800 }}>{Math.round(auditResult.tt_total_jpy).toLocaleString('ja-JP')}円</div>
               </div>
               <div style={{ border: '1px solid #eaecf0', borderRadius: 8, padding: 8, background: '#fcfcfd' }}>
-                <div style={{ fontSize: 12, color: '#667085' }}>楽天合計</div>
+                <div style={{ fontSize: 12, color: '#667085' }}>{BROKER_LABELS[selectedBroker]}合計</div>
                 <div style={{ fontSize: 20, fontWeight: 800 }}>{Math.round(auditResult.rakuten_total_jpy).toLocaleString('ja-JP')}円</div>
               </div>
               <div style={{ border: '1px solid #eaecf0', borderRadius: 8, padding: 8, background: '#fcfcfd' }}>

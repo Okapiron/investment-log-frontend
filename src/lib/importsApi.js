@@ -40,6 +40,14 @@ export function commitBrokerCsv(broker, filename, items, options = {}) {
   })
 }
 
+export function previewSbiRealizedCsv(filename, content) {
+  return api.post('/api/v1/imports/sbi/realized/preview', { filename, content })
+}
+
+export function commitSbiRealizedCsv(filename, items) {
+  return api.post('/api/v1/imports/sbi/realized/commit', { filename, items })
+}
+
 export function getLatestImportSessions() {
   return api.get('/api/v1/imports/sessions/latest')
 }

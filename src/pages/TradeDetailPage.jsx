@@ -290,6 +290,8 @@ export default function TradeDetailPage() {
   })
 
   const positionSide = data?.position_side || 'long'
+  const dataQuality = data?.data_quality || 'full'
+  const isRealizedOnly = dataQuality === 'realized_only'
   const openingSide = positionSide === 'short' ? 'sell' : 'buy'
   const closingSide = positionSide === 'short' ? 'buy' : 'sell'
   const openingLabel = getOpeningLabel(positionSide)
@@ -392,7 +394,7 @@ export default function TradeDetailPage() {
     return data.market === 'US' ? formatUSD : formatJPY
   }, [data])
   const breakdownAvailable = useMemo(() => hasBreakdownValue(openingFill) || hasBreakdownValue(closingFill), [openingFill, closingFill])
-  const shortEditDisabled = positionSide === 'short'
+  const shortEditDisabled = positionSide === 'short' || isRealizedOnly
   const summaryBreakdownRows = useMemo(
     () => [
       { label: '粗利 / 粗損', value: data?.gross_profit_jpy, color: Number(data?.gross_profit_jpy) > 0 ? '#067647' : Number(data?.gross_profit_jpy) < 0 ? '#b42318' : '#111' },
@@ -815,6 +817,21 @@ export default function TradeDetailPage() {
                   分割決済由来
                 </span>
               ) : null}
+              {isRealizedOnly ? (
+                <span
+                  style={{
+                    fontSize: 12,
+                    color: '#92400e',
+                    background: '#fffcf5',
+                    border: '1px solid #fedf89',
+                    borderRadius: 999,
+                    padding: '4px 10px',
+                    lineHeight: 1.2,
+                  }}
+                >
+                  SBI実現損益から補完
+                </span>
+              ) : null}
               {isOpen ? (
                 <span
                   style={{
@@ -902,7 +919,7 @@ export default function TradeDetailPage() {
                 <button
                   onClick={shortEditDisabled ? undefined : startEdit}
                   disabled={shortEditDisabled}
-                  title={shortEditDisabled ? '信用売りの取込データは現在表示専用です。' : ''}
+                  title={shortEditDisabled ? (isRealizedOnly ? 'SBI実現損益から補完したデータは現在表示専用です。' : '信用売りの取込データは現在表示専用です。') : ''}
                   style={{ ...baseButtonStyle, minHeight: isMobile ? 40 : undefined, width: isMobile ? '100%' : undefined, opacity: shortEditDisabled ? 0.6 : 1, cursor: shortEditDisabled ? 'not-allowed' : 'pointer' }}
                 >
                   編集
@@ -935,7 +952,11 @@ export default function TradeDetailPage() {
               <div style={{ marginTop: 2, fontSize: 12, color: '#b42318' }}>{saveDisabledReason}</div>
             ) : null}
             {!isEditing && shortEditDisabled ? (
-              <div style={{ marginTop: 2, fontSize: 12, color: '#667085' }}>信用売りの取込データは現在表示専用です。</div>
+              <div style={{ marginTop: 2, fontSize: 12, color: '#667085' }}>
+                {isRealizedOnly
+                  ? 'SBI実現損益から補完したデータです。買付日・費用内訳は不明のため、現在表示専用です。'
+                  : '信用売りの取込データは現在表示専用です。'}
+              </div>
             ) : null}
             {isEditing && !saveDisabledReason && editPriceCheckWarning ? (
               <div style={{ marginTop: 2, fontSize: 12, color: '#667085' }}>注意: {editPriceCheckWarning}</div>
@@ -978,12 +999,17 @@ export default function TradeDetailPage() {
 
           {showTradeDataContent && !isEditing ? (
             <div style={{ display: 'grid', gap: 8, fontSize: 15, color: '#111', paddingLeft: isMobile ? 0 : 10 }}>
+              {isRealizedOnly ? (
+                <div style={{ border: '1px solid #fedf89', borderRadius: 10, padding: 10, background: '#fffcf5', fontSize: 12, color: '#92400e', lineHeight: 1.6 }}>
+                  このトレードはSBI実現損益CSVから補完しています。平均取得価額と決済単価、SBI上の実現損益を保持していますが、買付日・手数料・税金・諸費用の内訳はCSVから復元できないため「—」表示です。
+                </div>
+              ) : null}
               <div style={{ display: 'grid', gap: 6, border: '1px solid #eaecf0', borderRadius: 10, padding: isMobile ? 10 : '8px 10px', background: '#fcfdfd' }}>
-                <b style={{ fontSize: 14 }}>{openingLabel}</b>
+                <b style={{ fontSize: 14 }}>{isRealizedOnly ? '平均取得価額' : openingLabel}</b>
                 <div style={{ display: 'grid', gap: 4 }}>
                   <div style={{ display: 'grid', gridTemplateColumns: isMobile ? '64px 1fr' : '56px 1fr', gap: 8 }}>
                     <span style={{ fontSize: 12, color: '#667085', fontWeight: 700 }}>日付</span>
-                    <span style={{ fontSize: 14, fontWeight: 600, color: '#111' }}>{openingFill?.date || '—'}</span>
+                    <span style={{ fontSize: 14, fontWeight: 600, color: '#111' }}>{isRealizedOnly ? '—' : (openingFill?.date || '—')}</span>
                   </div>
                   <div style={{ display: 'grid', gridTemplateColumns: isMobile ? '64px 1fr' : '56px 1fr', gap: 8 }}>
                     <span style={{ fontSize: 12, color: '#667085', fontWeight: 700 }}>価格</span>
@@ -1012,7 +1038,7 @@ export default function TradeDetailPage() {
                 </div>
               </div>
               <div style={{ display: 'grid', gap: 6, border: '1px solid #eaecf0', borderRadius: 10, padding: isMobile ? 10 : '8px 10px', background: '#fcfdfd' }}>
-                <b style={{ fontSize: 14 }}>{closingLabel}</b>
+                <b style={{ fontSize: 14 }}>{isRealizedOnly ? '決済' : closingLabel}</b>
                 <div style={{ display: 'grid', gap: 4 }}>
                   <div style={{ display: 'grid', gridTemplateColumns: isMobile ? '64px 1fr' : '56px 1fr', gap: 8 }}>
                     <span style={{ fontSize: 12, color: '#667085', fontWeight: 700 }}>日付</span>
