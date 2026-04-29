@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import { useQuery } from '@tanstack/react-query'
 import { Link, useNavigate } from 'react-router-dom'
 
@@ -12,6 +12,11 @@ import {
   previewSbiRealizedCsv,
 } from '../lib/importsApi'
 import { clearPrivateAccessSession, isPrivateModeEnabled } from '../lib/privateAccess'
+import {
+  isPublicV1Mode,
+  isSbiImportsVisible,
+  shouldShowSbiBetaLabel,
+} from '../lib/releaseScope'
 import { CONTACT_FORM_URL, SHOW_RUNTIME_PANEL, SUPPORT_EMAIL } from '../lib/siteConfig'
 import { deleteMyData, downloadMyExport, getMyProfile, getReadiness } from '../lib/settingsApi'
 
@@ -87,6 +92,9 @@ export default function SettingsPage() {
   const supportEmail = SUPPORT_EMAIL
   const showRuntime = SHOW_RUNTIME_PANEL
   const privateModeEnabled = isPrivateModeEnabled()
+  const publicV1Mode = isPublicV1Mode()
+  const sbiVisible = isSbiImportsVisible()
+  const sbiBetaLabel = shouldShowSbiBetaLabel()
   const [working, setWorking] = useState('')
   const [msg, setMsg] = useState('')
   const [error, setError] = useState('')
@@ -97,6 +105,19 @@ export default function SettingsPage() {
   const [importPreview, setImportPreview] = useState(null)
   const [realizedPreview, setRealizedPreview] = useState(null)
   const [auditResult, setAuditResult] = useState(null)
+
+  useEffect(() => {
+    if (!sbiVisible && selectedBroker === 'sbi') {
+      setSelectedBroker('rakuten')
+    }
+  }, [sbiVisible, selectedBroker])
+
+  function brokerLabel(code) {
+    if (code === 'sbi') {
+      return sbiBetaLabel ? 'SBI証券（β）' : BROKER_LABELS.sbi
+    }
+    return BROKER_LABELS[code] || code
+  }
   const { data, isLoading, error: meError, refetch } = useQuery({
     queryKey: ['settings', 'me'],
     queryFn: getMyProfile,
@@ -176,8 +197,12 @@ export default function SettingsPage() {
   }
 
   async function handleImportPreview() {
+    if (selectedBroker === 'sbi' && !sbiVisible) {
+      setError('公開v1ではSBI証券CSV取込を表示していません。')
+      return
+    }
     if (!importFile) {
-      setError(`${BROKER_LABELS[selectedBroker]}の取引/約定履歴CSVを選択してください。`)
+      setError(`${brokerLabel(selectedBroker)}の取引/約定履歴CSVを選択してください。`)
       return
     }
     try {
@@ -197,6 +222,10 @@ export default function SettingsPage() {
   }
 
   async function handleImportCommit() {
+    if (selectedBroker === 'sbi' && !sbiVisible) {
+      setError('公開v1ではSBI証券CSV取込を表示していません。')
+      return
+    }
     if (!importPreview?.candidates?.length) {
       setError('先にプレビューを実行してください。')
       return
@@ -239,6 +268,10 @@ export default function SettingsPage() {
   }
 
   async function handleRealizedPreview() {
+    if (!sbiVisible) {
+      setError('公開v1ではSBI過去分補完は利用できません。')
+      return
+    }
     if (selectedBroker !== 'sbi') {
       setError('実現損益だけの補完取込は現在SBI証券のみ対応です。')
       return
@@ -266,6 +299,10 @@ export default function SettingsPage() {
   }
 
   async function handleRealizedCommit() {
+    if (!sbiVisible) {
+      setError('公開v1ではSBI過去分補完は利用できません。')
+      return
+    }
     if (!realizedPreview?.candidates?.length) {
       setError('先にSBI過去分補完のプレビューを実行してください。')
       return
@@ -303,8 +340,12 @@ export default function SettingsPage() {
   }
 
   async function handleRakutenAudit() {
+    if (selectedBroker === 'sbi' && !sbiVisible) {
+      setError('公開v1ではSBI証券CSV取込を表示していません。')
+      return
+    }
     if (!importFile || !auditRealizedFile) {
-      setError(`${BROKER_LABELS[selectedBroker]}の取引/約定履歴CSVと実現損益CSVの両方を選択してください。`)
+      setError(`${brokerLabel(selectedBroker)}の取引/約定履歴CSVと実現損益CSVの両方を選択してください。`)
       return
     }
     try {
@@ -466,7 +507,12 @@ export default function SettingsPage() {
       <div style={{ border: '1px solid #e4e7ec', borderRadius: 12, padding: 12, background: '#fff', display: 'grid', gap: 10 }}>
         <div style={{ fontSize: 13, color: '#667085', fontWeight: 700 }}>証券会社 CSV取込</div>
         <div style={{ fontSize: 12, color: '#667085', lineHeight: 1.6 }}>
-          楽天証券・SBI証券の国内株CSVを読み込み、TradeTrace の trade に変換します。完全自動ログイン連携は使わず、CSVの再取込で日々の更新を楽にします。
+          {publicV1Mode
+            ? '公開v1の正式対応は「楽天証券・国内株CSV」です。プレビューと本取込の2段階で、同一CSVを再取込しても既存import取引を更新し重複を防ぎます。'
+            : '楽天証券・SBI証券の国内株CSVを読み込み、TradeTrace の trade に変換します。完全自動ログイン連携は使わず、CSVの再取込で日々の更新を楽にします。'}
+        </div>
+        <div style={{ fontSize: 12, color: '#667085', lineHeight: 1.6 }}>
+          preview で差分とエラー理由を確認し、commit 時に作成/更新を反映します。手動作成トレードは上書き対象外です。
         </div>
         <label style={{ display: 'grid', gap: 4 }}>
           <span style={{ fontSize: 12, color: '#667085' }}>証券会社</span>
@@ -483,15 +529,17 @@ export default function SettingsPage() {
             style={{ border: '1px solid #d0d5dd', borderRadius: 8, padding: '8px 10px', maxWidth: 240 }}
           >
             <option value="rakuten">楽天証券</option>
-            <option value="sbi">SBI証券</option>
+            {sbiVisible ? <option value="sbi">{sbiBetaLabel ? 'SBI証券（β）' : 'SBI証券'}</option> : null}
           </select>
         </label>
         {latestImports?.length ? (
           <div style={{ display: 'grid', gap: 6, border: '1px solid #d8e6e1', borderRadius: 10, padding: 10, background: '#f7fbfa' }}>
             <div style={{ fontSize: 12, color: '#067647', fontWeight: 700 }}>前回取込</div>
-            {latestImports.map((session) => (
+            {latestImports
+              .filter((session) => sbiVisible || session.broker !== 'sbi')
+              .map((session) => (
               <div key={session.id} style={{ fontSize: 12, color: '#344054', lineHeight: 1.6 }}>
-                <b>{BROKER_LABELS[session.broker] || session.broker}</b>: {session.source_name || '—'} / 作成 {session.created_count} 件 / 更新 {session.updated_count} 件 / スキップ {session.skipped_count} 件
+                <b>{brokerLabel(session.broker)}</b>: {session.source_name || '—'} / 作成 {session.created_count} 件 / 更新 {session.updated_count} 件 / スキップ {session.skipped_count} 件
                 {session.audit_gap_jpy != null ? ` / 監査差額 ${Math.round(session.audit_gap_jpy).toLocaleString('ja-JP')}円` : ''}
               </div>
             ))}
@@ -552,7 +600,7 @@ export default function SettingsPage() {
           </button>
         </div>
 
-        {selectedBroker === 'sbi' ? (
+        {selectedBroker === 'sbi' && sbiVisible ? (
           <div style={{ display: 'grid', gap: 8, border: '1px solid #fedf89', borderRadius: 10, padding: 10, background: '#fffcf5' }}>
             <div style={{ fontSize: 13, color: '#92400e', fontWeight: 800 }}>SBI過去分補完</div>
             <div style={{ fontSize: 12, color: '#667085', lineHeight: 1.6 }}>
@@ -673,7 +721,7 @@ export default function SettingsPage() {
 
         {auditResult ? (
           <div style={{ display: 'grid', gap: 8, border: '1px solid #eaecf0', borderRadius: 10, padding: 10, background: '#fff' }}>
-            <div style={{ fontSize: 13, color: '#344054', fontWeight: 700 }}>{BROKER_LABELS[selectedBroker]} 整合性チェック</div>
+            <div style={{ fontSize: 13, color: '#344054', fontWeight: 700 }}>{brokerLabel(selectedBroker)} 整合性チェック</div>
             <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(160px, 1fr))', gap: 8 }}>
               <div style={{ border: '1px solid #eaecf0', borderRadius: 8, padding: 8, background: '#fcfcfd' }}>
                 <div style={{ fontSize: 12, color: '#667085' }}>preview件数</div>
@@ -684,7 +732,7 @@ export default function SettingsPage() {
                 <div style={{ fontSize: 20, fontWeight: 800 }}>{Number(auditResult.tt_reconstructed_count || 0).toLocaleString('ja-JP')}件</div>
               </div>
               <div style={{ border: '1px solid #eaecf0', borderRadius: 8, padding: 8, background: '#fcfcfd' }}>
-                <div style={{ fontSize: 12, color: '#667085' }}>{BROKER_LABELS[selectedBroker]}決済件数</div>
+                <div style={{ fontSize: 12, color: '#667085' }}>{brokerLabel(selectedBroker)}決済件数</div>
                 <div style={{ fontSize: 20, fontWeight: 800 }}>{Number(auditResult.rakuten_row_count || 0).toLocaleString('ja-JP')}件</div>
               </div>
               <div style={{ border: '1px solid #eaecf0', borderRadius: 8, padding: 8, background: '#fcfcfd' }}>
@@ -692,7 +740,7 @@ export default function SettingsPage() {
                 <div style={{ fontSize: 20, fontWeight: 800 }}>{Math.round(auditResult.tt_total_jpy).toLocaleString('ja-JP')}円</div>
               </div>
               <div style={{ border: '1px solid #eaecf0', borderRadius: 8, padding: 8, background: '#fcfcfd' }}>
-                <div style={{ fontSize: 12, color: '#667085' }}>{BROKER_LABELS[selectedBroker]}合計</div>
+                <div style={{ fontSize: 12, color: '#667085' }}>{brokerLabel(selectedBroker)}合計</div>
                 <div style={{ fontSize: 20, fontWeight: 800 }}>{Math.round(auditResult.rakuten_total_jpy).toLocaleString('ja-JP')}円</div>
               </div>
               <div style={{ border: '1px solid #eaecf0', borderRadius: 8, padding: 8, background: '#fcfcfd' }}>
@@ -725,9 +773,9 @@ export default function SettingsPage() {
               </div>
             ) : null}
             {[
-              [`${BROKER_LABELS[selectedBroker]}にあるがTTにない決済`, auditResult.missing_in_tt],
+              [`${brokerLabel(selectedBroker)}にあるがTTにない決済`, auditResult.missing_in_tt],
               ['損益が一致しない決済', auditResult.pnl_mismatch],
-              [`TTにあるが${BROKER_LABELS[selectedBroker]}と結びつかない決済`, auditResult.unmatched_tt],
+              [`TTにあるが${brokerLabel(selectedBroker)}と結びつかない決済`, auditResult.unmatched_tt],
             ].map(([title, items]) =>
               items?.length ? (
                 <div key={title} style={{ display: 'grid', gap: 4 }}>

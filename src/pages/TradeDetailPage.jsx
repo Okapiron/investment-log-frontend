@@ -7,6 +7,7 @@ import TradeChart from '../components/TradeChart'
 import { patchTrade, updateTradeReview } from '../lib/tradesApi'
 import { assessPriceSanityAgainstDailyBars } from '../lib/priceSanity'
 import { marketPriceInputMode, marketPriceValidationError, normalizePriceInputByMarket, parsePriceText } from '../lib/marketPrice'
+import { isTradeChartEnabled } from '../lib/releaseScope'
 
 function addTagCSV(csv, tag) {
   if (tag === '未設定') return ''
@@ -138,6 +139,7 @@ export default function TradeDetailPage() {
     { value: '1w', label: '週足' },
     { value: '1m', label: '月足' },
   ]
+  const tradeChartEnabled = isTradeChartEnabled()
 
   const [isEditing, setIsEditing] = useState(false)
   const [editIsOpen, setEditIsOpen] = useState(false)
@@ -408,7 +410,7 @@ export default function TradeDetailPage() {
 
   const { data: pricesData, isLoading: isPricesLoading, error: pricesError } = useQuery({
     queryKey: ['prices', data?.market, data?.symbol, interval],
-    enabled: Boolean(data?.market && data?.symbol),
+    enabled: Boolean(tradeChartEnabled && data?.market && data?.symbol),
     queryFn: () =>
       api.get(
         `/prices?market=${encodeURIComponent(data.market)}&symbol=${encodeURIComponent(data.symbol)}&interval=${encodeURIComponent(interval)}`
@@ -562,6 +564,10 @@ export default function TradeDetailPage() {
   }, [isOpen, chartMode])
 
   useEffect(() => {
+    if (!tradeChartEnabled) {
+      setChartError('')
+      return
+    }
     if (pricesError) {
       setChartError('チャートを表示できませんでした')
       return
@@ -571,7 +577,7 @@ export default function TradeDetailPage() {
       return
     }
     setChartError('')
-  }, [pricesError, isPricesLoading, allBars.length])
+  }, [tradeChartEnabled, pricesError, isPricesLoading, allBars.length])
 
   // 編集開始時に data → form をコピー（レンダー中に setState しない）
   useEffect(() => {
@@ -904,13 +910,13 @@ export default function TradeDetailPage() {
             <div style={{ display: 'flex', gap: 8, alignItems: 'center', justifyContent: isMobile ? 'flex-start' : 'flex-end', flexWrap: 'wrap' }}>
             {!isEditing ? (
               <>
-                {tvExternalUrl ? (
+                {tradeChartEnabled && tvExternalUrl ? (
                   <a href={tvExternalUrl} target="_blank" rel="noreferrer" style={{ textDecoration: 'none', width: isMobile ? '100%' : 'auto' }}>
                     <button type="button" style={{ ...baseButtonStyle, minHeight: isMobile ? 40 : undefined, width: isMobile ? '100%' : undefined }}>TradingViewで開く</button>
                   </a>
-                ) : (
+                ) : tradeChartEnabled ? (
                   <span style={{ fontSize: 12, color: '#b42318' }}>外部リンクなし</span>
-                )}
+                ) : null}
 
                 <Link to="/trades" style={{ textDecoration: 'none', width: isMobile ? '100%' : 'auto' }}>
                   <button style={{ ...baseButtonStyle, minHeight: isMobile ? 40 : undefined, width: isMobile ? '100%' : undefined }}>← 一覧へ</button>
@@ -1324,6 +1330,7 @@ export default function TradeDetailPage() {
           >
             チャート
           </h3>
+          {tradeChartEnabled ? (
           <div style={{ display: 'flex', gap: 6, alignItems: 'center', flexWrap: 'wrap', width: isMobile ? '100%' : 'auto' }}>
             <div style={{ display: 'flex', gap: 6, alignItems: 'center', flexWrap: 'wrap' }}>
               {CHART_INTERVAL_OPTIONS.map((opt) => {
@@ -1367,9 +1374,21 @@ export default function TradeDetailPage() {
               リセット
             </button>
           </div>
+          ) : null}
         </div>
         <div style={{ height: 1, background: '#eee', marginBottom: 10 }} />
-        {isPricesLoading ? (
+        {!tradeChartEnabled ? (
+          <div style={{ display: 'grid', gap: 8 }}>
+            <div style={{ color: '#475467', fontSize: 14, lineHeight: 1.6 }}>
+              公開v1では価格チャート表示を無効化しています。CSV由来の売買データと損益内訳、分析ページの診断を中心に振り返ってください。
+            </div>
+            <div>
+              <Link to="/analysis" style={{ fontSize: 13, color: '#175cd3', fontWeight: 700 }}>
+                分析ページへ移動する
+              </Link>
+            </div>
+          </div>
+        ) : isPricesLoading ? (
           <div style={{ color: '#475467', fontSize: 15 }}>チャート読み込み中…</div>
         ) : chartError || allBars.length === 0 ? (
           <div style={{ display: 'grid', gap: 8 }}>

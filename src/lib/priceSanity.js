@@ -1,4 +1,5 @@
 import { api, formatJPY, formatUSD } from './api'
+import { isPriceSanityCheckEnabled } from './releaseScope'
 
 const PRICE_TOLERANCE_RATE = 0.03
 const TODAY_YMD = () => new Date().toISOString().slice(0, 10)
@@ -125,6 +126,10 @@ async function fetchDailyBars(market, symbol) {
 }
 
 export async function assessPriceSanityAgainstDailyBars({ market, symbol, buyDate, buyPrice, sellDate, sellPrice }) {
+  if (!isPriceSanityCheckEnabled()) {
+    return { blockingMessage: null, warnings: [] }
+  }
+
   const normalizedMarket = String(market || '').trim()
   const normalizedSymbol = String(symbol || '').trim()
   if (!normalizedMarket || !normalizedSymbol) {
