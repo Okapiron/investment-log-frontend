@@ -514,6 +514,9 @@ export default function SettingsPage() {
         <div style={{ fontSize: 12, color: '#667085', lineHeight: 1.6 }}>
           preview で差分とエラー理由を確認し、commit 時に作成/更新を反映します。手動作成トレードは上書き対象外です。
         </div>
+        <div style={{ fontSize: 12 }}>
+          <Link to="/help#rakuten-csv">楽天CSVの取得手順とエラー対処を確認する</Link>
+        </div>
         <label style={{ display: 'grid', gap: 4 }}>
           <span style={{ fontSize: 12, color: '#667085' }}>証券会社</span>
           <select
