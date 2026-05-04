@@ -1,6 +1,8 @@
+import { useEffect, useRef } from 'react'
 import { useQuery } from '@tanstack/react-query'
 import { useLocation } from 'react-router-dom'
 
+import { trackProductEvent } from '../lib/analytics'
 import { getAnalysisSummary } from '../lib/analysisApi'
 
 function SectionCard({ title, children, subtitle = '' }) {
@@ -87,19 +89,12 @@ function bucketCaption(bucket, currency) {
 
 export default function AnalysisPage() {
   const location = useLocation()
+  const trackedImportViewRef = useRef(false)
   const { data, isLoading, error } = useQuery({
     queryKey: ['analysis', 'summary'],
     queryFn: getAnalysisSummary,
     staleTime: 60_000,
   })
-
-  if (isLoading) {
-    return <div style={{ padding: 16 }}>読み込み中…</div>
-  }
-
-  if (error) {
-    return <div style={{ padding: 16, color: '#b42318' }}>分析の取得に失敗しました: {String(error?.message || error)}</div>
-  }
 
   const stats = data?.stats || {}
   const sufficiency = data?.data_sufficiency
@@ -108,6 +103,26 @@ export default function AnalysisPage() {
   const importFocus = data?.import_review_focus || []
   const llmMessageTone = ['generated', 'rule_based'].includes(String(sufficiency?.llm_status || '')) ? '#175cd3' : '#667085'
   const amountCurrency = stats?.primary_profit_currency || 'JPY'
+
+  useEffect(() => {
+    if (trackedImportViewRef.current || !importSummary) return
+    trackedImportViewRef.current = true
+    trackProductEvent('analysis_after_import_view', {
+      broker: importSummary.broker || 'unknown',
+      created_count: Number(importSummary.createdCount || 0),
+      updated_count: Number(importSummary.updatedCount || 0),
+      skipped_count: Number(importSummary.skippedCount || 0),
+      error_count: Number(importSummary.errorCount || 0),
+    })
+  }, [importSummary])
+
+  if (isLoading) {
+    return <div style={{ padding: 16 }}>読み込み中…</div>
+  }
+
+  if (error) {
+    return <div style={{ padding: 16, color: '#b42318' }}>分析の取得に失敗しました: {String(error?.message || error)}</div>
+  }
 
   return (
     <div style={{ display: 'grid', gap: 14, maxWidth: 1120, margin: '0 auto' }}>

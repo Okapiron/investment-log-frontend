@@ -3,6 +3,7 @@ import { useQuery } from '@tanstack/react-query'
 import { Link, useNavigate } from 'react-router-dom'
 
 import { clearAuthSession, isAuthEnabled } from '../lib/auth'
+import { classifyAnalyticsError, trackProductEvent } from '../lib/analytics'
 import {
   auditBrokerCsv,
   commitBrokerCsv,
@@ -199,10 +200,18 @@ export default function SettingsPage() {
   async function handleImportPreview() {
     if (selectedBroker === 'sbi' && !sbiVisible) {
       setError('公開v1ではSBI証券CSV取込を表示していません。')
+      trackProductEvent('csv_preview_failure', {
+        broker: selectedBroker,
+        error_type: 'sbi_hidden_public_v1',
+      })
       return
     }
     if (!importFile) {
       setError(`${brokerLabel(selectedBroker)}の取引/約定履歴CSVを選択してください。`)
+      trackProductEvent('csv_preview_failure', {
+        broker: selectedBroker,
+        error_type: 'file_missing',
+      })
       return
     }
     try {
@@ -213,9 +222,28 @@ export default function SettingsPage() {
       const result = await previewBrokerCsv(selectedBroker, importFile.name, content)
       setImportPreview(result)
       setMsg(`CSVを解析しました。作成予定 ${result.candidate_count} 件、スキップ ${result.skipped_count} 件、エラー ${result.error_count} 件です。`)
+      const candidateCount = Number(result.candidate_count || 0)
+      const skippedCount = Number(result.skipped_count || 0)
+      const errorCount = Number(result.error_count || 0)
+      const previewPayload = {
+        broker: selectedBroker,
+        candidate_count: candidateCount,
+        skipped_count: skippedCount,
+        error_count: errorCount,
+        already_imported_count: Number((result.candidates || []).filter((item) => item?.already_imported).length),
+        has_realized_file: Boolean(auditRealizedFile),
+      }
+      trackProductEvent(errorCount > 0 || candidateCount <= 0 ? 'csv_preview_failure' : 'csv_preview_success', {
+        ...previewPayload,
+        error_type: errorCount > 0 ? 'preview_validation_error' : candidateCount <= 0 ? 'no_candidates' : undefined,
+      })
     } catch (e) {
       setImportPreview(null)
       setError(String(e?.message || e || 'CSVの解析に失敗しました。'))
+      trackProductEvent('csv_preview_failure', {
+        broker: selectedBroker,
+        error_type: classifyAnalyticsError(e),
+      })
     } finally {
       setWorking('')
     }
@@ -224,10 +252,18 @@ export default function SettingsPage() {
   async function handleImportCommit() {
     if (selectedBroker === 'sbi' && !sbiVisible) {
       setError('公開v1ではSBI証券CSV取込を表示していません。')
+      trackProductEvent('csv_commit_failure', {
+        broker: selectedBroker,
+        error_type: 'sbi_hidden_public_v1',
+      })
       return
     }
     if (!importPreview?.candidates?.length) {
       setError('先にプレビューを実行してください。')
+      trackProductEvent('csv_commit_failure', {
+        broker: selectedBroker,
+        error_type: 'preview_missing',
+      })
       return
     }
     try {
@@ -246,6 +282,27 @@ export default function SettingsPage() {
       setMsg(
         `取込が完了しました。作成 ${result.created_count} 件、更新 ${result.updated_count || 0} 件、スキップ ${result.skipped_count} 件、エラー ${result.error_count} 件です。`
       )
+      const errorCount = Number(result.error_count || 0)
+      const updatedCount = Number(result.updated_count || 0)
+      const commitPayload = {
+        broker: selectedBroker,
+        created_count: Number(result.created_count || 0),
+        updated_count: updatedCount,
+        skipped_count: Number(result.skipped_count || 0),
+        error_count: errorCount,
+        candidate_count: Number(importPreview.candidate_count || importPreview.candidates?.length || 0),
+        has_realized_file: Boolean(auditRealizedFile),
+      }
+      trackProductEvent(errorCount > 0 ? 'csv_commit_failure' : 'csv_commit_success', {
+        ...commitPayload,
+        error_type: errorCount > 0 ? 'commit_returned_errors' : undefined,
+      })
+      if (updatedCount > 0) {
+        trackProductEvent('csv_reupload_update', {
+          broker: selectedBroker,
+          updated_count: updatedCount,
+        })
+      }
       await refetchLatestImports()
       navigate('/analysis', {
         replace: false,
@@ -262,6 +319,10 @@ export default function SettingsPage() {
       })
     } catch (e) {
       setError(String(e?.message || e || 'CSV取込に失敗しました。'))
+      trackProductEvent('csv_commit_failure', {
+        broker: selectedBroker,
+        error_type: classifyAnalyticsError(e),
+      })
     } finally {
       setWorking('')
     }
@@ -557,10 +618,17 @@ export default function SettingsPage() {
             type="file"
             accept=".csv,text/csv"
             onChange={(e) => {
-              setImportFile(e.target.files?.[0] || null)
+              const file = e.target.files?.[0] || null
+              setImportFile(file)
               setImportPreview(null)
               setRealizedPreview(null)
               setAuditResult(null)
+              if (file) {
+                trackProductEvent('csv_upload_start', {
+                  broker: selectedBroker,
+                  input_type: 'tradehistory',
+                })
+              }
             }}
           />
         </label>

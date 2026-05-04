@@ -1,5 +1,6 @@
 import { useEffect } from 'react'
 import { Link } from 'react-router-dom'
+import { trackProductEvent } from '../lib/analytics'
 import { CONTACT_FORM_URL, SUPPORT_EMAIL } from '../lib/siteConfig'
 
 const differentiationProps = [
@@ -65,20 +66,13 @@ const cycleSteps = [
 function trackCtaClick(name) {
   if (typeof window === 'undefined') return
   const params = new URLSearchParams(window.location.search)
-  const detail = {
-    event: 'tradetrace_landing_cta_click',
+  trackProductEvent('tradetrace_landing_cta_click', {
     cta_name: name,
     page: 'landing',
-    path: window.location.pathname,
     utm_source: String(params.get('utm_source') || ''),
     utm_medium: String(params.get('utm_medium') || ''),
     utm_campaign: String(params.get('utm_campaign') || ''),
-    timestamp_ms: Date.now(),
-  }
-  window.dispatchEvent(new CustomEvent('tradetrace:cta_click', { detail }))
-  if (Array.isArray(window.dataLayer)) {
-    window.dataLayer.push(detail)
-  }
+  })
 }
 
 export default function LandingPage() {
