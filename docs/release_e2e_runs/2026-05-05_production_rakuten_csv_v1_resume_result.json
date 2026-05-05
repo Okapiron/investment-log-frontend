@@ -1,0 +1,461 @@
+{
+  "base": "https://tradetrace.jp",
+  "test_user_email": "support+tt-e2e-1777980101047@tradetrace.jp",
+  "screenshots": {
+    "resume_login_trades": "/Users/hiroki/Projects/TradeTrace/frontend/docs/release_e2e_runs/screenshots_2026-05-05-production/12_resume_login_trades.png",
+    "resume_settings_initial": "/Users/hiroki/Projects/TradeTrace/frontend/docs/release_e2e_runs/screenshots_2026-05-05-production/13_resume_settings_initial.png",
+    "resume_preview_first_import": "/Users/hiroki/Projects/TradeTrace/frontend/docs/release_e2e_runs/screenshots_2026-05-05-production/14_resume_preview_first_import.png",
+    "resume_analysis_after_first_commit": "/Users/hiroki/Projects/TradeTrace/frontend/docs/release_e2e_runs/screenshots_2026-05-05-production/15_resume_analysis_after_first_commit.png",
+    "resume_preview_reupload": "/Users/hiroki/Projects/TradeTrace/frontend/docs/release_e2e_runs/screenshots_2026-05-05-production/16_resume_preview_reupload.png",
+    "resume_analysis_after_reupload": "/Users/hiroki/Projects/TradeTrace/frontend/docs/release_e2e_runs/screenshots_2026-05-05-production/17_resume_analysis_after_reupload.png",
+    "resume_preview_invalid_format": "/Users/hiroki/Projects/TradeTrace/frontend/docs/release_e2e_runs/screenshots_2026-05-05-production/18_resume_preview_invalid_format.png",
+    "resume_trades_after_import": "/Users/hiroki/Projects/TradeTrace/frontend/docs/release_e2e_runs/screenshots_2026-05-05-production/19_resume_trades_after_import.png",
+    "resume_trade_detail_chart_hidden": "/Users/hiroki/Projects/TradeTrace/frontend/docs/release_e2e_runs/screenshots_2026-05-05-production/20_resume_trade_detail_chart_hidden.png"
+  },
+  "checks": {
+    "broker_options": [
+      "楽天証券"
+    ],
+    "sbi_visible": false,
+    "auto_link_visible": false,
+    "chart_hidden_notice": true,
+    "yahoo_visible": false
+  },
+  "flow": {
+    "first_preview_summary": {
+      "candidates": 1,
+      "skipped": 0,
+      "errors": 0
+    },
+    "first_commit_url": "https://tradetrace.jp/analysis",
+    "first_commit_summary": {
+      "created": 0,
+      "updated": 1,
+      "skipped": 0,
+      "errors": 0
+    },
+    "first_analysis_sections": {
+      "style_summary": true,
+      "next_improvement": false,
+      "win_loss_trend": true,
+      "analysis_loading": false,
+      "analysis_error": false
+    },
+    "reupload_preview_summary": {
+      "candidates": 1,
+      "skipped": 0,
+      "errors": 0
+    },
+    "reupload_hint_present": true,
+    "reupload_url": "https://tradetrace.jp/analysis",
+    "reupload_commit_summary": {
+      "created": 0,
+      "updated": 1,
+      "skipped": 0,
+      "errors": 0
+    },
+    "reupload_analysis_sections": {
+      "style_summary": true,
+      "next_improvement": false,
+      "win_loss_trend": true,
+      "analysis_loading": false,
+      "analysis_error": false
+    },
+    "invalid_error_message": "CSVヘッダーが不足しています: date, name, price, qty, side, symbolデータJSONをエクスポートCSVをエクスポートアカウントデータ削除取り消しできません。"
+  },
+  "api": {
+    "analysis_before_reupload": {
+      "status": 200,
+      "text": "{\"headline_summary\":\"保有を引っ張った場面で崩れやすく、保有日数のコントロールが鍵になりやすいスタイルです。\",\"top_improvement\":{\"key\":\"holding_execution\",\"title\":\"詳細トレードの振り返りを進める\",\"message\":\"まずは負けトレードを2〜3件見直し、保有日数と撤退判断の癖を確認してください。\",\"rationale\":[\"決済済み 1件\",\"勝率 100.0%\",\"平均保有日数 14.0日\"]},\"summary\":\"決済済みトレードは 1 件です。 まずは収支構造、保有の歪み、最近の変化の3点から売買スタイルを診断します。 補助情報では タグ 1件 / 売却理由 1件 / 考察 1件 が残っています。\",\"diagnoses\":[{\"key\":\"pnl_structure\",\"title\":\"収支構造\",\"hypothesis\":\"収支構造はまだ判断材料が少ない状態です。\",\"summary\":\"JPトレード 1件（JPYベース） を金額損益ベースで見ると、まだ勝ち負けの偏りを断言しにくいです。\",\"evidence\":[\"平均利益額: 10000.0\",\"平均損失額: 0.0\",\"利益額/損失額比: 0.00 / 勝率 100.0%\"],\"tone\":\"neutral\"},{\"key\":\"holding_execution\",\"title\":\"保有と執行の歪み\",\"hypothesis\":\"保有日数による大きな差はまだ断定できません。\",\"summary\":\"勝ちトレードの平均保有日数は 14.0 日、負けトレードは 0.0 日です。\",\"evidence\":[\"勝ち平均保有日数: 14.0日\",\"負け平均保有日数: 0.0日\",\"最も良い帯は 11-30日（平均損益 10000.0）、最も弱い帯は 11-30日（平均損益 10000.0）です。\"],\"tone\":\"neutral\"},{\"key\":\"recent_change\",\"title\":\"最近の変化\",\"hypothesis\":\"直近では大きな変化はまだ強く出ていません。\",\"summary\":\"直近比較の件数が少ないため、最近の変化は参考値です。\",\"evidence\":[\"全履歴 勝率: 100.0% / 直近: 100.0%\",\"全履歴 平均利益額: 10000.0 / 直近: 10000.0\",\"全履歴 平均損失額: 0.0 / 直近: 0.0\"],\"tone\":\"neutral\"}],\"win_patterns\":[\"平均利益額は 10000.0 です。\",\"利益トレードの平均保有日数は 14.0 日です。\",\"直近1件の勝率は 100.0% です。\"],\"loss_patterns\":[\"補助情報では"
+    },
+    "analysis_after_first_commit": {
+      "status": 200,
+      "text": "{\"headline_summary\":\"保有を引っ張った場面で崩れやすく、保有日数のコントロールが鍵になりやすいスタイルです。\",\"top_improvement\":{\"key\":\"holding_execution\",\"title\":\"詳細トレードの振り返りを進める\",\"message\":\"まずは負けトレードを2〜3件見直し、保有日数と撤退判断の癖を確認してください。\",\"rationale\":[\"決済済み 1件\",\"勝率 100.0%\",\"平均保有日数 14.0日\"]},\"summary\":\"決済済みトレードは 1 件です。 まずは収支構造、保有の歪み、最近の変化の3点から売買スタイルを診断します。 補助情報では タグ 1件 / 売却理由 1件 / 考察 1件 が残っています。\",\"diagnoses\":[{\"key\":\"pnl_structure\",\"title\":\"収支構造\",\"hypothesis\":\"収支構造はまだ判断材料が少ない状態です。\",\"summary\":\"JPトレード 1件（JPYベース） を金額損益ベースで見ると、まだ勝ち負けの偏りを断言しにくいです。\",\"evidence\":[\"平均利益額: 10000.0\",\"平均損失額: 0.0\",\"利益額/損失額比: 0.00 / 勝率 100.0%\"],\"tone\":\"neutral\"},{\"key\":\"holding_execution\",\"title\":\"保有と執行の歪み\",\"hypothesis\":\"保有日数による大きな差はまだ断定できません。\",\"summary\":\"勝ちトレードの平均保有日数は 14.0 日、負けトレードは 0.0 日です。\",\"evidence\":[\"勝ち平均保有日数: 14.0日\",\"負け平均保有日数: 0.0日\",\"最も良い帯は 11-30日（平均損益 10000.0）、最も弱い帯は 11-30日（平均損益 10000.0）です。\"],\"tone\":\"neutral\"},{\"key\":\"recent_change\",\"title\":\"最近の変化\",\"hypothesis\":\"直近では大きな変化はまだ強く出ていません。\",\"summary\":\"直近比較の件数が少ないため、最近の変化は参考値です。\",\"evidence\":[\"全履歴 勝率: 100.0% / 直近: 100.0%\",\"全履歴 平均利益額: 10000.0 / 直近: 10000.0\",\"全履歴 平均損失額: 0.0 / 直近: 0.0\"],\"tone\":\"neutral\"}],\"win_patterns\":[\"平均利益額は 10000.0 です。\",\"利益トレードの平均保有日数は 14.0 日です。\",\"直近1件の勝率は 100.0% です。\"],\"loss_patterns\":[\"補助情報では"
+    },
+    "analysis_after_reupload": {
+      "status": 200,
+      "text": "{\"headline_summary\":\"保有を引っ張った場面で崩れやすく、保有日数のコントロールが鍵になりやすいスタイルです。\",\"top_improvement\":{\"key\":\"holding_execution\",\"title\":\"詳細トレードの振り返りを進める\",\"message\":\"まずは負けトレードを2〜3件見直し、保有日数と撤退判断の癖を確認してください。\",\"rationale\":[\"決済済み 1件\",\"勝率 100.0%\",\"平均保有日数 14.0日\"]},\"summary\":\"決済済みトレードは 1 件です。 まずは収支構造、保有の歪み、最近の変化の3点から売買スタイルを診断します。 補助情報では タグ 1件 / 売却理由 1件 / 考察 1件 が残っています。\",\"diagnoses\":[{\"key\":\"pnl_structure\",\"title\":\"収支構造\",\"hypothesis\":\"収支構造はまだ判断材料が少ない状態です。\",\"summary\":\"JPトレード 1件（JPYベース） を金額損益ベースで見ると、まだ勝ち負けの偏りを断言しにくいです。\",\"evidence\":[\"平均利益額: 10000.0\",\"平均損失額: 0.0\",\"利益額/損失額比: 0.00 / 勝率 100.0%\"],\"tone\":\"neutral\"},{\"key\":\"holding_execution\",\"title\":\"保有と執行の歪み\",\"hypothesis\":\"保有日数による大きな差はまだ断定できません。\",\"summary\":\"勝ちトレードの平均保有日数は 14.0 日、負けトレードは 0.0 日です。\",\"evidence\":[\"勝ち平均保有日数: 14.0日\",\"負け平均保有日数: 0.0日\",\"最も良い帯は 11-30日（平均損益 10000.0）、最も弱い帯は 11-30日（平均損益 10000.0）です。\"],\"tone\":\"neutral\"},{\"key\":\"recent_change\",\"title\":\"最近の変化\",\"hypothesis\":\"直近では大きな変化はまだ強く出ていません。\",\"summary\":\"直近比較の件数が少ないため、最近の変化は参考値です。\",\"evidence\":[\"全履歴 勝率: 100.0% / 直近: 100.0%\",\"全履歴 平均利益額: 10000.0 / 直近: 10000.0\",\"全履歴 平均損失額: 0.0 / 直近: 0.0\"],\"tone\":\"neutral\"}],\"win_patterns\":[\"平均利益額は 10000.0 です。\",\"利益トレードの平均保有日数は 14.0 日です。\",\"直近1件の勝率は 100.0% です。\"],\"loss_patterns\":[\"補助情報では"
+    },
+    "analysis_network_responses": [
+      {
+        "url": "https://tradetrace-api.onrender.com/api/v1/analysis/summary",
+        "status": 200,
+        "body": "{\"headline_summary\":\"保有を引っ張った場面で崩れやすく、保有日数のコントロールが鍵になりやすいスタイルです。\",\"top_improvement\":{\"key\":\"holding_execution\",\"title\":\"詳細トレードの振り返りを進める\",\"message\":\"まずは負けトレードを2〜3件見直し、保有日数と撤退判断の癖を確認してください。\",\"rationale\":[\"決済済み 1件\",\"勝率 100.0%\",\"平均保有日数 14.0日\"]},\"summary\":\"決済済みトレードは 1 件です。 まずは収支構造、保有の歪み、最近の変化の3点から売買スタイルを診断します。 補助情報では タグ 1件 / 売却理由 1件 / 考察 1件 が残っています。\",\"diagnoses\":[{\"key\":\"pnl_structure\",\"title\":\"収支構造\",\"hypothesis\":\"収支構造はまだ判断材料が少ない状態です。\",\"summary\":\"JPトレード 1件（JPYベース） を金額損益ベースで見ると、まだ勝ち負けの偏りを断言しにくいです。\",\"evidence\":[\"平均利益額: 10000.0\",\"平均損失額: 0.0\",\"利益額/損失額比: 0.00 / 勝率 100.0%\"],\"tone\":\"neutral\"},{\"key\":\"holding_execution\",\"title\":\"保有と執行の歪み\",\"hypothesis\":\"保有日数による大きな差はまだ断定できません。\",\"summary\":\"勝ちトレードの平均保有日数は 14.0 日、負けトレードは 0.0 日です。\",\"evidence\":[\"勝ち平均保有日数: 14.0日\",\"負け平均保有日数: 0.0日\",\"最も良い帯は 11-30日（平均損益 10000.0）、最も弱い帯は 11-30日（平均損益 10000.0）です。\"],\"tone\":\"neutral\"},{\"key\":\"recent_change\",\"title\":\"最近の変化\",\"hypothesis\":\"直近では大きな変化はまだ強く出ていません。\",\"summary\":\"直近比較の件数が少ないため、最近の変化は参考値です。\",\"evidence\":[\"全履歴 勝率: 100.0% / 直近: 1"
+      },
+      {
+        "url": "https://tradetrace-api.onrender.com/api/v1/analysis/summary",
+        "status": 200,
+        "body": "{\"headline_summary\":\"保有を引っ張った場面で崩れやすく、保有日数のコントロールが鍵になりやすいスタイルです。\",\"top_improvement\":{\"key\":\"holding_execution\",\"title\":\"詳細トレードの振り返りを進める\",\"message\":\"まずは負けトレードを2〜3件見直し、保有日数と撤退判断の癖を確認してください。\",\"rationale\":[\"決済済み 1件\",\"勝率 100.0%\",\"平均保有日数 14.0日\"]},\"summary\":\"決済済みトレードは 1 件です。 まずは収支構造、保有の歪み、最近の変化の3点から売買スタイルを診断します。 補助情報では タグ 1件 / 売却理由 1件 / 考察 1件 が残っています。\",\"diagnoses\":[{\"key\":\"pnl_structure\",\"title\":\"収支構造\",\"hypothesis\":\"収支構造はまだ判断材料が少ない状態です。\",\"summary\":\"JPトレード 1件（JPYベース） を金額損益ベースで見ると、まだ勝ち負けの偏りを断言しにくいです。\",\"evidence\":[\"平均利益額: 10000.0\",\"平均損失額: 0.0\",\"利益額/損失額比: 0.00 / 勝率 100.0%\"],\"tone\":\"neutral\"},{\"key\":\"holding_execution\",\"title\":\"保有と執行の歪み\",\"hypothesis\":\"保有日数による大きな差はまだ断定できません。\",\"summary\":\"勝ちトレードの平均保有日数は 14.0 日、負けトレードは 0.0 日です。\",\"evidence\":[\"勝ち平均保有日数: 14.0日\",\"負け平均保有日数: 0.0日\",\"最も良い帯は 11-30日（平均損益 10000.0）、最も弱い帯は 11-30日（平均損益 10000.0）です。\"],\"tone\":\"neutral\"},{\"key\":\"recent_change\",\"title\":\"最近の変化\",\"hypothesis\":\"直近では大きな変化はまだ強く出ていません。\",\"summary\":\"直近比較の件数が少ないため、最近の変化は参考値です。\",\"evidence\":[\"全履歴 勝率: 100.0% / 直近: 1"
+      },
+      {
+        "url": "https://tradetrace-api.onrender.com/api/v1/analysis/summary",
+        "status": 200,
+        "body": "{\"headline_summary\":\"保有を引っ張った場面で崩れやすく、保有日数のコントロールが鍵になりやすいスタイルです。\",\"top_improvement\":{\"key\":\"holding_execution\",\"title\":\"詳細トレードの振り返りを進める\",\"message\":\"まずは負けトレードを2〜3件見直し、保有日数と撤退判断の癖を確認してください。\",\"rationale\":[\"決済済み 1件\",\"勝率 100.0%\",\"平均保有日数 14.0日\"]},\"summary\":\"決済済みトレードは 1 件です。 まずは収支構造、保有の歪み、最近の変化の3点から売買スタイルを診断します。 補助情報では タグ 1件 / 売却理由 1件 / 考察 1件 が残っています。\",\"diagnoses\":[{\"key\":\"pnl_structure\",\"title\":\"収支構造\",\"hypothesis\":\"収支構造はまだ判断材料が少ない状態です。\",\"summary\":\"JPトレード 1件（JPYベース） を金額損益ベースで見ると、まだ勝ち負けの偏りを断言しにくいです。\",\"evidence\":[\"平均利益額: 10000.0\",\"平均損失額: 0.0\",\"利益額/損失額比: 0.00 / 勝率 100.0%\"],\"tone\":\"neutral\"},{\"key\":\"holding_execution\",\"title\":\"保有と執行の歪み\",\"hypothesis\":\"保有日数による大きな差はまだ断定できません。\",\"summary\":\"勝ちトレードの平均保有日数は 14.0 日、負けトレードは 0.0 日です。\",\"evidence\":[\"勝ち平均保有日数: 14.0日\",\"負け平均保有日数: 0.0日\",\"最も良い帯は 11-30日（平均損益 10000.0）、最も弱い帯は 11-30日（平均損益 10000.0）です。\"],\"tone\":\"neutral\"},{\"key\":\"recent_change\",\"title\":\"最近の変化\",\"hypothesis\":\"直近では大きな変化はまだ強く出ていません。\",\"summary\":\"直近比較の件数が少ないため、最近の変化は参考値です。\",\"evidence\":[\"全履歴 勝率: 100.0% / 直近: 1"
+      },
+      {
+        "url": "https://tradetrace-api.onrender.com/api/v1/analysis/summary",
+        "status": 200,
+        "body": "{\"headline_summary\":\"保有を引っ張った場面で崩れやすく、保有日数のコントロールが鍵になりやすいスタイルです。\",\"top_improvement\":{\"key\":\"holding_execution\",\"title\":\"詳細トレードの振り返りを進める\",\"message\":\"まずは負けトレードを2〜3件見直し、保有日数と撤退判断の癖を確認してください。\",\"rationale\":[\"決済済み 1件\",\"勝率 100.0%\",\"平均保有日数 14.0日\"]},\"summary\":\"決済済みトレードは 1 件です。 まずは収支構造、保有の歪み、最近の変化の3点から売買スタイルを診断します。 補助情報では タグ 1件 / 売却理由 1件 / 考察 1件 が残っています。\",\"diagnoses\":[{\"key\":\"pnl_structure\",\"title\":\"収支構造\",\"hypothesis\":\"収支構造はまだ判断材料が少ない状態です。\",\"summary\":\"JPトレード 1件（JPYベース） を金額損益ベースで見ると、まだ勝ち負けの偏りを断言しにくいです。\",\"evidence\":[\"平均利益額: 10000.0\",\"平均損失額: 0.0\",\"利益額/損失額比: 0.00 / 勝率 100.0%\"],\"tone\":\"neutral\"},{\"key\":\"holding_execution\",\"title\":\"保有と執行の歪み\",\"hypothesis\":\"保有日数による大きな差はまだ断定できません。\",\"summary\":\"勝ちトレードの平均保有日数は 14.0 日、負けトレードは 0.0 日です。\",\"evidence\":[\"勝ち平均保有日数: 14.0日\",\"負け平均保有日数: 0.0日\",\"最も良い帯は 11-30日（平均損益 10000.0）、最も弱い帯は 11-30日（平均損益 10000.0）です。\"],\"tone\":\"neutral\"},{\"key\":\"recent_change\",\"title\":\"最近の変化\",\"hypothesis\":\"直近では大きな変化はまだ強く出ていません。\",\"summary\":\"直近比較の件数が少ないため、最近の変化は参考値です。\",\"evidence\":[\"全履歴 勝率: 100.0% / 直近: 1"
+      },
+      {
+        "url": "https://tradetrace-api.onrender.com/api/v1/analysis/summary",
+        "status": 200,
+        "body": "{\"headline_summary\":\"保有を引っ張った場面で崩れやすく、保有日数のコントロールが鍵になりやすいスタイルです。\",\"top_improvement\":{\"key\":\"holding_execution\",\"title\":\"詳細トレードの振り返りを進める\",\"message\":\"まずは負けトレードを2〜3件見直し、保有日数と撤退判断の癖を確認してください。\",\"rationale\":[\"決済済み 1件\",\"勝率 100.0%\",\"平均保有日数 14.0日\"]},\"summary\":\"決済済みトレードは 1 件です。 まずは収支構造、保有の歪み、最近の変化の3点から売買スタイルを診断します。 補助情報では タグ 1件 / 売却理由 1件 / 考察 1件 が残っています。\",\"diagnoses\":[{\"key\":\"pnl_structure\",\"title\":\"収支構造\",\"hypothesis\":\"収支構造はまだ判断材料が少ない状態です。\",\"summary\":\"JPトレード 1件（JPYベース） を金額損益ベースで見ると、まだ勝ち負けの偏りを断言しにくいです。\",\"evidence\":[\"平均利益額: 10000.0\",\"平均損失額: 0.0\",\"利益額/損失額比: 0.00 / 勝率 100.0%\"],\"tone\":\"neutral\"},{\"key\":\"holding_execution\",\"title\":\"保有と執行の歪み\",\"hypothesis\":\"保有日数による大きな差はまだ断定できません。\",\"summary\":\"勝ちトレードの平均保有日数は 14.0 日、負けトレードは 0.0 日です。\",\"evidence\":[\"勝ち平均保有日数: 14.0日\",\"負け平均保有日数: 0.0日\",\"最も良い帯は 11-30日（平均損益 10000.0）、最も弱い帯は 11-30日（平均損益 10000.0）です。\"],\"tone\":\"neutral\"},{\"key\":\"recent_change\",\"title\":\"最近の変化\",\"hypothesis\":\"直近では大きな変化はまだ強く出ていません。\",\"summary\":\"直近比較の件数が少ないため、最近の変化は参考値です。\",\"evidence\":[\"全履歴 勝率: 100.0% / 直近: 1"
+      }
+    ]
+  },
+  "events": {
+    "dataLayer_events": [],
+    "custom_event_names": [],
+    "stored_event_names": [
+      "csv_upload_start",
+      "csv_upload_start",
+      "csv_preview_success",
+      "csv_preview_success",
+      "csv_commit_success",
+      "csv_commit_success",
+      "csv_reupload_update",
+      "csv_reupload_update",
+      "analysis_after_import_view",
+      "analysis_after_import_view",
+      "csv_upload_start",
+      "csv_upload_start",
+      "csv_preview_success",
+      "csv_preview_success",
+      "csv_commit_success",
+      "csv_commit_success",
+      "csv_reupload_update",
+      "csv_reupload_update",
+      "analysis_after_import_view",
+      "analysis_after_import_view",
+      "csv_upload_start",
+      "csv_upload_start",
+      "csv_preview_failure",
+      "csv_preview_failure"
+    ],
+    "stored_events": [
+      {
+        "source": "customEvent",
+        "name": "csv_upload_start",
+        "detail": {
+          "event": "csv_upload_start",
+          "path": "/settings",
+          "timestamp_ms": 1777980924673,
+          "broker": "rakuten",
+          "input_type": "tradehistory"
+        }
+      },
+      {
+        "source": "dataLayer",
+        "name": "csv_upload_start",
+        "detail": {
+          "event": "csv_upload_start",
+          "path": "/settings",
+          "timestamp_ms": 1777980924673,
+          "broker": "rakuten",
+          "input_type": "tradehistory"
+        }
+      },
+      {
+        "source": "customEvent",
+        "name": "csv_preview_success",
+        "detail": {
+          "event": "csv_preview_success",
+          "path": "/settings",
+          "timestamp_ms": 1777980925269,
+          "broker": "rakuten",
+          "candidate_count": 1,
+          "skipped_count": 0,
+          "error_count": 0,
+          "already_imported_count": 1,
+          "has_realized_file": false
+        }
+      },
+      {
+        "source": "dataLayer",
+        "name": "csv_preview_success",
+        "detail": {
+          "event": "csv_preview_success",
+          "path": "/settings",
+          "timestamp_ms": 1777980925269,
+          "broker": "rakuten",
+          "candidate_count": 1,
+          "skipped_count": 0,
+          "error_count": 0,
+          "already_imported_count": 1,
+          "has_realized_file": false
+        }
+      },
+      {
+        "source": "customEvent",
+        "name": "csv_commit_success",
+        "detail": {
+          "event": "csv_commit_success",
+          "path": "/settings",
+          "timestamp_ms": 1777980927318,
+          "broker": "rakuten",
+          "created_count": 0,
+          "updated_count": 1,
+          "skipped_count": 0,
+          "error_count": 0,
+          "candidate_count": 1,
+          "has_realized_file": false
+        }
+      },
+      {
+        "source": "dataLayer",
+        "name": "csv_commit_success",
+        "detail": {
+          "event": "csv_commit_success",
+          "path": "/settings",
+          "timestamp_ms": 1777980927318,
+          "broker": "rakuten",
+          "created_count": 0,
+          "updated_count": 1,
+          "skipped_count": 0,
+          "error_count": 0,
+          "candidate_count": 1,
+          "has_realized_file": false
+        }
+      },
+      {
+        "source": "customEvent",
+        "name": "csv_reupload_update",
+        "detail": {
+          "event": "csv_reupload_update",
+          "path": "/settings",
+          "timestamp_ms": 1777980927318,
+          "broker": "rakuten",
+          "updated_count": 1
+        }
+      },
+      {
+        "source": "dataLayer",
+        "name": "csv_reupload_update",
+        "detail": {
+          "event": "csv_reupload_update",
+          "path": "/settings",
+          "timestamp_ms": 1777980927318,
+          "broker": "rakuten",
+          "updated_count": 1
+        }
+      },
+      {
+        "source": "customEvent",
+        "name": "analysis_after_import_view",
+        "detail": {
+          "event": "analysis_after_import_view",
+          "path": "/analysis",
+          "timestamp_ms": 1777980927789,
+          "broker": "rakuten",
+          "created_count": 0,
+          "updated_count": 1,
+          "skipped_count": 0,
+          "error_count": 0
+        }
+      },
+      {
+        "source": "dataLayer",
+        "name": "analysis_after_import_view",
+        "detail": {
+          "event": "analysis_after_import_view",
+          "path": "/analysis",
+          "timestamp_ms": 1777980927789,
+          "broker": "rakuten",
+          "created_count": 0,
+          "updated_count": 1,
+          "skipped_count": 0,
+          "error_count": 0
+        }
+      },
+      {
+        "source": "customEvent",
+        "name": "csv_upload_start",
+        "detail": {
+          "event": "csv_upload_start",
+          "path": "/settings",
+          "timestamp_ms": 1777980930685,
+          "broker": "rakuten",
+          "input_type": "tradehistory"
+        }
+      },
+      {
+        "source": "dataLayer",
+        "name": "csv_upload_start",
+        "detail": {
+          "event": "csv_upload_start",
+          "path": "/settings",
+          "timestamp_ms": 1777980930685,
+          "broker": "rakuten",
+          "input_type": "tradehistory"
+        }
+      },
+      {
+        "source": "customEvent",
+        "name": "csv_preview_success",
+        "detail": {
+          "event": "csv_preview_success",
+          "path": "/settings",
+          "timestamp_ms": 1777980931141,
+          "broker": "rakuten",
+          "candidate_count": 1,
+          "skipped_count": 0,
+          "error_count": 0,
+          "already_imported_count": 1,
+          "has_realized_file": false
+        }
+      },
+      {
+        "source": "dataLayer",
+        "name": "csv_preview_success",
+        "detail": {
+          "event": "csv_preview_success",
+          "path": "/settings",
+          "timestamp_ms": 1777980931141,
+          "broker": "rakuten",
+          "candidate_count": 1,
+          "skipped_count": 0,
+          "error_count": 0,
+          "already_imported_count": 1,
+          "has_realized_file": false
+        }
+      },
+      {
+        "source": "customEvent",
+        "name": "csv_commit_success",
+        "detail": {
+          "event": "csv_commit_success",
+          "path": "/settings",
+          "timestamp_ms": 1777980933013,
+          "broker": "rakuten",
+          "created_count": 0,
+          "updated_count": 1,
+          "skipped_count": 0,
+          "error_count": 0,
+          "candidate_count": 1,
+          "has_realized_file": false
+        }
+      },
+      {
+        "source": "dataLayer",
+        "name": "csv_commit_success",
+        "detail": {
+          "event": "csv_commit_success",
+          "path": "/settings",
+          "timestamp_ms": 1777980933013,
+          "broker": "rakuten",
+          "created_count": 0,
+          "updated_count": 1,
+          "skipped_count": 0,
+          "error_count": 0,
+          "candidate_count": 1,
+          "has_realized_file": false
+        }
+      },
+      {
+        "source": "customEvent",
+        "name": "csv_reupload_update",
+        "detail": {
+          "event": "csv_reupload_update",
+          "path": "/settings",
+          "timestamp_ms": 1777980933014,
+          "broker": "rakuten",
+          "updated_count": 1
+        }
+      },
+      {
+        "source": "dataLayer",
+        "name": "csv_reupload_update",
+        "detail": {
+          "event": "csv_reupload_update",
+          "path": "/settings",
+          "timestamp_ms": 1777980933014,
+          "broker": "rakuten",
+          "updated_count": 1
+        }
+      },
+      {
+        "source": "customEvent",
+        "name": "analysis_after_import_view",
+        "detail": {
+          "event": "analysis_after_import_view",
+          "path": "/analysis",
+          "timestamp_ms": 1777980933442,
+          "broker": "rakuten",
+          "created_count": 0,
+          "updated_count": 1,
+          "skipped_count": 0,
+          "error_count": 0
+        }
+      },
+      {
+        "source": "dataLayer",
+        "name": "analysis_after_import_view",
+        "detail": {
+          "event": "analysis_after_import_view",
+          "path": "/analysis",
+          "timestamp_ms": 1777980933442,
+          "broker": "rakuten",
+          "created_count": 0,
+          "updated_count": 1,
+          "skipped_count": 0,
+          "error_count": 0
+        }
+      },
+      {
+        "source": "customEvent",
+        "name": "csv_upload_start",
+        "detail": {
+          "event": "csv_upload_start",
+          "path": "/settings",
+          "timestamp_ms": 1777980936533,
+          "broker": "rakuten",
+          "input_type": "tradehistory"
+        }
+      },
+      {
+        "source": "dataLayer",
+        "name": "csv_upload_start",
+        "detail": {
+          "event": "csv_upload_start",
+          "path": "/settings",
+          "timestamp_ms": 1777980936533,
+          "broker": "rakuten",
+          "input_type": "tradehistory"
+        }
+      },
+      {
+        "source": "customEvent",
+        "name": "csv_preview_failure",
+        "detail": {
+          "event": "csv_preview_failure",
+          "path": "/settings",
+          "timestamp_ms": 1777980936953,
+          "broker": "rakuten",
+          "candidate_count": 0,
+          "skipped_count": 0,
+          "error_count": 1,
+          "already_imported_count": 0,
+          "has_realized_file": false,
+          "error_type": "preview_validation_error"
+        }
+      },
+      {
+        "source": "dataLayer",
+        "name": "csv_preview_failure",
+        "detail": {
+          "event": "csv_preview_failure",
+          "path": "/settings",
+          "timestamp_ms": 1777980936953,
+          "broker": "rakuten",
+          "candidate_count": 0,
+          "skipped_count": 0,
+          "error_count": 1,
+          "already_imported_count": 0,
+          "has_realized_file": false,
+          "error_type": "preview_validation_error"
+        }
+      }
+    ]
+  }
+}

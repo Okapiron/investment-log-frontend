@@ -1,0 +1,18 @@
+{
+  "base": "https://tradetrace.jp",
+  "test_user_email": "support+tt-e2e-1777980101047@tradetrace.jp",
+  "screenshots": {
+    "auth_signup_initial": "/Users/hiroki/Projects/TradeTrace/frontend/docs/release_e2e_runs/screenshots_2026-05-05-production/01_auth_signup_initial.png",
+    "signup_without_invite_blocked": "/Users/hiroki/Projects/TradeTrace/frontend/docs/release_e2e_runs/screenshots_2026-05-05-production/02_signup_without_invite_blocked.png",
+    "signup_invalid_invite_blocked": "/Users/hiroki/Projects/TradeTrace/frontend/docs/release_e2e_runs/screenshots_2026-05-05-production/03_signup_invalid_invite_blocked.png",
+    "trades_after_signup": "/Users/hiroki/Projects/TradeTrace/frontend/docs/release_e2e_runs/screenshots_2026-05-05-production/04_trades_after_signup.png"
+  },
+  "checks": {
+    "invite_input_visible": true,
+    "signup_without_invite_blocked": true,
+    "signup_invalid_invite_blocked": true,
+    "signup_with_invite_reached_trades": true
+  },
+  "flow": {},
+  "events": {}
+}
