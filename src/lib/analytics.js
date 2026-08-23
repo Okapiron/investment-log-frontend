@@ -1,3 +1,5 @@
+import { storageMode } from './localMode'
+
 export function trackProductEvent(eventName, properties = {}) {
   if (typeof window === 'undefined') return
 
@@ -8,6 +10,7 @@ export function trackProductEvent(eventName, properties = {}) {
     event: String(eventName || '').trim(),
     path: window.location.pathname,
     timestamp_ms: Date.now(),
+    storage_mode: cleanProperties.storage_mode || storageMode(),
     ...cleanProperties,
   }
 

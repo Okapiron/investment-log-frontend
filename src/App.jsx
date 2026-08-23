@@ -7,6 +7,7 @@ import AuthPage from './pages/AuthPage'
 import AuthResetPage from './pages/AuthResetPage'
 import AnalysisPage from './pages/AnalysisPage'
 import HelpPage from './pages/HelpPage'
+import ImportPage from './pages/ImportPage.jsx'
 import LandingPage from './pages/LandingPage'
 import PrivateModePage from './pages/PrivateModePage'
 import PrivacyPage from './pages/PrivacyPage'
@@ -14,8 +15,11 @@ import SettingsPage from './pages/SettingsPage'
 import TermsPage from './pages/TermsPage'
 import TradesNewPage from './pages/TradesNewPage'
 import TradesPage from './pages/TradesPage'
-import TradeDetailPage from './pages/TradeDetailPage.jsx'
+import ReviewQueuePage from './pages/ReviewQueuePage.jsx'
+import TradeReviewDetailPage from './pages/TradeReviewDetailPage.jsx'
+import EpisodeReviewPage from './pages/EpisodeReviewPage.jsx'
 import { hasAuthCallbackParams, isAuthEnabled, isAuthenticated } from './lib/auth'
+import { isLocalTrialMode } from './lib/localMode'
 import { hasPrivateAccess, isPrivateModeEnabled } from './lib/privateAccess'
 
 function RootEntry() {
@@ -51,6 +55,20 @@ function RequireAppAccess({ children }) {
   const authed = useMemo(() => isAuthenticated(), [location.pathname, location.key])
   if (privateMode && !privateAccess) return <Navigate to="/" replace />
   if (!enabled) return children
+  if (isLocalTrialMode()) return children
+  if (!authed) return <Navigate to="/auth" replace />
+  return children
+}
+
+function RequireCloudAccess({ children }) {
+  const location = useLocation()
+  const privateMode = isPrivateModeEnabled()
+  const privateAccess = useMemo(() => hasPrivateAccess(), [location.pathname, location.key])
+  const enabled = isAuthEnabled()
+  const authed = useMemo(() => isAuthenticated(), [location.pathname, location.key])
+  if (privateMode && !privateAccess) return <Navigate to="/" replace />
+  if (isLocalTrialMode()) return <Navigate to="/settings" replace />
+  if (!enabled) return children
   if (!authed) return <Navigate to="/auth" replace />
   return children
 }
@@ -76,6 +94,22 @@ export default function App() {
         <Route path="/privacy" element={<PrivateOrPublicPage><PrivacyPage /></PrivateOrPublicPage>} />
 
         <Route
+          path="/review"
+          element={(
+            <RequireAppAccess>
+              <ReviewQueuePage />
+            </RequireAppAccess>
+          )}
+        />
+        <Route
+          path="/import"
+          element={(
+            <RequireAppAccess>
+              <ImportPage />
+            </RequireAppAccess>
+          )}
+        />
+        <Route
           path="/analysis"
           element={(
             <RequireAppAccess>
@@ -94,8 +128,16 @@ export default function App() {
         <Route
           path="/trades/new"
           element={(
-            <RequireAppAccess>
+            <RequireCloudAccess>
               <TradesNewPage />
+            </RequireCloudAccess>
+          )}
+        />
+        <Route
+          path="/episodes/:id"
+          element={(
+            <RequireAppAccess>
+              <EpisodeReviewPage />
             </RequireAppAccess>
           )}
         />
@@ -103,7 +145,7 @@ export default function App() {
           path="/trades/:id"
           element={(
             <RequireAppAccess>
-              <TradeDetailPage />
+              <TradeReviewDetailPage />
             </RequireAppAccess>
           )}
         />

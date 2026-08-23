@@ -13,8 +13,9 @@ export function resolveApiUrl(path) {
     url = p
   } else {
     const normalizedPath = p.startsWith('/') ? p : `/${p}`
-    // If caller passes /api/v1/... and base already ends with /api/v1, avoid duplicated prefix.
-    if (base.endsWith('/api/v1') && normalizedPath.startsWith('/api/v1/')) {
+    // Absolute API paths may target another version. Strip the configured
+    // version prefix before joining so /api/v2 never becomes /api/v1/api/v2.
+    if (base.endsWith('/api/v1') && normalizedPath.startsWith('/api/')) {
       url = `${base.slice(0, -7)}${normalizedPath}`
     } else if (base.endsWith('/api/v1') && normalizedPath === '/api/v1') {
       url = `${base.slice(0, -7)}${normalizedPath}`

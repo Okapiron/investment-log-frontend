@@ -1,7 +1,10 @@
 import { api, buildApiHeaders, resolveApiUrl } from './api'
 import { getAccessToken } from './auth'
+import { clearLocalTrialData, exportLocalTrialData } from './localDb'
+import { isLocalTrialMode } from './localMode'
 
 export function getMyProfile() {
+  if (isLocalTrialMode()) return Promise.resolve({ email: '登録なしで試用中', storage_mode: 'local' })
   return api.get('/api/v1/settings/me')
 }
 
@@ -125,6 +128,32 @@ function _readFilenameFromDisposition(disposition, fallback) {
 }
 
 export async function downloadMyExport(format = 'json') {
+  if (isLocalTrialMode()) {
+    const data = await exportLocalTrialData()
+    const text = format === 'csv'
+      ? [
+          'id,symbol,name,opened_at,closed_at,profit_jpy',
+          ...(data.trades || []).map((trade) => [
+            trade.id,
+            trade.symbol,
+            `"${String(trade.name || '').replace(/"/g, '""')}"`,
+            trade.opened_at || '',
+            trade.closed_at || '',
+            trade.profit_jpy ?? '',
+          ].join(',')),
+        ].join('\n')
+      : JSON.stringify(data, null, 2)
+    const blob = new Blob([text], { type: format === 'csv' ? 'text/csv;charset=utf-8' : 'application/json;charset=utf-8' })
+    const objectUrl = URL.createObjectURL(blob)
+    const a = document.createElement('a')
+    a.href = objectUrl
+    a.download = format === 'csv' ? 'tradetrace_local_export.csv' : 'tradetrace_local_export.json'
+    document.body.appendChild(a)
+    a.click()
+    a.remove()
+    URL.revokeObjectURL(objectUrl)
+    return
+  }
   const f = String(format || '').toLowerCase()
   const fallback = f === 'csv' ? 'tradetrace_export.csv' : 'tradetrace_export.json'
   const url = resolveApiUrl(`/api/v1/settings/export?format=${encodeURIComponent(f)}`)
@@ -155,5 +184,9 @@ export async function downloadMyExport(format = 'json') {
 
 export function deleteMyData(confirmText = 'DELETE') {
   const value = String(confirmText || '').trim().toUpperCase()
+  if (isLocalTrialMode()) {
+    if (value !== 'DELETE') return Promise.reject(new Error('削除するには DELETE と入力してください。'))
+    return clearLocalTrialData().then(() => ({ deleted_trades: 0, local_deleted: true }))
+  }
   return api.del(`/api/v1/settings/me?confirm=true&confirm_text=${encodeURIComponent(value)}`)
 }

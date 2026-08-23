@@ -15,22 +15,85 @@ function normalizeLWC(mod) {
   return mod
 }
 
-export default function TradeChart({ bars, buyFill, sellFill, focusSpec, resetKey = 0, onError, height = 420 }) {
+function average(values) {
+  if (!values.length) return null
+  return values.reduce((sum, value) => sum + value, 0) / values.length
+}
+
+function stddev(values, mean) {
+  if (!values.length || mean == null) return null
+  const variance = values.reduce((sum, value) => sum + (value - mean) ** 2, 0) / values.length
+  return Math.sqrt(variance)
+}
+
+function lineDataForSma(bars, period) {
+  const p = Number(period)
+  if (!Array.isArray(bars) || !(p > 0)) return []
+  return bars
+    .map((bar, index) => {
+      if (index + 1 < p) return null
+      const windowBars = bars.slice(index + 1 - p, index + 1)
+      const value = average(windowBars.map((item) => Number(item.close)).filter(Number.isFinite))
+      if (!Number.isFinite(value)) return null
+      return { time: bar.time, value }
+    })
+    .filter(Boolean)
+}
+
+function lineDataForBollinger(bars, period, sigma) {
+  const p = Number(period)
+  const s = Number(sigma)
+  if (!Array.isArray(bars) || !(p > 0) || !(s > 0)) return { upper: [], middle: [], lower: [] }
+  const upper = []
+  const middle = []
+  const lower = []
+  bars.forEach((bar, index) => {
+    if (index + 1 < p) return
+    const closes = bars.slice(index + 1 - p, index + 1).map((item) => Number(item.close)).filter(Number.isFinite)
+    const mean = average(closes)
+    const sd = stddev(closes, mean)
+    if (!Number.isFinite(mean) || !Number.isFinite(sd)) return
+    middle.push({ time: bar.time, value: mean })
+    upper.push({ time: bar.time, value: mean + sd * s })
+    lower.push({ time: bar.time, value: mean - sd * s })
+  })
+  return { upper, middle, lower }
+}
+
+export default function TradeChart({
+  bars,
+  buyFill,
+  sellFill,
+  decisionMarkers = null,
+  selectedDecisionPointId = null,
+  onDecisionPointSelect,
+  focusSpec,
+  resetKey = 0,
+  onError,
+  height = 420,
+  indicatorConfig = null,
+  dark = false,
+}) {
   const containerRef = useRef(null)
   const chartRef = useRef(null)
   const candleSeriesRef = useRef(null)
   const volumeSeriesRef = useRef(null)
+  const indicatorSeriesRef = useRef([])
   const buyPriceLineRef = useRef(null)
   const sellPriceLineRef = useRef(null)
   const resizeObserverRef = useRef(null)
   const lastRangeTokenRef = useRef(null)
   const buyPriceRef = useRef(Number(buyFill?.price))
   const sellPriceRef = useRef(Number(sellFill?.price))
+  const onDecisionPointSelectRef = useRef(onDecisionPointSelect)
+  const selectedDecisionPointIdRef = useRef(selectedDecisionPointId)
+  const clickHandlerRef = useRef(null)
 
   const [showBuyLine, setShowBuyLine] = useState(true)
   const [showSellLine, setShowSellLine] = useState(true)
 
   const barsRef = useRef(bars)
+  const indicatorConfigRef = useRef(indicatorConfig)
   const markersRef = useRef([])
 
   const hasBars = Array.isArray(bars) && bars.length > 0
@@ -50,6 +113,24 @@ export default function TradeChart({ bars, buyFill, sellFill, focusSpec, resetKe
   }, [focusSpec, buyFill?.date, sellFill?.date])
 
   const markers = useMemo(() => {
+    if (Array.isArray(decisionMarkers) && decisionMarkers.length > 0) {
+      return decisionMarkers
+        .filter((item) => item?.time && item?.id != null)
+        .map((item) => {
+          const selected = String(item.id) === String(selectedDecisionPointId)
+          const isBuy = item.side === 'buy'
+          return {
+            time: item.time,
+            position: isBuy ? 'belowBar' : 'aboveBar',
+            color: selected ? (isBuy ? '#12b76a' : '#f04438') : (isBuy ? '#067647' : '#b42318'),
+            shape: isBuy ? 'arrowUp' : 'arrowDown',
+            size: selected ? 1.8 : 1.15,
+            text: item.label || `${isBuy ? 'BUY' : 'SELL'} ${Number(item.price) || ''}`.trim(),
+            decisionPointId: item.id,
+          }
+        })
+        .sort((a, b) => String(a.time).localeCompare(String(b.time)))
+    }
     const m = []
     if (buyFill?.date) {
       m.push({
@@ -72,16 +153,28 @@ export default function TradeChart({ bars, buyFill, sellFill, focusSpec, resetKe
       })
     }
     return m
-  }, [buyFill?.date, sellFill?.date, buyFill?.price, sellFill?.price, showBuyLine, showSellLine])
+  }, [decisionMarkers, selectedDecisionPointId, buyFill?.date, sellFill?.date, buyFill?.price, sellFill?.price, showBuyLine, showSellLine])
 
   useEffect(() => {
     barsRef.current = bars
   }, [bars])
 
   useEffect(() => {
+    indicatorConfigRef.current = indicatorConfig
+  }, [indicatorConfig])
+
+  useEffect(() => {
     buyPriceRef.current = Number(buyFill?.price)
     sellPriceRef.current = Number(sellFill?.price)
   }, [buyFill?.price, sellFill?.price])
+
+  useEffect(() => {
+    onDecisionPointSelectRef.current = onDecisionPointSelect
+  }, [onDecisionPointSelect])
+
+  useEffect(() => {
+    selectedDecisionPointIdRef.current = selectedDecisionPointId
+  }, [selectedDecisionPointId])
 
   useEffect(() => {
     markersRef.current = markers
@@ -107,6 +200,31 @@ export default function TradeChart({ bars, buyFill, sellFill, focusSpec, resetKe
       color: Number(x.close) >= Number(x.open) ? 'rgba(18,183,106,0.35)' : 'rgba(240,68,56,0.35)',
     }))
     volumeSeriesRef.current.setData(volumeData)
+
+    const config = indicatorConfigRef.current || {}
+    const indicatorSeries = indicatorSeriesRef.current || []
+    const maPeriods = Array.isArray(config.maPeriods) ? config.maPeriods : []
+    maPeriods.forEach((period, index) => {
+      const series = indicatorSeries.find((item) => item.key === `ma-${period}-${index}`)?.series
+      if (series) series.setData(lineDataForSma(b, period))
+    })
+
+    const bbSigmas = Array.isArray(config.bbSigmas) && config.bbSigmas.length > 0
+      ? config.bbSigmas
+      : config.bbSigma
+        ? [config.bbSigma]
+        : []
+    if (config.bbPeriod && bbSigmas.length > 0) {
+      const middleSeries = indicatorSeries.find((item) => item.key === 'bb-middle')?.series
+      bbSigmas.forEach((sigma) => {
+        const bbData = lineDataForBollinger(b, config.bbPeriod, sigma)
+        const upperSeries = indicatorSeries.find((item) => item.key === `bb-upper-${sigma}`)?.series
+        const lowerSeries = indicatorSeries.find((item) => item.key === `bb-lower-${sigma}`)?.series
+        if (upperSeries) upperSeries.setData(bbData.upper)
+        if (lowerSeries) lowerSeries.setData(bbData.lower)
+        if (middleSeries && sigma === bbSigmas[0]) middleSeries.setData(bbData.middle)
+      })
+    }
 
     const m = markersRef.current || []
     if (typeof candleSeriesRef.current.setMarkers === 'function') {
@@ -238,16 +356,20 @@ export default function TradeChart({ bars, buyFill, sellFill, focusSpec, resetKe
       container.innerHTML = ''
 
       try {
+        const chartBg = dark ? '#0b1117' : '#ffffff'
+        const chartText = dark ? '#aab4c0' : '#475467'
+        const gridColor = dark ? 'rgba(148, 163, 184, 0.12)' : '#f2f4f7'
+        const borderColor = dark ? 'rgba(148, 163, 184, 0.22)' : '#eaecf0'
         const chart = LWC.createChart(container, {
           width: container.clientWidth || 800,
           height,
-          layout: { background: { color: '#ffffff' }, textColor: '#475467' },
+          layout: { background: { color: chartBg }, textColor: chartText },
           grid: {
-            vertLines: { color: '#f2f4f7' },
-            horzLines: { color: '#f2f4f7' },
+            vertLines: { color: gridColor },
+            horzLines: { color: gridColor },
           },
-          rightPriceScale: { borderColor: '#eaecf0', lastValueVisible: false, lastValueLabelVisible: false },
-          timeScale: { borderColor: '#eaecf0' },
+          rightPriceScale: { borderColor, lastValueVisible: false, lastValueLabelVisible: false },
+          timeScale: { borderColor },
           localization: { locale: 'ja-JP' },
         })
 
@@ -334,9 +456,81 @@ export default function TradeChart({ bars, buyFill, sellFill, focusSpec, resetKe
           scaleMargins: { top: 0.75, bottom: 0 },
         })
 
+        const config = indicatorConfigRef.current || {}
+        const maColors = config.maColors || ['#60a5fa', '#f59e0b', '#a78bfa']
+        const indicatorSeries = []
+        const addLineSeries = (key, options) => {
+          const series = chart.addLineSeries
+            ? chart.addLineSeries(options)
+            : chart.addSeries(LWC.LineSeries, options)
+          indicatorSeries.push({ key, series })
+        }
+
+        ;(Array.isArray(config.maPeriods) ? config.maPeriods : []).forEach((period, index) => {
+          addLineSeries(`ma-${period}-${index}`, {
+            color: maColors[index % maColors.length],
+            lineWidth: index === 1 ? 2 : 1,
+            priceLineVisible: false,
+            lastValueVisible: false,
+          })
+        })
+        const bbSigmas = Array.isArray(config.bbSigmas) && config.bbSigmas.length > 0
+          ? config.bbSigmas
+          : config.bbSigma
+            ? [config.bbSigma]
+            : []
+        if (config.bbPeriod && bbSigmas.length > 0) {
+          addLineSeries('bb-middle', {
+            color: dark ? 'rgba(148, 163, 184, 0.38)' : 'rgba(102, 112, 133, 0.30)',
+            lineWidth: 1,
+            lineStyle: 2,
+            priceLineVisible: false,
+            lastValueVisible: false,
+          })
+          const bandColors = dark
+            ? ['rgba(96, 165, 250, 0.42)', 'rgba(250, 204, 21, 0.44)', 'rgba(248, 250, 252, 0.52)']
+            : ['rgba(47, 111, 237, 0.32)', 'rgba(245, 158, 11, 0.34)', 'rgba(71, 84, 103, 0.42)']
+          bbSigmas.forEach((sigma, index) => {
+            const color = bandColors[index % bandColors.length]
+            addLineSeries(`bb-upper-${sigma}`, {
+              color,
+              lineWidth: sigma === 3 ? 1 : 1,
+              lineStyle: sigma === 1 ? 0 : 2,
+              priceLineVisible: false,
+              lastValueVisible: false,
+            })
+            addLineSeries(`bb-lower-${sigma}`, {
+              color,
+              lineWidth: sigma === 3 ? 1 : 1,
+              lineStyle: sigma === 1 ? 0 : 2,
+              priceLineVisible: false,
+              lastValueVisible: false,
+            })
+          })
+        }
+        indicatorSeriesRef.current = indicatorSeries
+
         chartRef.current = chart
         candleSeriesRef.current = candleSeries
         volumeSeriesRef.current = volumeSeries
+
+        const handleChartClick = (param) => {
+          if (!param?.time || !onDecisionPointSelectRef.current) return
+          const clickedTime = typeof param.time === 'string'
+            ? param.time
+            : `${param.time.year}-${String(param.time.month).padStart(2, '0')}-${String(param.time.day).padStart(2, '0')}`
+          const candidates = (markersRef.current || []).filter(
+            (item) => item.decisionPointId != null && String(item.time) === clickedTime,
+          )
+          if (!candidates.length) return
+          const selectedIndex = candidates.findIndex(
+            (item) => String(item.decisionPointId) === String(selectedDecisionPointIdRef.current),
+          )
+          const next = candidates[(selectedIndex + 1) % candidates.length]
+          onDecisionPointSelectRef.current(next.decisionPointId)
+        }
+        chart.subscribeClick(handleChartClick)
+        clickHandlerRef.current = handleChartClick
 
         // If bars were already fetched before init finished, apply them now
         applyLatestData()
@@ -372,16 +566,21 @@ export default function TradeChart({ bars, buyFill, sellFill, focusSpec, resetKe
         sellPriceLineRef.current = null
       }
       if (chartRef.current) {
+        if (clickHandlerRef.current) {
+          chartRef.current.unsubscribeClick(clickHandlerRef.current)
+          clickHandlerRef.current = null
+        }
         chartRef.current.remove()
         chartRef.current = null
       }
       candleSeriesRef.current = null
       volumeSeriesRef.current = null
+      indicatorSeriesRef.current = []
       if (containerRef.current) {
         containerRef.current.innerHTML = ''
       }
     }
-  }, [onError, height])
+  }, [onError, height, dark])
 
   // 2) update data when bars change
   useEffect(() => {
@@ -390,7 +589,7 @@ export default function TradeChart({ bars, buyFill, sellFill, focusSpec, resetKe
     } catch (e) {
       if (onError) onError('チャートを表示できませんでした')
     }
-  }, [bars, markers, buyFill?.price, sellFill?.price, showBuyLine, showSellLine, onError])
+  }, [bars, markers, buyFill?.price, sellFill?.price, showBuyLine, showSellLine, indicatorConfig, onError])
 
   useEffect(() => {
     try {

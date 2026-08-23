@@ -1,11 +1,12 @@
 import { Link, NavLink, useLocation } from 'react-router-dom'
 import { isAuthEnabled, isAuthenticated } from '../lib/auth'
+import { isLocalTrialMode } from '../lib/localMode'
 import { hasPrivateAccess, isPrivateModeEnabled } from '../lib/privateAccess'
 
 const tradeNavItems = [
-  { to: '/trades', label: '投資記録' },
-  { to: '/analysis', label: '分析' },
-  { to: '/trades/new', label: '新規追加' },
+  { to: '/review', label: 'レビュー' },
+  { to: '/trades', label: '取引一覧' },
+  { to: '/import', label: '取込' },
   { to: '/settings', label: '設定' },
 ]
 
@@ -16,9 +17,14 @@ export default function Layout({ children }) {
   const isAuthRoute = location.pathname.startsWith('/auth')
   const authEnabled = isAuthEnabled()
   const authed = isAuthenticated()
+  const localTrial = isLocalTrialMode()
   const isPrivateLanding = privateModeEnabled && !privateAccessGranted
   const isPublicLanding = location.pathname === '/' && authEnabled && !authed
-  const navItems = isAuthRoute || isPublicLanding || isPrivateLanding ? [] : tradeNavItems
+  const navItems = isAuthRoute || isPublicLanding || isPrivateLanding
+    ? []
+    : localTrial
+      ? tradeNavItems.filter((item) => item.to !== '/trades/new')
+      : tradeNavItems
 
   return (
     <div className="app-shell">
@@ -56,6 +62,11 @@ export default function Layout({ children }) {
                   {item.label}
                 </NavLink>
               ))}
+              {localTrial && !isAuthRoute && !isPublicLanding && !isPrivateLanding ? (
+                <Link to="/auth?mode=signup" className="nav-link nav-link-primary" data-cta="local-header-signup">
+                  クラウド保存
+                </Link>
+              ) : null}
             </nav>
           </div>
         </div>

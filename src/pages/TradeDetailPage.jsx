@@ -4,7 +4,7 @@ import { api, formatJPY, formatUSD } from '../lib/api'
 import { useEffect, useMemo, useRef, useState } from 'react'
 import { TAG_OPTIONS } from '../lib/tags'
 import TradeChart from '../components/TradeChart'
-import { patchTrade, updateTradeReview } from '../lib/tradesApi'
+import { deleteTradeRecord, getTrade, patchTrade, updateTradeReview } from '../lib/tradesApi'
 import { assessPriceSanityAgainstDailyBars } from '../lib/priceSanity'
 import { marketPriceInputMode, marketPriceValidationError, normalizePriceInputByMarket, parsePriceText } from '../lib/marketPrice'
 import { isTradeChartEnabled } from '../lib/releaseScope'
@@ -118,6 +118,19 @@ function getSellCompletion(form) {
 
 function getReviewMissingItems(trade, isOpen) {
   if (!trade || isOpen) return []
+  if (hasV2ReviewInput(trade)) {
+    const missing = []
+    if (!String(trade.strategy_timeframe || '').trim()) missing.push('主戦略足')
+    if (!String(trade.entry_pattern || '').trim()) missing.push('エントリーパターン')
+    if (trade.entry_pattern === 'other' && !String(trade.entry_pattern_note || '').trim()) missing.push('その他パターン')
+    if (!String(trade.entry_evaluation || '').trim()) missing.push('エントリー評価')
+    if (!String(trade.exit_evaluation || '').trim()) missing.push('決済評価')
+    if (!String(trade.exit_reason || '').trim()) missing.push('売却理由')
+    if (trade.exit_reason === 'other' && !String(trade.exit_reason_note || '').trim()) missing.push('その他売却理由')
+    if (!String(trade.notes_review || '').trim()) missing.push('総合評価・学び')
+    if (!String(trade.next_action_note || '').trim()) missing.push('次回どうするか')
+    return missing
+  }
   const missing = []
   const tags = parseTagsCSV(trade.tags)
   const rating = Number(trade.rating || 0)
@@ -130,21 +143,87 @@ function getReviewMissingItems(trade, isOpen) {
   return missing
 }
 
+function hasV2ReviewInput(trade) {
+  if (!trade) return false
+  return [
+    trade.strategy_timeframe,
+    trade.entry_pattern,
+    trade.entry_pattern_note,
+    trade.entry_evaluation,
+    trade.exit_evaluation,
+    trade.exit_reason,
+    trade.exit_reason_note,
+    trade.next_action_note,
+  ].some((value) => String(value || '').trim())
+}
+
+const TIMEFRAME_OPTIONS = [
+  { value: 'daily', label: '日足', interval: '1d' },
+  { value: 'weekly', label: '週足', interval: '1w' },
+  { value: 'monthly', label: '月足', interval: '1m' },
+]
+
+const CHART_INTERVAL_OPTIONS = [
+  { value: '1d', label: '日足', reviewValue: 'daily' },
+  { value: '1w', label: '週足', reviewValue: 'weekly' },
+  { value: '1m', label: '月足', reviewValue: 'monthly' },
+]
+
+const CHART_INDICATOR_CONFIG = {
+  '1d': { label: '日足', maPeriods: [5, 25, 75], bbPeriod: 25, bbSigma: 3 },
+  '1w': { label: '週足', maPeriods: [13, 26, 52], bbPeriod: 26, bbSigma: 3 },
+  '1m': { label: '月足', maPeriods: [9, 24, 60], bbPeriod: 24, bbSigma: 3 },
+}
+
+const ENTRY_PATTERN_OPTIONS = [
+  { value: 'cwh', label: 'CwH' },
+  { value: 'high_breakout', label: '高値ブレイク' },
+  { value: 'range_breakout', label: 'レンジ上抜け' },
+  { value: 'band_walk', label: 'バンドウォーク' },
+  { value: 'news_spike', label: '材料後の急騰' },
+  { value: 'pullback_bounce', label: '押し目反発' },
+  { value: 'other', label: 'その他' },
+]
+
+const ENTRY_EVALUATION_OPTIONS = [
+  { value: 'good', label: '良い' },
+  { value: 'early', label: '早い' },
+  { value: 'late', label: '遅い' },
+  { value: 'weak_basis', label: '根拠不足' },
+]
+
+const EXIT_EVALUATION_OPTIONS = [
+  { value: 'good', label: '良い' },
+  { value: 'early', label: '早い' },
+  { value: 'late', label: '遅い' },
+  { value: 'rule_violation', label: 'ルール違反' },
+]
+
+const EXIT_REASON_OPTIONS = [
+  { value: 'planned_profit_take', label: '事前に決めた利確' },
+  { value: 'planned_loss_cut', label: '事前に決めた損切り' },
+  { value: 'stop_order', label: '逆指値' },
+  { value: 'trend_end', label: 'トレンド終了' },
+  { value: 'unexpected_drop', label: '予想外の急落' },
+  { value: 'large_bearish_candle', label: '大陰線' },
+  { value: 'bubble_warning', label: 'バブル予見' },
+  { value: 'other', label: 'その他' },
+]
+
+function labelFor(options, value) {
+  return options.find((item) => item.value === value)?.label || ''
+}
+
 export default function TradeDetailPage() {
   const { id } = useParams()
   const navigate = useNavigate()
   const queryClient = useQueryClient()
-  const CHART_INTERVAL_OPTIONS = [
-    { value: '1d', label: '日足' },
-    { value: '1w', label: '週足' },
-    { value: '1m', label: '月足' },
-  ]
   const tradeChartEnabled = isTradeChartEnabled()
 
   const [isEditing, setIsEditing] = useState(false)
   const [editIsOpen, setEditIsOpen] = useState(false)
   const [interval, setInterval] = useState('1d')
-  const [chartMode, setChartMode] = useState('entry')
+  const [chartMode, setChartMode] = useState('range')
   const [chartViewKey, setChartViewKey] = useState(0)
   const [form, setForm] = useState({
     rating: 0,
@@ -159,6 +238,18 @@ export default function TradeDetailPage() {
     sell_price: '',
     sell_qty: '',
   })
+  const [reviewForm, setReviewForm] = useState({
+    strategy_timeframe: 'daily',
+    entry_pattern: '',
+    entry_pattern_note: '',
+    entry_evaluation: '',
+    exit_evaluation: '',
+    exit_reason: '',
+    exit_reason_note: '',
+    notes_review: '',
+    next_action_note: '',
+  })
+  const [reviewSaveStatus, setReviewSaveStatus] = useState('idle')
   const [saveMsg, setSaveMsg] = useState('')
   const [editPriceCheckStatus, setEditPriceCheckStatus] = useState('idle')
   const [editPriceCheckError, setEditPriceCheckError] = useState('')
@@ -288,7 +379,7 @@ export default function TradeDetailPage() {
 
   const { data, isLoading, error, refetch } = useQuery({
     queryKey: ['trade', id],
-    queryFn: () => api.get(`/api/v1/trades/${id}`),
+    queryFn: () => getTrade(id),
   })
 
   const positionSide = data?.position_side || 'long'
@@ -408,14 +499,40 @@ export default function TradeDetailPage() {
     [data, profitColor]
   )
 
-  const { data: pricesData, isLoading: isPricesLoading, error: pricesError } = useQuery({
-    queryKey: ['prices', data?.market, data?.symbol, interval],
-    enabled: Boolean(tradeChartEnabled && data?.market && data?.symbol),
+  const pricesQueryEnabled = Boolean(tradeChartEnabled && data?.market && data?.symbol)
+  const dailyPricesQuery = useQuery({
+    queryKey: ['prices', data?.market, data?.symbol, '1d'],
+    enabled: pricesQueryEnabled,
     queryFn: () =>
       api.get(
-        `/prices?market=${encodeURIComponent(data.market)}&symbol=${encodeURIComponent(data.symbol)}&interval=${encodeURIComponent(interval)}`
+        `/prices?market=${encodeURIComponent(data.market)}&symbol=${encodeURIComponent(data.symbol)}&interval=1d`
       ),
   })
+  const weeklyPricesQuery = useQuery({
+    queryKey: ['prices', data?.market, data?.symbol, '1w'],
+    enabled: pricesQueryEnabled,
+    queryFn: () =>
+      api.get(
+        `/prices?market=${encodeURIComponent(data.market)}&symbol=${encodeURIComponent(data.symbol)}&interval=1w`
+      ),
+  })
+  const monthlyPricesQuery = useQuery({
+    queryKey: ['prices', data?.market, data?.symbol, '1m'],
+    enabled: pricesQueryEnabled,
+    queryFn: () =>
+      api.get(
+        `/prices?market=${encodeURIComponent(data.market)}&symbol=${encodeURIComponent(data.symbol)}&interval=1m`
+      ),
+  })
+  const priceQueries = useMemo(
+    () => ({
+      '1d': dailyPricesQuery,
+      '1w': weeklyPricesQuery,
+      '1m': monthlyPricesQuery,
+    }),
+    [dailyPricesQuery, weeklyPricesQuery, monthlyPricesQuery]
+  )
+  const mainPricesQuery = priceQueries[interval] || dailyPricesQuery
 
   const tvExternalUrl = useMemo(() => {
     if (!data?.market || !data?.symbol) return ''
@@ -424,7 +541,16 @@ export default function TradeDetailPage() {
     return ''
   }, [data?.market, data?.symbol])
 
-  const allBars = Array.isArray(pricesData?.bars) ? pricesData.bars : []
+  const chartBarsByInterval = useMemo(
+    () => ({
+      '1d': Array.isArray(dailyPricesQuery.data?.bars) ? dailyPricesQuery.data.bars : [],
+      '1w': Array.isArray(weeklyPricesQuery.data?.bars) ? weeklyPricesQuery.data.bars : [],
+      '1m': Array.isArray(monthlyPricesQuery.data?.bars) ? monthlyPricesQuery.data.bars : [],
+    }),
+    [dailyPricesQuery.data, weeklyPricesQuery.data, monthlyPricesQuery.data]
+  )
+  const allBars = chartBarsByInterval[interval] || []
+  const supportingIntervals = useMemo(() => CHART_INTERVAL_OPTIONS.map((opt) => opt.value).filter((value) => value !== interval), [interval])
   const buyIndex = useMemo(() => findBarIndexByDateOrPrev(allBars, buy?.date), [allBars, buy?.date])
   const sellIndex = useMemo(() => findBarIndexByDateOrPrev(allBars, sell?.date), [allBars, sell?.date])
   const focusSpec = useMemo(
@@ -559,7 +685,7 @@ export default function TradeDetailPage() {
 
   useEffect(() => {
     if (isOpen && chartMode === 'exit') {
-      setChartMode('entry')
+      setChartMode('range')
     }
   }, [isOpen, chartMode])
 
@@ -568,16 +694,16 @@ export default function TradeDetailPage() {
       setChartError('')
       return
     }
-    if (pricesError) {
+    if (mainPricesQuery.error) {
       setChartError('チャートを表示できませんでした')
       return
     }
-    if (!isPricesLoading && allBars.length === 0) {
+    if (!mainPricesQuery.isLoading && allBars.length === 0) {
       setChartError('チャートを表示できませんでした')
       return
     }
     setChartError('')
-  }, [tradeChartEnabled, pricesError, isPricesLoading, allBars.length])
+  }, [tradeChartEnabled, mainPricesQuery.error, mainPricesQuery.isLoading, allBars.length])
 
   // 編集開始時に data → form をコピー（レンダー中に setState しない）
   useEffect(() => {
@@ -599,6 +725,32 @@ export default function TradeDetailPage() {
     setEditIsOpen(isOpen)
   }, [data, isEditing, isOpen, buy?.date, buy?.price, buy?.qty, sell?.date, sell?.price, sell?.qty])
 
+  useEffect(() => {
+    if (!data) return
+    setReviewForm({
+      strategy_timeframe: data.strategy_timeframe || 'daily',
+      entry_pattern: data.entry_pattern || '',
+      entry_pattern_note: data.entry_pattern_note || '',
+      entry_evaluation: data.entry_evaluation || '',
+      exit_evaluation: data.exit_evaluation || '',
+      exit_reason: data.exit_reason || '',
+      exit_reason_note: data.exit_reason_note || '',
+      notes_review: data.notes_review || '',
+      next_action_note: data.next_action_note || '',
+    })
+  }, [
+    data?.id,
+    data?.strategy_timeframe,
+    data?.entry_pattern,
+    data?.entry_pattern_note,
+    data?.entry_evaluation,
+    data?.exit_evaluation,
+    data?.exit_reason,
+    data?.exit_reason_note,
+    data?.notes_review,
+    data?.next_action_note,
+  ])
+
   if (isLoading) return <p style={{ padding: 16 }}>読み込み中…</p>
   if (error) return <p style={{ padding: 16, color: 'crimson' }}>エラー: {String(error.message || error)}</p>
   if (!data) return <p style={{ padding: 16 }}>データがありません</p>
@@ -612,6 +764,90 @@ export default function TradeDetailPage() {
     setSaveMsg('')
     setIsEditing(false)
     // form は useEffect で再同期するのでここでは触らなくてOK
+  }
+
+  function setReviewField(key, value) {
+    setReviewForm((prev) => ({
+      ...prev,
+      [key]: prev[key] === value ? '' : value,
+      ...(key === 'entry_pattern' && value !== 'other' ? { entry_pattern_note: '' } : {}),
+      ...(key === 'exit_reason' && value !== 'other' ? { exit_reason_note: '' } : {}),
+    }))
+  }
+
+  function renderChipGroup(options, field, { compact = false } = {}) {
+    return (
+      <div style={{ display: 'flex', gap: compact ? 6 : 8, flexWrap: 'wrap' }}>
+        {options.map((option) => {
+          const active = reviewForm[field] === option.value
+          return (
+            <button
+              key={option.value}
+              type="button"
+              onClick={() => setReviewField(field, option.value)}
+              style={{
+                border: active ? '1px solid rgba(45, 212, 191, 0.72)' : '1px solid rgba(148, 163, 184, 0.24)',
+                borderRadius: 999,
+                padding: compact ? '6px 10px' : '8px 12px',
+                background: active ? 'rgba(20, 184, 166, 0.18)' : 'rgba(15, 23, 42, 0.58)',
+                color: active ? '#ccfbf1' : '#cbd5e1',
+                cursor: 'pointer',
+                fontSize: compact ? 12 : 13,
+                fontWeight: 800,
+                lineHeight: 1.2,
+                boxShadow: active ? '0 0 0 1px rgba(45, 212, 191, 0.18), 0 10px 28px rgba(20, 184, 166, 0.12)' : 'none',
+              }}
+            >
+              {option.label}
+            </button>
+          )
+        })}
+      </div>
+    )
+  }
+
+  function isReviewComplete(next = reviewForm) {
+    if (isOpen) return false
+    if (!String(next.strategy_timeframe || '').trim()) return false
+    if (!String(next.entry_pattern || '').trim()) return false
+    if (next.entry_pattern === 'other' && !String(next.entry_pattern_note || '').trim()) return false
+    if (!String(next.entry_evaluation || '').trim()) return false
+    if (!String(next.exit_evaluation || '').trim()) return false
+    if (!String(next.exit_reason || '').trim()) return false
+    if (next.exit_reason === 'other' && !String(next.exit_reason_note || '').trim()) return false
+    if (!String(next.notes_review || '').trim()) return false
+    if (!String(next.next_action_note || '').trim()) return false
+    return true
+  }
+
+  async function saveReview({ markDone = false } = {}) {
+    try {
+      setSaveMsg('')
+      setReviewSaveStatus('saving')
+      const payload = {
+        strategy_timeframe: reviewForm.strategy_timeframe || null,
+        entry_pattern: reviewForm.entry_pattern || null,
+        entry_pattern_note: reviewForm.entry_pattern === 'other' ? (reviewForm.entry_pattern_note || '').trim() || null : null,
+        entry_evaluation: reviewForm.entry_evaluation || null,
+        exit_evaluation: reviewForm.exit_evaluation || null,
+        exit_reason: reviewForm.exit_reason || null,
+        exit_reason_note: reviewForm.exit_reason === 'other' ? (reviewForm.exit_reason_note || '').trim() || null : null,
+        notes_review: (reviewForm.notes_review || '').trim() || null,
+        next_action_note: (reviewForm.next_action_note || '').trim() || null,
+      }
+      await patchTrade(id, payload)
+      if (markDone && isReviewComplete(reviewForm)) {
+        const today = new Date().toISOString().slice(0, 10)
+        await updateTradeReview(id, true, today)
+      }
+      await refetch()
+      await queryClient.invalidateQueries({ queryKey: ['trades'] })
+      setReviewSaveStatus('saved')
+      setSaveMsg(markDone && isReviewComplete(reviewForm) ? 'レビューを保存して完了にしました' : 'レビューを保存しました')
+    } catch (e) {
+      setReviewSaveStatus('error')
+      setSaveMsg(`レビュー保存に失敗: ${e.message}`)
+    }
   }
 
   function handleEditKeyNav(e) {
@@ -730,7 +966,7 @@ export default function TradeDetailPage() {
 
     try {
       setSaveMsg('')
-      await api.del(`/api/v1/trades/${id}`)
+      await deleteTradeRecord(id)
       await queryClient.invalidateQueries({ queryKey: ['trades'] })
       navigate('/trades')
     } catch (e) {
@@ -767,6 +1003,99 @@ export default function TradeDetailPage() {
     } catch (e) {
       setSaveMsg(`レビュー更新に失敗: ${e.message}`)
     }
+  }
+
+  function renderChartPanel(intervalValue, { main = false } = {}) {
+    const query = priceQueries[intervalValue] || {}
+    const bars = chartBarsByInterval[intervalValue] || []
+    const config = CHART_INDICATOR_CONFIG[intervalValue]
+    const label = config?.label || intervalValue
+    const height = main ? (isMobile ? 390 : 520) : (isMobile ? 300 : 310)
+    const buyIdx = findBarIndexByDateOrPrev(bars, buy?.date)
+    const sellIdx = findBarIndexByDateOrPrev(bars, sell?.date)
+    const panelFocusSpec = {
+      mode: 'range',
+      preBars: main ? 38 : 24,
+      postBars: main ? 38 : 24,
+      buyDate: buy?.date || null,
+      sellDate: sell?.date || null,
+      isOpen,
+      buyIndex: buyIdx,
+      sellIndex: sellIdx,
+    }
+
+    return (
+      <div
+        style={{
+          border: '1px solid rgba(148, 163, 184, 0.20)',
+          borderRadius: main ? 16 : 14,
+          background: 'linear-gradient(180deg, rgba(15, 23, 42, 0.98), rgba(2, 6, 23, 0.98))',
+          overflow: 'hidden',
+          minWidth: 0,
+          boxShadow: main ? '0 18px 60px rgba(2, 6, 23, 0.34)' : '0 10px 34px rgba(2, 6, 23, 0.20)',
+        }}
+      >
+        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 10, padding: main ? '12px 14px' : '10px 12px', borderBottom: '1px solid rgba(148, 163, 184, 0.16)' }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap' }}>
+            <span style={{ color: '#f8fafc', fontSize: main ? 14 : 13, fontWeight: 900, letterSpacing: 0 }}>{label}</span>
+            <span style={{ color: '#94a3b8', fontSize: 11, fontWeight: 700 }}>
+              MA {config?.maPeriods?.join('/')} / BB {config?.bbPeriod} σ{config?.bbSigma}
+            </span>
+          </div>
+          {main ? (
+            <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap', justifyContent: 'flex-end' }}>
+              {CHART_INTERVAL_OPTIONS.map((opt) => {
+                const active = interval === opt.value
+                return (
+                  <button
+                    key={opt.value}
+                    type="button"
+                    onClick={() => {
+                      if (interval === opt.value) return
+                      setInterval(opt.value)
+                      setReviewForm((prev) => ({ ...prev, strategy_timeframe: opt.reviewValue }))
+                      setChartMode('range')
+                      setChartViewKey((k) => k + 1)
+                    }}
+                    style={{
+                      border: active ? '1px solid rgba(45, 212, 191, 0.76)' : '1px solid rgba(148, 163, 184, 0.22)',
+                      borderRadius: 999,
+                      padding: '6px 10px',
+                      background: active ? 'rgba(20, 184, 166, 0.20)' : 'rgba(15, 23, 42, 0.88)',
+                      color: active ? '#ccfbf1' : '#cbd5e1',
+                      fontSize: 12,
+                      fontWeight: 800,
+                      cursor: 'pointer',
+                    }}
+                  >
+                    {opt.label}
+                  </button>
+                )
+              })}
+            </div>
+          ) : null}
+        </div>
+        <div style={{ position: 'relative', width: '100%', height, overflow: 'hidden' }}>
+          {query.isLoading ? (
+            <div style={{ display: 'grid', placeItems: 'center', height: '100%', color: '#94a3b8', fontSize: 14 }}>チャート読み込み中…</div>
+          ) : query.error || bars.length === 0 ? (
+            <div style={{ display: 'grid', placeItems: 'center', height: '100%', color: '#fca5a5', fontSize: 14 }}>チャートを表示できませんでした</div>
+          ) : (
+            <TradeChart
+              bars={bars}
+              buyFill={buy}
+              sellFill={isOpen ? null : sell}
+              focusSpec={panelFocusSpec}
+              height={height}
+              resetKey={`${chartViewKey}-${intervalValue}`}
+              indicatorConfig={config}
+              dark
+              onError={(msg) => setChartError(msg || 'チャートを表示できませんでした')}
+            />
+          )}
+        </div>
+      </div>
+    )
   }
 
   return (
@@ -910,13 +1239,13 @@ export default function TradeDetailPage() {
             <div style={{ display: 'flex', gap: 8, alignItems: 'center', justifyContent: isMobile ? 'flex-start' : 'flex-end', flexWrap: 'wrap' }}>
             {!isEditing ? (
               <>
-                {tradeChartEnabled && tvExternalUrl ? (
+                {tvExternalUrl ? (
                   <a href={tvExternalUrl} target="_blank" rel="noreferrer" style={{ textDecoration: 'none', width: isMobile ? '100%' : 'auto' }}>
                     <button type="button" style={{ ...baseButtonStyle, minHeight: isMobile ? 40 : undefined, width: isMobile ? '100%' : undefined }}>TradingViewで開く</button>
                   </a>
-                ) : tradeChartEnabled ? (
+                ) : (
                   <span style={{ fontSize: 12, color: '#b42318' }}>外部リンクなし</span>
-                ) : null}
+                )}
 
                 <Link to="/trades" style={{ textDecoration: 'none', width: isMobile ? '100%' : 'auto' }}>
                   <button style={{ ...baseButtonStyle, minHeight: isMobile ? 40 : undefined, width: isMobile ? '100%' : undefined }}>← 一覧へ</button>
@@ -1315,98 +1644,176 @@ export default function TradeDetailPage() {
       )}
       </div>
 
-      {/* チャート */}
-      <div style={{ marginTop: 10, border: '1px solid #ddd', borderRadius: 12, padding: 10, background: '#fff', fontSize: 15, color: '#111' }}>
-        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: isMobile ? 'stretch' : 'center', gap: 8, flexWrap: 'wrap', flexDirection: isMobile ? 'column' : 'row' }}>
-          <h3
-            style={{
-              marginTop: 0,
-              marginBottom: 8,
-              fontSize: 16,
-              fontWeight: 800,
-              borderLeft: '4px solid #ddd',
-              paddingLeft: 10,
-            }}
-          >
-            チャート
-          </h3>
-          {tradeChartEnabled ? (
-          <div style={{ display: 'flex', gap: 6, alignItems: 'center', flexWrap: 'wrap', width: isMobile ? '100%' : 'auto' }}>
-            <div style={{ display: 'flex', gap: 6, alignItems: 'center', flexWrap: 'wrap' }}>
-              {CHART_INTERVAL_OPTIONS.map((opt) => {
-                const active = interval === opt.value
-                return (
-                  <button
-                    key={opt.value}
-                    type="button"
-                    onClick={() => {
-                      if (interval === opt.value) return
-                      setInterval(opt.value)
-                      setChartMode('entry')
-                      setChartViewKey((k) => k + 1)
-                    }}
-                    style={{
-                      ...chartControlButtonStyle,
-                      minHeight: isMobile ? 34 : chartControlButtonStyle.height,
-                      background: active ? '#344054' : chartControlButtonStyle.background,
-                      color: active ? '#fff' : chartControlButtonStyle.color,
-                      border: active ? '1px solid #344054' : chartControlButtonStyle.border,
-                      boxShadow: active ? 'inset 0 0 0 1px rgba(255,255,255,0.08)' : 'none',
-                    }}
-                  >
-                    {opt.label}
-                  </button>
-                )
-              })}
-            </div>
-            <button
-              type="button"
-              onClick={() => {
-                setChartMode('entry')
-                setChartViewKey((k) => k + 1)
-              }}
-              style={{
-                ...chartControlButtonStyle,
-                minHeight: isMobile ? 34 : chartControlButtonStyle.height,
-                marginLeft: 4,
-              }}
-            >
-              リセット
-            </button>
+      {/* チャートレビュー・コックピット */}
+      <div style={{ marginTop: 10, border: '1px solid rgba(15, 23, 42, 0.92)', borderRadius: 18, padding: isMobile ? 10 : 14, background: '#050914', fontSize: 15, color: '#f8fafc', boxShadow: '0 22px 70px rgba(2, 6, 23, 0.18)' }}>
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: isMobile ? 'stretch' : 'center', gap: 10, flexWrap: 'wrap', flexDirection: isMobile ? 'column' : 'row', marginBottom: 12 }}>
+          <div style={{ display: 'grid', gap: 4 }}>
+            <div style={{ fontSize: 11, color: '#38bdf8', fontWeight: 900, letterSpacing: 0 }}>CHART REVIEW COCKPIT</div>
+            <h3 style={{ margin: 0, fontSize: isMobile ? 18 : 20, fontWeight: 900, color: '#f8fafc', letterSpacing: 0 }}>
+              {CHART_INDICATOR_CONFIG[interval]?.label || '日足'}メインで売買判断を検証
+            </h3>
           </div>
-          ) : null}
+          <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', alignItems: 'center' }}>
+            <span style={{ border: '1px solid rgba(45, 212, 191, 0.36)', background: 'rgba(20, 184, 166, 0.12)', color: '#ccfbf1', borderRadius: 999, padding: '6px 10px', fontSize: 12, fontWeight: 900 }}>
+              {isOpen ? 'OPEN POSITION' : isPendingReview ? 'OPEN LOOP' : 'REVIEWED'}
+            </span>
+            {reviewForm.next_action_note ? (
+              <span style={{ border: '1px solid rgba(96, 165, 250, 0.36)', background: 'rgba(37, 99, 235, 0.14)', color: '#dbeafe', borderRadius: 999, padding: '6px 10px', fontSize: 12, fontWeight: 900 }}>
+                RULE CAPTURED
+              </span>
+            ) : null}
+            {labelFor(ENTRY_PATTERN_OPTIONS, reviewForm.entry_pattern) ? (
+              <span style={{ border: '1px solid rgba(250, 204, 21, 0.30)', background: 'rgba(250, 204, 21, 0.10)', color: '#fef3c7', borderRadius: 999, padding: '6px 10px', fontSize: 12, fontWeight: 900 }}>
+                {labelFor(ENTRY_PATTERN_OPTIONS, reviewForm.entry_pattern)}
+              </span>
+            ) : null}
+          </div>
         </div>
-        <div style={{ height: 1, background: '#eee', marginBottom: 10 }} />
+
         {!tradeChartEnabled ? (
           <div style={{ display: 'grid', gap: 8 }}>
-            <div style={{ color: '#475467', fontSize: 14, lineHeight: 1.6 }}>
-              公開v1では価格チャート表示を無効化しています。CSV由来の売買データと損益内訳、分析ページの診断を中心に振り返ってください。
+            <div style={{ color: '#cbd5e1', fontSize: 14, lineHeight: 1.6 }}>
+              アプリ内チャートが無効です。Private Alphaではチャート価値が中核なので、環境設定を確認してください。
             </div>
-            <div>
-              <Link to="/analysis" style={{ fontSize: 13, color: '#175cd3', fontWeight: 700 }}>
-                分析ページへ移動する
-              </Link>
-            </div>
-          </div>
-        ) : isPricesLoading ? (
-          <div style={{ color: '#475467', fontSize: 15 }}>チャート読み込み中…</div>
-        ) : chartError || allBars.length === 0 ? (
-          <div style={{ display: 'grid', gap: 8 }}>
-            <div style={{ color: '#b42318', fontSize: 15 }}>チャートを表示できませんでした</div>
+            {tvExternalUrl ? (
+              <a href={tvExternalUrl} target="_blank" rel="noreferrer" style={{ textDecoration: 'none' }}>
+                <button type="button" style={{ ...primaryButtonStyle, minHeight: 38 }}>
+                  外部チャートで確認する
+                </button>
+              </a>
+            ) : null}
           </div>
         ) : (
-          <div style={{ position: 'relative', width: '100%', height: chartContainerHeight, overflow: 'hidden', borderRadius: 8 }}>
-            <TradeChart
-              bars={allBars}
-              buyFill={buy}
-              sellFill={isOpen ? null : sell}
-              focusSpec={focusSpec}
-              height={chartContainerHeight}
-              resetKey={chartViewKey}
-              onError={(msg) => setChartError(msg || 'チャートを表示できませんでした')}
-            />
+          <div style={{ display: 'grid', gap: 12 }}>
+            {renderChartPanel(interval, { main: true })}
+            <div style={{ display: 'grid', gridTemplateColumns: isMobile ? '1fr' : '1fr 1fr', gap: 12 }}>
+              {supportingIntervals.map((supportInterval) => (
+                <div key={supportInterval}>{renderChartPanel(supportInterval)}</div>
+              ))}
+            </div>
+            {chartError ? <div style={{ color: '#fca5a5', fontSize: 13 }}>{chartError}</div> : null}
           </div>
         )}
+      </div>
+
+      {/* Private Alpha v2 レビュー */}
+      <div style={{ marginTop: 10, border: '1px solid rgba(15, 23, 42, 0.92)', borderRadius: 18, padding: isMobile ? 12 : 16, background: 'linear-gradient(180deg, #0f172a, #07111f)', color: '#e2e8f0', boxShadow: '0 18px 54px rgba(2, 6, 23, 0.16)' }}>
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: isMobile ? 'stretch' : 'center', gap: 10, flexDirection: isMobile ? 'column' : 'row', marginBottom: 14 }}>
+          <div style={{ display: 'grid', gap: 4 }}>
+            <div style={{ fontSize: 11, color: '#38bdf8', fontWeight: 900, letterSpacing: 0 }}>SELF REVIEW</div>
+            <h3 style={{ margin: 0, fontSize: isMobile ? 18 : 20, color: '#f8fafc', fontWeight: 900 }}>売買判断を刻む</h3>
+          </div>
+          <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
+            <button
+              type="button"
+              onClick={() => saveReview()}
+              disabled={reviewSaveStatus === 'saving'}
+              style={{
+                border: '1px solid rgba(148, 163, 184, 0.28)',
+                borderRadius: 999,
+                background: 'rgba(15, 23, 42, 0.72)',
+                color: '#e2e8f0',
+                padding: '9px 14px',
+                cursor: reviewSaveStatus === 'saving' ? 'wait' : 'pointer',
+                fontWeight: 900,
+              }}
+            >
+              保存
+            </button>
+            <button
+              type="button"
+              onClick={() => saveReview({ markDone: true })}
+              disabled={!isReviewComplete() || reviewSaveStatus === 'saving'}
+              title={!isReviewComplete() ? 'レビュー完了に必要な項目が未入力です' : ''}
+              style={{
+                border: '1px solid rgba(45, 212, 191, 0.56)',
+                borderRadius: 999,
+                background: isReviewComplete() ? 'linear-gradient(135deg, rgba(20, 184, 166, 0.92), rgba(37, 99, 235, 0.88))' : 'rgba(20, 184, 166, 0.18)',
+                color: isReviewComplete() ? '#ecfeff' : 'rgba(204, 251, 241, 0.48)',
+                padding: '9px 14px',
+                cursor: !isReviewComplete() || reviewSaveStatus === 'saving' ? 'not-allowed' : 'pointer',
+                fontWeight: 900,
+                boxShadow: isReviewComplete() ? '0 14px 34px rgba(20, 184, 166, 0.18)' : 'none',
+              }}
+            >
+              REVIEWEDにする
+            </button>
+          </div>
+        </div>
+
+        <div style={{ display: 'grid', gap: 16 }}>
+          <div style={{ display: 'grid', gridTemplateColumns: isMobile ? '1fr' : '170px 1fr', gap: 10, alignItems: 'start' }}>
+            <div style={{ color: '#94a3b8', fontSize: 13, fontWeight: 900, paddingTop: 8 }}>主戦略足</div>
+            {renderChipGroup(TIMEFRAME_OPTIONS, 'strategy_timeframe')}
+          </div>
+
+          <div style={{ display: 'grid', gridTemplateColumns: isMobile ? '1fr' : '170px 1fr', gap: 10, alignItems: 'start' }}>
+            <div style={{ color: '#94a3b8', fontSize: 13, fontWeight: 900, paddingTop: 8 }}>エントリーパターン</div>
+            <div style={{ display: 'grid', gap: 10 }}>
+              {renderChipGroup(ENTRY_PATTERN_OPTIONS, 'entry_pattern')}
+              {reviewForm.entry_pattern === 'other' ? (
+                <input
+                  type="text"
+                  value={reviewForm.entry_pattern_note}
+                  onChange={(e) => setReviewForm((prev) => ({ ...prev, entry_pattern_note: e.target.value }))}
+                  placeholder="その他のパターン"
+                  style={{ width: '100%', borderRadius: 12, border: '1px solid rgba(148, 163, 184, 0.28)', background: 'rgba(15, 23, 42, 0.70)', color: '#f8fafc', padding: '10px 12px', boxSizing: 'border-box' }}
+                />
+              ) : null}
+            </div>
+          </div>
+
+          <div style={{ display: 'grid', gridTemplateColumns: isMobile ? '1fr' : '170px 1fr', gap: 10, alignItems: 'start' }}>
+            <div style={{ color: '#94a3b8', fontSize: 13, fontWeight: 900, paddingTop: 8 }}>エントリー評価</div>
+            {renderChipGroup(ENTRY_EVALUATION_OPTIONS, 'entry_evaluation')}
+          </div>
+
+          <div style={{ display: 'grid', gridTemplateColumns: isMobile ? '1fr' : '170px 1fr', gap: 10, alignItems: 'start' }}>
+            <div style={{ color: '#94a3b8', fontSize: 13, fontWeight: 900, paddingTop: 8 }}>決済評価</div>
+            {renderChipGroup(EXIT_EVALUATION_OPTIONS, 'exit_evaluation')}
+          </div>
+
+          <div style={{ display: 'grid', gridTemplateColumns: isMobile ? '1fr' : '170px 1fr', gap: 10, alignItems: 'start' }}>
+            <div style={{ color: '#94a3b8', fontSize: 13, fontWeight: 900, paddingTop: 8 }}>売却理由</div>
+            <div style={{ display: 'grid', gap: 10 }}>
+              {renderChipGroup(EXIT_REASON_OPTIONS, 'exit_reason')}
+              {reviewForm.exit_reason === 'other' ? (
+                <input
+                  type="text"
+                  value={reviewForm.exit_reason_note}
+                  onChange={(e) => setReviewForm((prev) => ({ ...prev, exit_reason_note: e.target.value }))}
+                  placeholder="その他の売却理由"
+                  style={{ width: '100%', borderRadius: 12, border: '1px solid rgba(148, 163, 184, 0.28)', background: 'rgba(15, 23, 42, 0.70)', color: '#f8fafc', padding: '10px 12px', boxSizing: 'border-box' }}
+                />
+              ) : null}
+              <div style={{ color: '#94a3b8', fontSize: 12, lineHeight: 1.6 }}>
+                事前に決めた利確/損切りは、売買前に決めた価格・条件で決済した場合だけ使います。
+              </div>
+            </div>
+          </div>
+
+          <div style={{ display: 'grid', gridTemplateColumns: isMobile ? '1fr' : '170px 1fr', gap: 10, alignItems: 'start' }}>
+            <div style={{ color: '#94a3b8', fontSize: 13, fontWeight: 900, paddingTop: 8 }}>総合評価・学び</div>
+            <textarea
+              value={reviewForm.notes_review}
+              onChange={(e) => setReviewForm((prev) => ({ ...prev, notes_review: e.target.value }))}
+              rows={5}
+              placeholder="客観的事実を中心に書く。例: 売却後も上昇が続いた / 出来高を伴うブレイクだった / 週足では高値圏だった"
+              style={{ width: '100%', borderRadius: 14, border: '1px solid rgba(148, 163, 184, 0.28)', background: 'rgba(15, 23, 42, 0.70)', color: '#f8fafc', padding: 12, boxSizing: 'border-box', lineHeight: 1.6 }}
+            />
+          </div>
+
+          <div style={{ display: 'grid', gridTemplateColumns: isMobile ? '1fr' : '170px 1fr', gap: 10, alignItems: 'start' }}>
+            <div style={{ color: '#94a3b8', fontSize: 13, fontWeight: 900, paddingTop: 8 }}>次回どうするか</div>
+            <textarea
+              value={reviewForm.next_action_note}
+              onChange={(e) => setReviewForm((prev) => ({ ...prev, next_action_note: e.target.value }))}
+              rows={4}
+              placeholder="次回に活かす反省・ルールを書く。例: CwHはブレイク後の出来高を確認してから入る"
+              style={{ width: '100%', borderRadius: 14, border: '1px solid rgba(148, 163, 184, 0.28)', background: 'rgba(15, 23, 42, 0.70)', color: '#f8fafc', padding: 12, boxSizing: 'border-box', lineHeight: 1.6 }}
+            />
+          </div>
+        </div>
       </div>
 
       {/* 思考ログ */}

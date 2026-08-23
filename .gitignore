@@ -8,3 +8,6 @@ dist/
 # JPX source files (do not commit)
 /tools/jpx/*.xls
 /tools/jpx/*.xlsx
+.vercel
+.tmp/
+test-results/

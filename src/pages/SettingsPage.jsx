@@ -2,7 +2,7 @@ import { useEffect, useState } from 'react'
 import { useQuery } from '@tanstack/react-query'
 import { Link, useNavigate } from 'react-router-dom'
 
-import { clearAuthSession, isAuthEnabled } from '../lib/auth'
+import { clearAuthSession, isAuthEnabled, isAuthenticated } from '../lib/auth'
 import { classifyAnalyticsError, trackProductEvent } from '../lib/analytics'
 import {
   auditBrokerCsv,
@@ -13,6 +13,8 @@ import {
   previewSbiRealizedCsv,
 } from '../lib/importsApi'
 import { clearPrivateAccessSession, isPrivateModeEnabled } from '../lib/privateAccess'
+import { hasUnsyncedLocalImports, migrateLocalImportsToCloud } from '../lib/localMigrationApi'
+import { isLocalTrialMode } from '../lib/localMode'
 import {
   isPublicV1Mode,
   isSbiImportsVisible,
@@ -93,6 +95,8 @@ export default function SettingsPage() {
   const supportEmail = SUPPORT_EMAIL
   const showRuntime = SHOW_RUNTIME_PANEL
   const privateModeEnabled = isPrivateModeEnabled()
+  const localTrial = isLocalTrialMode()
+  const authenticated = isAuthenticated()
   const publicV1Mode = isPublicV1Mode()
   const sbiVisible = isSbiImportsVisible()
   const sbiBetaLabel = shouldShowSbiBetaLabel()
@@ -106,6 +110,7 @@ export default function SettingsPage() {
   const [importPreview, setImportPreview] = useState(null)
   const [realizedPreview, setRealizedPreview] = useState(null)
   const [auditResult, setAuditResult] = useState(null)
+  const [migrationResult, setMigrationResult] = useState(null)
 
   useEffect(() => {
     if (!sbiVisible && selectedBroker === 'sbi') {
@@ -135,11 +140,16 @@ export default function SettingsPage() {
     queryFn: getReadiness,
     retry: 1,
     refetchInterval: 60_000,
-    enabled: showRuntime,
+    enabled: showRuntime && !localTrial,
   })
   const { data: latestImports, refetch: refetchLatestImports } = useQuery({
     queryKey: ['imports', 'sessions', 'latest'],
     queryFn: getLatestImportSessions,
+  })
+  const { data: hasUnsyncedLocalData, refetch: refetchUnsyncedLocalData } = useQuery({
+    queryKey: ['local', 'imports', 'unsynced'],
+    queryFn: hasUnsyncedLocalImports,
+    enabled: authenticated,
   })
 
   async function handleExport(format) {
@@ -180,6 +190,13 @@ export default function SettingsPage() {
           ? `データを削除しました（${deletedTrades}件）。${inviteNotice}Authユーザー削除も完了しました。`
           : `データを削除しました（${deletedTrades}件）。${inviteNotice}`
       setConfirmText('')
+
+      if (localTrial) {
+        setMsg('このブラウザに保存された試用データを削除しました。')
+        await refetch()
+        await refetchLatestImports()
+        return
+      }
 
       if (isAuthEnabled()) {
         clearAuthSession()
@@ -401,6 +418,11 @@ export default function SettingsPage() {
   }
 
   async function handleRakutenAudit() {
+    if (localTrial) {
+      setAuditResult(null)
+      setError('登録せずに試すモードでは整合性チェックは利用できません。CSV取込と簡易分析はブラウザ内だけで完結します。')
+      return
+    }
     if (selectedBroker === 'sbi' && !sbiVisible) {
       setError('公開v1ではSBI証券CSV取込を表示していません。')
       return
@@ -438,11 +460,48 @@ export default function SettingsPage() {
     navigate('/auth', { replace: true })
   }
 
+  async function handleMigrateLocalData() {
+    const ok = window.confirm('このブラウザに保存された試用データをクラウドへ保存します。実行しますか？')
+    if (!ok) return
+
+    try {
+      setWorking('migrate_local')
+      setError('')
+      setMsg('')
+      const result = await migrateLocalImportsToCloud()
+      setMigrationResult(result)
+      setMsg(`クラウド保存が完了しました。作成 ${result.created_count} 件、更新 ${result.updated_count || 0} 件、スキップ ${result.skipped_count} 件です。`)
+      await refetchLatestImports()
+      await refetchUnsyncedLocalData()
+    } catch (e) {
+      setError(String(e?.message || e || 'クラウド保存に失敗しました。'))
+    } finally {
+      setWorking('')
+    }
+  }
+
   const canDeleteData = String(confirmText || '').trim().toUpperCase() === 'DELETE'
 
   return (
     <div style={{ display: 'grid', gap: 10, maxWidth: 760 }}>
       <h2 style={{ margin: 0 }}>設定</h2>
+
+      {localTrial ? (
+        <div style={{ border: '1px solid #b2ddff', borderRadius: 12, padding: 12, background: '#eff8ff', display: 'grid', gap: 8 }}>
+          <div style={{ fontSize: 13, color: '#175cd3', fontWeight: 800 }}>登録せずに試用中</div>
+          <div style={{ fontSize: 13, color: '#1849a9', lineHeight: 1.6 }}>
+            CSV本文はサーバへ送らず、このブラウザ内で解析します。正規化した取引データだけをIndexedDBへ保存するため、ブラウザデータを削除すると消えます。
+          </div>
+          <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
+            <Link to="/auth?mode=signup" style={{ textDecoration: 'none' }}>
+              <button type="button" style={{ background: '#2a8871', color: '#fff', border: '1px solid #2a8871', borderRadius: 8, padding: '8px 12px', fontWeight: 700 }}>
+                クラウド保存で登録
+              </button>
+            </Link>
+            <Link to="/help#rakuten-csv">楽天CSVの取得手順を見る</Link>
+          </div>
+        </div>
+      ) : null}
 
       <div style={{ border: '1px solid #e4e7ec', borderRadius: 12, padding: 12, background: '#fff', display: 'grid', gap: 8 }}>
         <div style={{ fontSize: 13, color: '#667085', fontWeight: 700 }}>アカウント</div>
@@ -455,27 +514,66 @@ export default function SettingsPage() {
             </div>
           </>
         ) : null}
-        <div>
-          <button
-            type="button"
-            onClick={handleLogout}
-            disabled={!privateModeEnabled && !isAuthEnabled()}
-            style={{
-              background: '#2a8871',
-              color: '#fff',
-              border: '1px solid #2a8871',
-              borderRadius: 8,
-              padding: '8px 12px',
-              fontWeight: 700,
-              opacity: privateModeEnabled || isAuthEnabled() ? 1 : 0.6,
-            }}
-          >
-            {privateModeEnabled ? 'アクセス解除' : 'ログアウト'}
-          </button>
+        <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
+          {localTrial ? (
+            <>
+              <Link to="/auth?mode=signup" style={{ textDecoration: 'none' }}>
+                <button type="button" style={{ background: '#2a8871', color: '#fff', border: '1px solid #2a8871', borderRadius: 8, padding: '8px 12px', fontWeight: 700 }}>
+                  招待コードで登録
+                </button>
+              </Link>
+              <Link to="/auth" style={{ textDecoration: 'none' }}>
+                <button type="button" style={{ background: '#f2f4f7', color: '#111', border: '1px solid #d0d5dd', borderRadius: 8, padding: '8px 12px', fontWeight: 700 }}>
+                  ログイン
+                </button>
+              </Link>
+            </>
+          ) : (
+            <button
+              type="button"
+              onClick={handleLogout}
+              disabled={!privateModeEnabled && !isAuthEnabled()}
+              style={{
+                background: '#2a8871',
+                color: '#fff',
+                border: '1px solid #2a8871',
+                borderRadius: 8,
+                padding: '8px 12px',
+                fontWeight: 700,
+                opacity: privateModeEnabled || isAuthEnabled() ? 1 : 0.6,
+              }}
+            >
+              {privateModeEnabled ? 'アクセス解除' : 'ログアウト'}
+            </button>
+          )}
         </div>
       </div>
 
-      {showRuntime ? (
+      {authenticated && hasUnsyncedLocalData ? (
+        <div style={{ border: '1px solid #abefc6', borderRadius: 12, padding: 12, background: '#ecfdf3', display: 'grid', gap: 8 }}>
+          <div style={{ fontSize: 13, color: '#067647', fontWeight: 800 }}>このブラウザの試用データがあります</div>
+          <div style={{ fontSize: 13, color: '#05603a', lineHeight: 1.6 }}>
+            登録前に取り込んだ楽天CSVの取引データを、クラウド保存へ移行できます。CSV本文は保存していないため、正規化済みの取込候補だけを送信します。
+          </div>
+          <div>
+            <button
+              type="button"
+              onClick={handleMigrateLocalData}
+              disabled={working === 'migrate_local'}
+              style={{ background: '#2a8871', color: '#fff', border: '1px solid #2a8871', borderRadius: 8, padding: '8px 12px', fontWeight: 700, opacity: working === 'migrate_local' ? 0.6 : 1 }}
+            >
+              {working === 'migrate_local' ? '保存中…' : 'このブラウザのデータをクラウド保存する'}
+            </button>
+          </div>
+          {migrationResult ? (
+            <div style={{ fontSize: 12, color: '#067647' }}>
+              直近の移行: 作成 {migrationResult.created_count} 件 / 更新 {migrationResult.updated_count || 0} 件 / スキップ {migrationResult.skipped_count} 件
+            </div>
+          ) : null}
+        </div>
+      ) : null}
+
+      {showRuntime && !localTrial ? (
         <div style={{ border: '1px solid #e4e7ec', borderRadius: 12, padding: 12, background: '#fff', display: 'grid', gap: 8 }}>
           <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 8 }}>
             <div style={{ fontSize: 13, color: '#667085', fontWeight: 700 }}>稼働状況</div>
@@ -656,8 +754,9 @@ export default function SettingsPage() {
           <button
             type="button"
             onClick={handleRakutenAudit}
-            disabled={working === 'import_audit' || !importFile || !auditRealizedFile}
-            style={{ background: '#f2f4f7', color: '#111', border: '1px solid #d0d5dd', borderRadius: 8, padding: '8px 12px', opacity: working === 'import_audit' || !importFile || !auditRealizedFile ? 0.6 : 1 }}
+            disabled={localTrial || working === 'import_audit' || !importFile || !auditRealizedFile}
+            title={localTrial ? '登録せずに試すモードではサーバ照合を行いません。' : ''}
+            style={{ background: '#f2f4f7', color: '#111', border: '1px solid #d0d5dd', borderRadius: 8, padding: '8px 12px', opacity: localTrial || working === 'import_audit' || !importFile || !auditRealizedFile ? 0.6 : 1 }}
           >
             {working === 'import_audit' ? '照合中…' : '整合性チェック'}
           </button>
@@ -896,9 +995,11 @@ export default function SettingsPage() {
         </div>
 
         <div style={{ marginTop: 4, padding: 10, border: '1px solid #f4c7cc', borderRadius: 10, background: '#fcfcfd', display: 'grid', gap: 8 }}>
-          <div style={{ fontSize: 13, color: '#b42318', fontWeight: 700 }}>アカウントデータ削除</div>
+          <div style={{ fontSize: 13, color: '#b42318', fontWeight: 700 }}>{localTrial ? 'ローカル試用データ削除' : 'アカウントデータ削除'}</div>
           <div style={{ fontSize: 12, color: '#667085' }}>
-            取り消しできません。実行前にエクスポートを推奨します。
+            {localTrial
+              ? 'このブラウザ内に保存した取引データを削除します。取り消しできません。'
+              : '取り消しできません。実行前にエクスポートを推奨します。'}
           </div>
           <label style={{ display: 'grid', gap: 4 }}>
             <span style={{ fontSize: 12, color: '#667085' }}>確認文字列（DELETE）</span>

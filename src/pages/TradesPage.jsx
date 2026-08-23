@@ -3,6 +3,7 @@ import { useEffect, useMemo, useRef, useState } from 'react'
 import { Link, useSearchParams } from 'react-router-dom'
 
 import { formatJPY, formatUSD } from '../lib/api'
+import { isLocalTrialMode } from '../lib/localMode'
 import { TAG_OPTIONS } from '../lib/tags'
 import { listTrades } from '../lib/tradesApi'
 
@@ -235,6 +236,30 @@ const SORT_OPTIONS = [
   { value: 'rating', label: '評価' },
 ]
 
+const REVIEW_TIMEFRAME_LABELS = {
+  daily: '日足',
+  weekly: '週足',
+  monthly: '月足',
+}
+
+const ENTRY_PATTERN_LABELS = {
+  cwh: 'CwH',
+  high_breakout: '高値ブレイク',
+  range_breakout: 'レンジ上抜け',
+  band_walk: 'バンドウォーク',
+  news_spike: '材料後の急騰',
+  pullback_bounce: '押し目反発',
+  other: 'その他',
+}
+
+const EVALUATION_LABELS = {
+  good: '良い',
+  early: '早い',
+  late: '遅い',
+  weak_basis: '根拠不足',
+  rule_violation: 'ルール違反',
+}
+
 function FilterChip({ active, onClick, children }) {
   return (
     <button
@@ -254,9 +279,40 @@ function FilterChip({ active, onClick, children }) {
   )
 }
 
+function ReviewBadge({ children, tone = 'slate' }) {
+  const colors = {
+    slate: { color: '#344054', background: '#f2f4f7', border: '1px solid #eaecf0' },
+    teal: { color: '#0f766e', background: '#ecfdf5', border: '1px solid #99f6e4' },
+    blue: { color: '#175cd3', background: '#eff8ff', border: '1px solid #b2ddff' },
+    amber: { color: '#92400e', background: '#fffbeb', border: '1px solid #fde68a' },
+  }
+  const c = colors[tone] || colors.slate
+  return (
+    <span
+      style={{
+        display: 'inline-flex',
+        alignItems: 'center',
+        justifyContent: 'center',
+        whiteSpace: 'nowrap',
+        fontSize: 11,
+        color: c.color,
+        background: c.background,
+        border: c.border,
+        borderRadius: 999,
+        padding: '3px 8px',
+        lineHeight: 1.2,
+        fontWeight: 800,
+      }}
+    >
+      {children}
+    </span>
+  )
+}
+
 
 export default function TradesPage() {
   const [searchParams, setSearchParams] = useSearchParams()
+  const localTrial = isLocalTrialMode()
 
   const baseButtonStyle = {
     background: '#f2f4f7',
@@ -301,9 +357,12 @@ export default function TradesPage() {
     const winOnly = searchParams.get('win_only') === '1'
     const lossOnly = searchParams.get('loss_only') === '1'
     const statusRaw = searchParams.get('status')
+    const hasLegacyStatus = searchParams.has('pos') || searchParams.has('review')
     const status = statusRaw
       ? clampStatus(statusRaw)
-      : deriveStatusFromLegacy(searchParams.get('pos'), searchParams.get('review'))
+      : hasLegacyStatus
+        ? deriveStatusFromLegacy(searchParams.get('pos'), searchParams.get('review'))
+        : 'pending'
     return { q, market, rating, tag, status, sort, sortDir, page, limit, winFrom, winTo, winOnly, lossOnly }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [])
@@ -569,11 +628,25 @@ export default function TradesPage() {
           marginBottom: 0,
         }}
       >
-        <h2 style={{ margin: 0 }}>投資記録</h2>
-        <Link to="/trades/new" style={{ alignSelf: isMobile ? 'stretch' : 'auto' }}>
-          <button style={{ ...actionBtnStyle, minHeight: isMobile ? 42 : undefined, width: isMobile ? '100%' : undefined }}>＋ 新規トレード</button>
-        </Link>
+        <h2 style={{ margin: 0 }}>レビューキュー</h2>
+        <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', alignSelf: isMobile ? 'stretch' : 'auto' }}>
+          <Link to="/review" style={{ flex: isMobile ? 1 : 'initial' }}>
+            <button style={{ ...actionBtnStyle, minHeight: isMobile ? 42 : undefined, width: isMobile ? '100%' : undefined }}>次の未レビューへ</button>
+          </Link>
+          <Link to="/import" style={{ flex: isMobile ? 1 : 'initial' }}>
+            <button style={{ ...baseButtonStyle, minHeight: isMobile ? 42 : undefined, width: isMobile ? '100%' : undefined, fontWeight: 800 }}>CSV取込</button>
+          </Link>
+        </div>
       </div>
+
+      {localTrial ? (
+        <div style={{ marginTop: 10, border: '1px solid #b2ddff', borderRadius: 12, padding: '10px 12px', background: '#eff8ff', display: 'grid', gap: 4 }}>
+          <div style={{ fontSize: 13, color: '#175cd3', fontWeight: 800 }}>登録せずに試用中</div>
+          <div style={{ fontSize: 13, color: '#1849a9', lineHeight: 1.5 }}>
+            この一覧はこのブラウザ内のIndexedDBから表示しています。別端末で使う、またはバックアップしたい場合は設定からクラウド保存へ進めます。
+          </div>
+        </div>
+      ) : null}
 
       <div
         style={{
@@ -1086,7 +1159,13 @@ export default function TradesPage() {
       {error && <p style={{ color: 'crimson' }}>エラー: {String(error.message || error)}</p>}
 
       {!isLoading && !error && items.length === 0 && (
-        <p>まだ投資記録がありません。右上の「新規トレード」から作成できます。</p>
+        <p>
+          {statusFilter === 'pending'
+            ? '未レビューの取引はありません。新しいCSVを取り込むか、条件を「すべて」に変更してください。'
+            : localTrial
+              ? 'まだCSVが取り込まれていません。取込から楽天証券CSVをアップロードすると、このブラウザ内で分析できます。'
+              : '条件に一致する取引がありません。'}
+        </p>
       )}
 
       <div style={{ display: 'grid', gap: isMobile ? 8 : 10, marginTop: 10, padding: isMobile ? 0 : '0 4px' }}>
@@ -1232,6 +1311,26 @@ export default function TradesPage() {
                           >
                             分割決済由来
                           </span>
+                        ) : null}
+                        {t.strategy_timeframe ? (
+                          <ReviewBadge tone="blue">{REVIEW_TIMEFRAME_LABELS[t.strategy_timeframe] || t.strategy_timeframe}</ReviewBadge>
+                        ) : null}
+                        {t.entry_pattern ? (
+                          <ReviewBadge tone="teal">
+                            {t.entry_pattern === 'other'
+                              ? (t.entry_pattern_note || ENTRY_PATTERN_LABELS.other)
+                              : (ENTRY_PATTERN_LABELS[t.entry_pattern] || t.entry_pattern)}
+                          </ReviewBadge>
+                        ) : null}
+                        {t.entry_evaluation ? (
+                          <ReviewBadge tone={t.entry_evaluation === 'good' ? 'teal' : 'amber'}>
+                            ENTRY {EVALUATION_LABELS[t.entry_evaluation] || t.entry_evaluation}
+                          </ReviewBadge>
+                        ) : null}
+                        {t.exit_evaluation ? (
+                          <ReviewBadge tone={t.exit_evaluation === 'good' ? 'teal' : 'amber'}>
+                            EXIT {EVALUATION_LABELS[t.exit_evaluation] || t.exit_evaluation}
+                          </ReviewBadge>
                         ) : null}
                       </div>
                     )

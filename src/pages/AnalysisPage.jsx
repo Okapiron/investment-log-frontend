@@ -1,9 +1,10 @@
 import { useEffect, useRef } from 'react'
 import { useQuery } from '@tanstack/react-query'
-import { useLocation } from 'react-router-dom'
+import { Link, useLocation } from 'react-router-dom'
 
 import { trackProductEvent } from '../lib/analytics'
 import { getAnalysisSummary } from '../lib/analysisApi'
+import { isLocalTrialMode } from '../lib/localMode'
 
 function SectionCard({ title, children, subtitle = '' }) {
   return (
@@ -89,6 +90,7 @@ function bucketCaption(bucket, currency) {
 
 export default function AnalysisPage() {
   const location = useLocation()
+  const localTrial = isLocalTrialMode()
   const trackedImportViewRef = useRef(false)
   const { data, isLoading, error } = useQuery({
     queryKey: ['analysis', 'summary'],
@@ -126,6 +128,19 @@ export default function AnalysisPage() {
 
   return (
     <div style={{ display: 'grid', gap: 14, maxWidth: 1120, margin: '0 auto' }}>
+      {localTrial ? (
+        <section style={{ border: '1px solid #b2ddff', borderRadius: 14, padding: 14, background: '#eff8ff', display: 'grid', gap: 8 }}>
+          <div style={{ fontSize: 12, color: '#175cd3', fontWeight: 800 }}>登録せずに試用中</div>
+          <div style={{ fontSize: 14, color: '#1849a9', lineHeight: 1.6 }}>
+            この分析はブラウザ内のデータだけで作っています。CSV本文やAI要約用データはサーバへ送信していません。
+          </div>
+          <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap', fontSize: 13 }}>
+            <Link to="/settings">クラウド保存へ進む</Link>
+            <Link to="/trades">取引一覧を見る</Link>
+          </div>
+        </section>
+      ) : null}
+
       {importSummary ? (
         <section style={{ border: '1px solid #b2ddff', borderRadius: 14, padding: 14, background: '#eff8ff', display: 'grid', gap: 6 }}>
           <div style={{ fontSize: 12, color: '#175cd3', fontWeight: 700 }}>直近取込の要確認ポイント</div>

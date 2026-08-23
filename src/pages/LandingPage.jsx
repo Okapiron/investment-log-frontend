@@ -130,16 +130,21 @@ export default function LandingPage() {
             </div>
             <div className="lp-hero-actions">
               <Link
-                to="/auth?mode=signup"
+                to="/settings"
                 className="lp-btn lp-btn-primary"
+                data-cta="hero-local-trial"
+                onClick={() => trackCtaClick('hero-local-trial')}
+              >
+                登録せずに試す
+              </Link>
+              <Link
+                to="/auth?mode=signup"
+                className="lp-btn lp-btn-secondary"
                 data-cta="hero-signup"
                 onClick={() => trackCtaClick('hero-signup')}
               >
-                新規登録
+                クラウド保存で登録
               </Link>
-              <a href="#lp-cycle" className="lp-btn lp-btn-secondary" data-cta="hero-more">
-                詳しく見る
-              </a>
             </div>
           </div>
           <div className="lp-hero-visual">
@@ -237,12 +242,12 @@ export default function LandingPage() {
         <p>トレード記録をきちんとつけるならTradeTrace をお試しください。</p>
         <div className="lp-final-actions">
           <Link
-            to="/auth?mode=signup"
+            to="/settings"
             className="lp-btn lp-btn-primary"
-            data-cta="final-signup"
-            onClick={() => trackCtaClick('final-signup')}
+            data-cta="final-local-trial"
+            onClick={() => trackCtaClick('final-local-trial')}
           >
-            新規登録
+            登録せずに試す
           </Link>
           <Link
             to="/auth"
