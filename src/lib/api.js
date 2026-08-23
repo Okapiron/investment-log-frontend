@@ -3,6 +3,11 @@ import { buildPrivateAccessHeaders } from './privateAccess'
 
 const API_BASE = import.meta.env.VITE_API_BASE || 'http://localhost:8000/api/v1'
 const REQUEST_TIMEOUT_MS = Number(import.meta.env.VITE_API_TIMEOUT_MS || 15000)
+const GET_RETRY_DELAYS_MS = [400, 800, 1200, 1600]
+
+function wait(ms) {
+  return new Promise((resolve) => setTimeout(resolve, ms))
+}
 
 export function resolveApiUrl(path) {
   const base = String(API_BASE || '').replace(/\/+$/, '')
@@ -40,27 +45,39 @@ export function buildApiHeaders({ includeContentType = true, headers = {} } = {}
 
 async function request(path, options = {}) {
   const url = resolveApiUrl(path)
-
-  const useTimeout = !options.signal && Number.isFinite(REQUEST_TIMEOUT_MS) && REQUEST_TIMEOUT_MS > 0
-  const controller = useTimeout ? new AbortController() : null
-  const timer = controller ? setTimeout(() => controller.abort(), REQUEST_TIMEOUT_MS) : null
-
+  const method = String(options.method || 'GET').toUpperCase()
+  const retryDelays = method === 'GET' && !options.signal ? GET_RETRY_DELAYS_MS : []
   let res
-  try {
-    res = await fetch(url, {
-      headers: buildApiHeaders({ headers: options.headers || {} }),
-      signal: controller ? controller.signal : options.signal,
-      ...options,
-    })
-  } catch {
-    throw new Error(
-      controller?.signal.aborted
-        ? `API応答がタイムアウトしました（${REQUEST_TIMEOUT_MS}ms）。`
-        : 'APIに接続できません。バックエンド起動状態またはネットワークを確認してください。',
-    )
-  } finally {
-    if (timer) clearTimeout(timer)
+  let lastConnectionError = null
+
+  for (let attempt = 0; attempt <= retryDelays.length; attempt += 1) {
+    const useTimeout = !options.signal && Number.isFinite(REQUEST_TIMEOUT_MS) && REQUEST_TIMEOUT_MS > 0
+    const controller = useTimeout ? new AbortController() : null
+    const timer = controller ? setTimeout(() => controller.abort(), REQUEST_TIMEOUT_MS) : null
+    try {
+      res = await fetch(url, {
+        headers: buildApiHeaders({ headers: options.headers || {} }),
+        signal: controller ? controller.signal : options.signal,
+        ...options,
+      })
+      lastConnectionError = null
+      break
+    } catch {
+      lastConnectionError = new Error(
+        controller?.signal.aborted
+          ? `API応答がタイムアウトしました（${REQUEST_TIMEOUT_MS}ms）。`
+          : 'APIに接続できません。自動再接続に失敗しました。TradeTraceを起動し直してください。',
+      )
+    } finally {
+      if (timer) clearTimeout(timer)
+    }
+
+    if (attempt < retryDelays.length) {
+      await wait(retryDelays[attempt])
+    }
   }
+
+  if (lastConnectionError) throw lastConnectionError
 
   if (!res.ok) {
     let detail = 'Request failed'
